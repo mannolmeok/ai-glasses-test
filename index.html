@@ -1,0 +1,108 @@
+<!doctype html>
+<!-- PROTOTYPE - NOT FOR PRODUCTION -->
+<!-- Question: 감독관 눈치를 보며 AI 안경으로 스캔하는 긴장감이, 장비와 시험이 함께 커지는 성장과 맞물려 엔딩까지 재밌나? -->
+<!-- Date: 2026-11-17 -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d0b13">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AI 안경">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta name="robots" content="noindex,nofollow">
+<title>AI 안경</title>
+<meta name="description" content="AI 안경을 쓰고 시험을 치르는 1인칭 게임">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AI 안경으로 살아남기">
+<meta property="og:title" content="AI 안경으로 살아남기">
+<meta property="og:description" content="AI 안경을 쓰고 시험을 치르는 1인칭 게임">
+<meta property="og:url" content="https://aiglass.lol/">
+<meta property="og:image" content="https://aiglass.lol/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI 안경으로 살아남기">
+<meta name="twitter:description" content="AI 안경을 쓰고 시험을 치르는 1인칭 게임">
+<meta name="twitter:image" content="https://aiglass.lol/assets/og.jpg">
+<script>
+  // 홈 화면 앱 정보는 웹 주소에서 열었을 때만 붙인다 (파일로 열면 브라우저가 읽지 못한다)
+  if (/^https?:$/.test(location.protocol)) { var l = document.createElement('link'); l.rel = 'manifest'; l.href = 'manifest.webmanifest'; document.head.appendChild(l); }
+</script>
+<style>
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-110.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+C90D}
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-111.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+C4F8}
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-114.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+C751}
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-115.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+B2F5,U+C0B4}
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-116.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+B984,U+C11D,U+C54A}
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-117.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+AD6D,U+B0A8,U+B4F1,U+B514,U+B824,U+BC1C,U+C54C,U+C801,U+CC28,U+D45C}
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-118.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+49,U+ACBD,U+B294,U+B2C8,U+B85D,U+C2B5,U+C544,U+C548,U+C5B4,U+C5D0,U+C73C,U+C744,U+C77C,U+C790,U+C804,U+C815,U+C8FC}
+@font-face{font-family:"Black Han Sans";src:url(assets/fonts/bhs-119.woff2) format("woff2");font-weight:400;font-display:swap;unicode-range:U+20,U+2E,U+41,U+AE30,U+B2E4,U+B85C,U+C2DC,U+C774,U+C9C0}
+@font-face{font-family:"VT323";src:url(assets/fonts/vt323-latin.woff2) format("woff2");font-weight:400;font-display:swap}
+  :root { --bg: #16131f; --card: #211c2c; --line: #3a3248; --hud: #45e5ee; --gold: #f5cc4a; --txt: #ecebf2; --dim: #b4aec6; --bad: #ea4540; --warn: #f6a234; --good: #62d84a; }
+  html, body { margin: 0; height: 100%; background: #0d0b13; color: var(--txt); overflow: hidden;
+    font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", sans-serif; font-variant-numeric: tabular-nums; }
+  #app { display: flex; height: 100%; height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
+  #stage { flex: 1; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; background: #0d0b13; }
+  #screen { position: relative; }
+  #screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #world { image-rendering: pixelated; }
+  canvas { display: block; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  /* 글자를 받는 작은 창: 저장 코드, 기록에 남길 이름 */
+  #dlg { position: fixed; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; background: rgba(5, 4, 10, 0.7); padding: 12px; }
+  #dlg[hidden] { display: none; }
+  #dlg .box { width: min(360px, 92vw); background: #10131c; border: 12px solid #0c0c10; border-radius: 30px; padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 24px 50px rgba(0, 0, 0, 0.6); transform: rotate(0.8deg); }
+  #dlg b { font-size: 20px; color: #ffffff; } #dlg p { margin: 0; font-size: 14px; color: #8fa0b8; line-height: 1.5; }
+  #dlg input, #dlg textarea { font: inherit; font-size: 16px; background: #1a1f2c; color: #dfe8f0; border: 2px solid #4a5a6a; border-radius: 10px; padding: 10px; width: 100%; box-sizing: border-box; }
+  #dlg textarea { height: 150px; resize: none; font-size: 12px; word-break: break-all; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  #dlg [hidden] { display: none; }
+  #dlg .btns { display: flex; gap: 10px; }
+  #dlg button { flex: 1; min-height: 46px; border: 0; background: #ffffff; color: #10131c; font: inherit; font-size: 16px; font-weight: 700; border-radius: 0; cursor: pointer; }
+  #dlg #dlgCancel { border: 2px solid #4a5a6a; background: #1c2230; color: #ffffff; }
+  /* 휴대폰을 세로로 들면: 가로로 돌려 달라고 한다 (게임은 멈춤) */
+  #rotate { display: none; position: fixed; inset: 0; z-index: 10; background: #0d0b13; color: var(--txt); flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; }
+  #rotate b { font-size: 22px; } #rotate span { font-size: 15px; color: var(--dim); }
+  #rotate svg { width: 96px; height: 96px; animation: tilt 2.4s ease-in-out infinite; }
+  @keyframes tilt { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+  @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="stage"><div id="screen"><canvas id="world" aria-hidden="true"></canvas><canvas id="game" aria-label="AI 안경: 1인칭 화면"></canvas></div></main>
+</div>
+<input id="nameIn" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="석차표에 남길 이름" style="position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;border:0;padding:0;font-size:16px">
+<div id="dlg" hidden>
+  <section class="box" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <b id="dlgTitle"></b><p id="dlgText"></p>
+    <input id="dlgInput" maxlength="10" autocomplete="off" aria-label="이름">
+    <textarea id="dlgArea" spellcheck="false" autocomplete="off" aria-label="저장 코드"></textarea>
+    <div class="btns"><button id="dlgCancel">닫기</button><button id="dlgOk">확인</button></div>
+  </section>
+</div>
+<div id="rotate" role="alert">
+  <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="14" y="4" width="20" height="40" rx="3" fill="none" stroke="#45e5ee" stroke-width="3"/><rect x="21" y="38" width="6" height="2" fill="#45e5ee"/></svg>
+  <b>가로로 돌려 주세요</b><span>AI 안경은 휴대폰을 가로로 들고 해요.<br>양손 엄지로 화면 양옆을 눌러 고개를 돌려요.</span>
+</div>
+<script>window.BUILD = 't1';</script>
+<script src="build-info.js?v=t1"></script>
+<script src="config.js?v=t1"></script>
+<script src="data.js?v=t1"></script>
+<script src="art.js?v=t1"></script>
+<script src="exam-art.js?v=t1"></script>
+<script src="vendor/three.js?v=0.186.1"></script>
+<script src="world3d.js?v=t1"></script>
+<script src="hub-ui.js?v=t1"></script>
+<script src="game.js?v=t1"></script>
+<script>
+  // 방문 통계(Cloudflare Web Analytics): 실제 주소에서 사람이 열었을 때만 붙인다. 점검용 주소(?manual, ?scene)와 자동 실행에서는 세지 않는다.
+  if (/(^|\.)aiglass\.lol$/.test(location.hostname) && !/[?&](manual|scene)=/.test(location.search) && !navigator.webdriver) {
+    var cf = document.createElement('script'); cf.type = 'module'; cf.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+    cf.setAttribute('data-cf-beacon', '{"token": "f61d76614de14cae96308f7d658de2a0"}'); document.body.appendChild(cf);
+  }
+</script>
+</body>
+</html>
