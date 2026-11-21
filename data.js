@@ -7,15 +7,16 @@
 
 // 맞춤법: [맞는 말, 틀린 말]. 문맥에 따라 둘 다 맞을 수 있는 짝은 넣지 않는다.
 const SPELL = [
-  ['며칠', '몇일'], ['설거지', '설겆이'], ['역할', '역활'], ['금세', '금새'], ['왠지', '웬지'],
-  ['웬일', '왠일'], ['어떡해', '어떻해'], ['희한하다', '희안하다'], ['일부러', '일부로'], ['오랜만', '오랫만'],
-  ['굳이', '구지'], ['곰곰이', '곰곰히'], ['깨끗이', '깨끗히'], ['틈틈이', '틈틈히'], ['됐다', '됬다'],
-  ['육개장', '육계장'], ['찌개', '찌게'], ['베개', '베게'], ['떡볶이', '떡볶기'], ['핑계', '핑게'],
-  ['할게', '할께'], ['눈곱', '눈꼽'], ['숟가락', '숫가락'], ['무릅쓰다', '무릎쓰다'], ['짜깁기', '짜집기'],
-  ['일찍이', '일찌기'], ['개수', '갯수'], ['설렘', '설레임'], ['헤매다', '헤메다'], ['치러야', '치뤄야'],
-  ['담가', '담궈'], ['잠가', '잠궈'], ['어이없다', '어의없다'], ['대가', '댓가'], ['내로라하는', '내노라하는'],
-  ['돌멩이', '돌맹이'], ['알맞은', '알맞는'], ['걸맞은', '걸맞는'], ['웃어른', '윗어른'], ['위층', '윗층'],
-  ['휴게실', '휴계실'], ['웬만하면', '왠만하면'], ['봬요', '뵈요'], ['우레', '우뢰'],
+  ['어쭙잖다', '어줍잖다'], ['설렘', '설레임'], ['널찍하다', '넓직하다'], ['닦달', '닥달'], ['괜스레', '괜시리'],
+  ['뒤치다꺼리', '뒤치닥거리'], ['삼가다', '삼가하다'], ['되뇌다', '되뇌이다'], ['추스르다', '추스리다'], ['욱여넣다', '우겨넣다'],
+  ['눈살', '눈쌀'], ['내로라하다', '내노라하다'], ['통째로', '통채로'], ['으레', '으례'], ['켕기다', '캥기다'],
+  ['허투루', '허투로'], ['치르다', '치루다'], ['잠그다', '잠구다'], ['담그다', '담구다'], ['구레나룻', '구렛나루'],
+  ['껍질째', '껍질채'], ['늘그막', '늙으막'], ['움큼', '웅큼'], ['짜깁기', '짜집기'], ['희한하다', '희안하다'],
+  ['얽히고설키다', '얼키고설키다'], ['핼쑥하다', '핼쓱하다'], ['곱빼기', '곱배기'], ['뇌졸중', '뇌졸증'], ['덤터기', '덤태기'],
+  ['메슥거리다', '미식거리다'], ['아등바등', '아둥바둥'], ['빈털터리', '빈털털이'], ['안절부절못하다', '안절부절하다'], ['개수', '갯수'],
+  ['해님', '햇님'], ['머리말', '머릿말'], ['인사말', '인삿말'], ['전셋집', '전세집'], ['마구간', '마굿간'],
+  ['초점', '촛점'], ['대가', '댓가'], ['겸연쩍다', '겸연적다'], ['숙맥', '쑥맥'], ['일사불란', '일사분란'],
+  ['풍비박산', '풍지박산'], ['절체절명', '절대절명'], ['동고동락', '동거동락'], ['야반도주', '야밤도주'], ['성대모사', '성대묘사'],
 ];
 
 const ALIEN_Q = ['다음 중 가장 무거운 별은?', '블랙홀의 맛으로 옳은 것은?', '은하 3번 국도의 제한 속도는?',
@@ -24,28 +25,28 @@ const ALIEN_Q = ['다음 중 가장 무거운 별은?', '블랙홀의 맛으로 
 
 // 4지선다 문제 묶음: [문제, 정답, 오답 3개]
 const TOEIC = [
-  ['The meeting has been ____ until next Monday.', 'postponed', ['postpone', 'postponing', 'postpones']],
-  ['Please submit the report ____ Friday.', 'by', ['until', 'since', 'during']],
-  ['Ms. Kim is responsible ____ training new staff.', 'for', ['to', 'with', 'of']],
-  ['The new policy will take ____ next month.', 'effect', ['affect', 'effective', 'effectively']],
-  ['All employees must ____ their ID badges.', 'wear', ['wearing', 'wore', 'worn']],
-  ['The manager asked us to work more ____.', 'efficiently', ['efficient', 'efficiency', 'efficiencies']],
-  ['Neither the CEO ____ the CFO attended.', 'nor', ['or', 'and', 'but']],
-  ['The package arrived ____ than expected.', 'earlier', ['early', 'earliest', 'more early']],
-  ['If the client ____ earlier, we would have finished.', 'had called', ['called', 'calls', 'has called']],
-  ['The conference room is ____ this afternoon.', 'available', ['availability', 'avail', 'availably']],
-  ['Mr. Park has worked here ____ 2019.', 'since', ['for', 'at', 'during']],
-  ['Sales were ____ higher this quarter.', 'significantly', ['significant', 'significance', 'signify']],
-  ['Applicants need three years of ____ experience.', 'relevant', ['relevance', 'relevantly', 'relate']],
-  ['The store will be closed ____ the holiday.', 'during', ['while', 'when', 'as']],
-  ['Thank you for ____ our survey.', 'completing', ['complete', 'completed', 'completes']],
-  ['The proposal was approved ____ the board.', 'by', ['to', 'at', 'on']],
-  ['Each of the participants ____ a certificate.', 'receives', ['receive', 'receiving', 'have received']],
-  ['We look forward to ____ from you.', 'hearing', ['hear', 'heard', 'be heard']],
-  ['The shipment was delayed ____ bad weather.', 'due to', ['because', 'so that', 'although']],
-  ['She is the most ____ candidate for the job.', 'qualified', ['qualify', 'qualification', 'qualifies']],
-  ['Items can be returned ____ 30 days.', 'within', ['between', 'among', 'above']],
-  ['The report must be reviewed ____ it is sent.', 'before', ['during', 'despite', 'unless']],
+  ['Had the shipment arrived on time, we ____ the deadline.', 'would have met', ['would meet', 'will have met', 'had met']],
+  ['The manager insisted that every invoice ____ before noon.', 'be approved', ['is approved', 'approves', 'was approving']],
+  ['The software is ____ of processing 10,000 orders per hour.', 'capable', ['able', 'possible', 'competent']],
+  ['Sales rose sharply, ____ exceeding the quarterly forecast.', 'thereby', ['whereas', 'otherwise', 'nevertheless']],
+  ['Mr. Ito, ____ proposal was accepted, will lead the project.', 'whose', ['who', 'whom', 'which']],
+  ['Employees are entitled ____ fifteen days of paid leave.', 'to', ['for', 'with', 'of']],
+  ['Not until the audit was complete ____ the error.', 'did they notice', ['they noticed', 'they did notice', 'noticed they']],
+  ['The warranty does not cover damage ____ from misuse.', 'resulting', ['resulted', 'results', 'to result']],
+  ['Ms. Park is accustomed to ____ with overseas clients.', 'dealing', ['deal', 'dealt', 'be dealt']],
+  ['The more feedback we collect, ____ our service becomes.', 'the better', ['better', 'the best', 'more better']],
+  ['The seminar was canceled ____ low enrollment.', 'owing to', ['because', 'despite', 'in case']],
+  ['By the time the CEO arrives, the team ____ the slides.', 'will have finished', ['finished', 'has finished', 'will finishing']],
+  ['The data must be kept strictly ____.', 'confidential', ['confident', 'confidentially', 'confidence']],
+  ['Rarely ____ such a rapid increase in demand.', 'have we seen', ['we have seen', 'we saw', 'did we saw']],
+  ['The committee is looking forward to ____ your proposal.', 'reviewing', ['review', 'reviewed', 'be reviewed']],
+  ['It is imperative that the client ____ informed immediately.', 'be', ['is', 'was', 'being']],
+  ['The building, ____ in 1920, is now a museum.', 'constructed', ['constructing', 'was constructed', 'constructs']],
+  ['Please refrain ____ using mobile phones during the session.', 'from', ['to', 'of', 'against']],
+  ['Neither the director nor the managers ____ aware of the change.', 'were', ['was', 'is', 'has been']],
+  ['Hardly had the meeting begun ____ the fire alarm rang.', 'when', ['than', 'then', 'that']],
+  ['The refund will be processed ____ receipt of the returned item.', 'upon', ['while', 'during', 'among']],
+  ['She would rather ____ the report today than delay it.', 'finish', ['to finish', 'finishing', 'finished']],
 ];
 // 토익 듣기: 문제는 방송으로만 나온다. 보기 넷 중 무엇이 맞는지는 들어야 안다.
 const TOEIC_LC = ['She is pouring some coffee.', 'They are boarding a bus.', 'A man is fixing a bicycle.', 'Some boxes are stacked on a cart.',
@@ -53,26 +54,38 @@ const TOEIC_LC = ['She is pouring some coffee.', 'They are boarding a bus.', 'A 
   'He is holding a briefcase.', 'The door has been left open.', 'She is reading a menu.', 'A ladder is leaning against a wall.',
   'They are shaking hands.', 'The shelves are being stocked.', 'A car is parked by the curb.', 'He is typing on a keyboard.'];
 const TOEFL = [
-  ["The word 'abundant' is closest in meaning to", 'plentiful', ['rare', 'ancient', 'fragile']],
-  ["The word 'diminish' is closest in meaning to", 'decrease', ['explain', 'reveal', 'enlarge']],
-  ["The word 'feasible' is closest in meaning to", 'possible', ['careless', 'famous', 'hidden']],
-  ["The word 'subsequent' is closest in meaning to", 'following', ['previous', 'sudden', 'minor']],
-  ["The word 'vital' is closest in meaning to", 'essential', ['optional', 'lively', 'visible']],
-  ["The word 'conceal' is closest in meaning to", 'hide', ['reveal', 'build', 'repeat']],
-  ["The word 'rigid' is closest in meaning to", 'stiff', ['flexible', 'wet', 'quiet']],
-  ["The word 'acquire' is closest in meaning to", 'obtain', ['lose', 'admire', 'require']],
-  ["The word 'precise' is closest in meaning to", 'exact', ['vague', 'costly', 'early']],
-  ["The word 'enormous' is closest in meaning to", 'huge', ['tiny', 'normal', 'heavy']],
-  ["The word 'hostile' is closest in meaning to", 'unfriendly', ['welcoming', 'tired', 'distant']],
-  ["The word 'scarce' is closest in meaning to", 'limited', ['frightening', 'common', 'scattered']],
+  ['"attenuate" in the passage is closest in meaning to', 'weaken', ['amplify', 'lengthen', 'attend']],
+  ['"corroborate" in the passage is closest in meaning to', 'confirm', ['refute', 'collaborate', 'corrode']],
+  ['"anomalous" in the passage is closest in meaning to', 'irregular', ['typical', 'anonymous', 'harmful']],
+  ['"paucity" in the passage is closest in meaning to', 'scarcity', ['abundance', 'delay', 'purity']],
+  ['"precipitate" (verb) in the passage is closest in meaning to', 'trigger', ['prevent', 'soften', 'predict']],
+  ['"disseminate" in the passage is closest in meaning to', 'spread', ['conceal', 'dismantle', 'imitate']],
+  ['"inexorable" in the passage is closest in meaning to', 'unstoppable', ['avoidable', 'inexplicable', 'gradual']],
+  ['"vestige" in the passage is closest in meaning to', 'trace', ['garment', 'origin', 'summit']],
+  ['"ameliorate" in the passage is closest in meaning to', 'improve', ['worsen', 'postpone', 'conceal']],
+  ['"tenable" in the passage is closest in meaning to', 'defensible', ['fragile', 'temporary', 'tenth']],
+  ['"burgeoning" in the passage is closest in meaning to', 'rapidly growing', ['slowly fading', 'heavily taxed', 'newly buried']],
+  ['"salient" in the passage is closest in meaning to', 'prominent', ['salty', 'hidden', 'silent']],
+  ['"ostensibly" in the passage is closest in meaning to', 'apparently', ['secretly', 'costly', 'rarely']],
+  ['"eschew" in the passage is closest in meaning to', 'avoid', ['chew', 'embrace', 'repeat']],
+  ['"profligate" in the passage is closest in meaning to', 'wasteful', ['frugal', 'prolific', 'profound']],
+  ['"stratum" in the passage is closest in meaning to', 'layer', ['strategy', 'summit', 'current']],
 ];
 const SAT_WORDS = [
-  ['Choose the word closest to "meticulous".', 'careful', ['careless', 'quick', 'loud']],
-  ['Choose the word closest to "candid".', 'honest', ['sweet', 'hidden', 'nervous']],
-  ['Choose the word closest to "benevolent".', 'kind', ['cruel', 'lazy', 'wealthy']],
-  ['Choose the word closest to "ephemeral".', 'short-lived', ['eternal', 'heavy', 'colorful']],
-  ['Choose the word closest to "pragmatic".', 'practical', ['dreamy', 'angry', 'ancient']],
-  ['Choose the word closest to "lucid".', 'clear', ['dark', 'lucky', 'slow']],
+  ['Choose the word closest to "ambivalent".', 'conflicted', ['certain', 'hostile', 'generous']],
+  ['Choose the word closest to "cogent".', 'convincing', ['vague', 'lengthy', 'gentle']],
+  ['Choose the word closest to "disparate".', 'distinct', ['similar', 'desperate', 'sparse']],
+  ['Choose the word closest to "frivolous".', 'trivial', ['serious', 'frozen', 'fragile']],
+  ['Choose the word closest to "gregarious".', 'sociable', ['solitary', 'greedy', 'grateful']],
+  ['Choose the word closest to "impetuous".', 'rash', ['cautious', 'imperial', 'important']],
+  ['Choose the word closest to "lethargic".', 'sluggish', ['energetic', 'lethal', 'legal']],
+  ['Choose the word closest to "placate".', 'soothe', ['provoke', 'relocate', 'imitate']],
+  ['Choose the word closest to "tenacious".', 'persistent', ['fragile', 'tentative', 'tense']],
+  ['Choose the word closest to "venerate".', 'revere', ['despise', 'ventilate', 'generate']],
+  ['Choose the word closest to "zealous".', 'fervent', ['apathetic', 'jealous', 'lazy']],
+  ['Choose the word closest to "esoteric".', 'obscure', ['popular', 'external', 'historic']],
+  ['Choose the word closest to "novel" (adjective).', 'original', ['fictional', 'ancient', 'lengthy']],
+  ['Choose the word closest to "meticulous".', 'painstaking', ['careless', 'metallic', 'timid']],
 ];
 const HISTORY = [
   ['훈민정음을 창제한 왕은?', '세종', ['태종', '세조', '정조']],
@@ -113,65 +126,138 @@ const BIZ = [
   ['주식회사의 최고 의사결정 기구는?', '주주총회', ['이사회', '감사', '대표이사']],
 ];
 const LAW = [
-  ['대한민국 헌법상 대통령의 임기는?', '5년', ['4년', '6년', '7년']],
-  ['국회의원의 임기는?', '4년', ['5년', '6년', '3년']],
-  ['헌법재판소 재판관의 수는?', '9명', ['7명', '11명', '13명']],
-  ['형법상 형사미성년자는 몇 세 미만인가?', '14세', ['12세', '16세', '18세']],
-  ['민법상 성년이 되는 나이는?', '19세', ['18세', '20세', '21세']],
-  ['죄형법정주의가 금지하는 것은?', '소급 처벌', ['형의 감경', '집행 유예', '선고 유예']],
-  ['계약이 성립하려면 필요한 것은?', '청약과 승낙의 합치', ['공증', '등기', '계약금']],
-  ['헌법 개정안을 국회가 의결하려면 재적의원 몇 이상이 찬성해야 하나?', '3분의 2', ['과반수', '4분의 3', '5분의 3']],
-  ['형벌 중 가장 무거운 것은?', '사형', ['징역', '금고', '벌금']],
-  ['부동산 소유권을 넘기려면 필요한 것은?', '등기', ['인도', '공증', '통지']],
-  ['대법원장의 임기는?', '6년', ['5년', '4년', '10년']],
-  ['정당방위가 인정되면 그 행위는?', '위법성이 없어진다', ['형이 감경된다', '처벌이 유예된다', '벌금형이 된다']],
+  ['헌법 개정안의 국회 의결 정족수는?', '재적 3분의 2 이상 찬성', ['재적 과반수 찬성', '출석 3분의 2 찬성', '재적 5분의 3 찬성']],
+  ['대통령 탄핵소추의 국회 의결 정족수는?', '재적 3분의 2 이상', ['재적 과반수', '재적 3분의 1', '출석 3분의 2']],
+  ['헌법재판소 위헌 결정에 필요한 재판관 수는?', '6명 이상', ['5명 이상', '7명 이상', '9명 전원']],
+  ['민법상 일반 채권의 소멸시효는?', '10년', ['3년', '5년', '20년']],
+  ['상사채권의 소멸시효는?', '5년', ['3년', '10년', '1년']],
+  ['민법상 성년이 되는 나이는?', '만 19세', ['만 18세', '만 20세', '만 21세']],
+  ['부동산 점유취득시효 기간은?', '20년', ['10년', '5년', '30년']],
+  ['부동산 등기부취득시효 기간은?', '10년', ['20년', '5년', '3년']],
+  ['민법상 법정이율은?', '연 5%', ['연 6%', '연 3%', '연 12%']],
+  ['상법상 법정이율은?', '연 6%', ['연 5%', '연 12%', '연 3%']],
+  ['형사 미성년자의 기준은?', '14세 미만', ['13세 미만', '12세 미만', '16세 미만']],
+  ['불법행위 손해배상청구권은 손해와 가해자를 안 날부터?', '3년', ['1년', '5년', '10년']],
+  ['국회 임시회 소집 요구에 필요한 재적의원 수는?', '4분의 1 이상', ['3분의 1 이상', '5분의 1 이상', '과반수']],
+  ['대통령 선거에 나갈 수 있는 나이는?', '40세 이상', ['35세 이상', '45세 이상', '30세 이상']],
+  ['대법원장의 임기는?', '6년, 중임 불가', ['6년, 연임 가능', '4년, 중임 불가', '10년, 단임']],
+  ['헌법재판소장을 임명하는 절차는?', '국회 동의 후 대통령 임명', ['대법원장 지명', '국회 선출', '재판관 호선']],
+  ['계약금만 준 매수인이 계약을 해제하려면?', '계약금 포기', ['계약금 두 배 반환', '위약금 세 배', '해제 불가']],
+  ['직계비속의 유류분은 법정상속분의?', '2분의 1', ['3분의 1', '4분의 1', '3분의 2']],
+  ['배우자의 법정상속분은 직계비속 한 명의 몇 배?', '1.5배', ['1배', '2배', '0.5배']],
+  ['민사 항소 기간은 판결서를 송달받은 날부터?', '2주', ['1주', '3주', '30일']],
+  ['형사 항소 기간은 판결 선고일부터?', '7일', ['14일', '10일', '30일']],
+  ['체포한 피의자의 구속영장은 몇 시간 안에 청구하나?', '48시간', ['24시간', '72시간', '36시간']],
+  ['주주총회 특별결의는 출석 의결권의?', '3분의 2 이상', ['과반수', '4분의 3 이상', '전원']],
+  ['주식회사 이사의 임기 상한은?', '3년', ['2년', '4년', '5년']],
+  ['취소권은 추인할 수 있는 날부터 몇 년 안에 행사하나?', '3년', ['1년', '5년', '10년']],
+  ['채권자취소권은 취소 원인을 안 날부터?', '1년', ['3년', '5년', '6개월']],
+  ['국회의 계엄 해제 요구 정족수는?', '재적 과반수 찬성', ['재적 3분의 2', '출석 과반수', '재적 3분의 1']],
+  ['대통령이 거부한 법률안의 재의결 요건(출석 의원 기준)은?', '3분의 2 이상 찬성', ['과반수 찬성', '4분의 3 이상 찬성', '전원 찬성']],
 ];
 const OXFORD = [
-  ['모든 백조가 희다는 주장을 무너뜨리는 것은?', '검은 백조 한 마리', ['흰 백조 백만 마리', '백조 사진', '백조 사전']],
-  ['"나는 생각한다, 고로 존재한다"를 말한 사람은?', '데카르트', ['칸트', '흄', '플라톤']],
-  ['트롤리 문제가 다루는 것은?', '윤리적 선택', ['물리 법칙', '경제 성장', '언어 습득']],
-  ['죄수의 딜레마에서 둘 다 자백하는 까닭은?', '각자 배신이 유리해서', ['서로 믿어서', '법이 그래서', '운이 나빠서']],
-  ['오컴의 면도날이 권하는 것은?', '가장 단순한 설명', ['가장 긴 설명', '다수의 의견', '전통적 설명']],
-  ['테세우스의 배가 묻는 것은?', '동일성', ['속도', '소유권', '항해술']],
-  ['귀납 추론의 약점은?', '다음에도 같다는 보장이 없다', ['너무 짧다', '수학이 필요하다', '항상 틀린다']],
-  ['소크라테스 대화법의 핵심은?', '질문으로 모순 드러내기', ['강의로 가르치기', '투표로 정하기', '책 외우기']],
+  ['"실존은 본질에 앞선다"고 말한 사람은?', '사르트르', ['하이데거', '카뮈', '키르케고르']],
+  ['정언명령을 내세운 철학자는?', '칸트', ['밀', '벤담', '흄']],
+  ['"무지의 베일"을 제안한 사람은?', '롤스', ['노직', '샌델', '로크']],
+  ['반증 가능성을 과학의 기준으로 본 사람은?', '포퍼', ['쿤', '라카토슈', '파이어아벤트']],
+  ['패러다임 전환을 말한 사람은?', '쿤', ['포퍼', '콰인', '카르납']],
+  ['"중국어 방" 논증을 내놓은 사람은?', '설', ['튜링', '데닛', '차머스']],
+  ['의식의 "어려운 문제"라는 이름을 붙인 사람은?', '차머스', ['설', '네이글', '데닛']],
+  ['"박쥐가 된다는 것은 어떤 것인가"를 쓴 사람은?', '네이글', ['차머스', '퍼트넘', '크립키']],
+  ['게티어 문제가 반박한 지식의 정의는?', '정당화된 참인 믿음', ['경험된 사실', '다수의 합의', '유용한 믿음']],
+  ['흄이 의심한 것은?', '인과의 필연성', ['수학의 확실성', '감각의 존재', '언어의 의미']],
+  ['"경험 기계" 사고 실험을 내놓은 사람은?', '노직', ['롤스', '싱어', '파핏']],
+  ['괴델의 불완전성 정리가 말하는 것은?', '증명 못 하는 참인 명제가 있다', ['모든 명제는 증명된다', '수학은 모순이다', '무한은 없다']],
+  ['"언어의 한계가 세계의 한계"라고 쓴 사람은?', '비트겐슈타인', ['러셀', '프레게', '촘스키']],
+  ['테세우스의 배가 묻는 것은?', '동일성', ['인과', '자유의지', '정의']],
 ];
 const MED = [
-  ['인슐린을 만드는 곳은?', '췌장 베타세포', ['간', '신장', '갑상선']],
-  ['적혈구가 주로 만들어지는 곳은?', '골수', ['비장', '간', '심장']],
-  ['산소를 운반하는 단백질은?', '헤모글로빈', ['인슐린', '콜라겐', '케라틴']],
-  ['심장에서 폐로 피를 보내는 곳은?', '우심실', ['좌심실', '우심방', '좌심방']],
-  ['비타민 C 결핍증은?', '괴혈병', ['구루병', '각기병', '야맹증']],
-  ['비타민 D가 모자라 아이에게 생기는 병은?', '구루병', ['괴혈병', '펠라그라', '빈혈']],
-  ['뇌에서 균형을 맡는 곳은?', '소뇌', ['대뇌', '연수', '시상']],
-  ['정상 체온에 가장 가까운 것은?', '36.5도', ['34도', '38.5도', '40도']],
-  ['항생제가 듣지 않는 것은?', '바이러스', ['세균', '포도상구균', '연쇄상구균']],
-  ['페니실린을 발견한 사람은?', '플레밍', ['파스퇴르', '코흐', '제너']],
+  ['해당과정의 속도를 조절하는 핵심 효소는?', 'PFK-1', ['헥소키네이스', '피루브산 키네이스', '알돌레이스']],
+  ['TCA 회로가 일어나는 곳은?', '미토콘드리아 기질', ['세포질', '막 사이 공간', '소포체']],
+  ['포도당 한 분자가 해당과정에서 내는 순 ATP는?', '2개', ['4개', '36개', '1개']],
+  ['사구체 여과액이 가장 많이 재흡수되는 곳은?', '근위세뇨관', ['헨레고리', '원위세뇨관', '집합관']],
+  ['항이뇨호르몬(ADH)이 주로 작용하는 곳은?', '집합관', ['근위세뇨관', '사구체', '헨레고리 상행지']],
+  ['심전도에서 심실 탈분극을 나타내는 것은?', 'QRS파', ['P파', 'T파', 'U파']],
+  ['동방결절이 있는 곳은?', '우심방', ['좌심방', '우심실', '심실중격']],
+  ['비타민 K 의존 응고인자가 아닌 것은?', '제8인자', ['제2인자', '제7인자', '제10인자']],
+  ['와파린의 효과를 보는 검사는?', 'PT(INR)', ['aPTT', '출혈시간', '혈소판 수']],
+  ['헤파린의 효과를 보는 검사는?', 'aPTT', ['PT(INR)', '출혈시간', 'D-dimer']],
+  ['DNA 복제에서 RNA 프라이머를 만드는 효소는?', '프라이메이스', ['헬리케이스', '라이게이스', '토포아이소머레이스']],
+  ['오카자키 절편을 잇는 효소는?', 'DNA 라이게이스', ['프라이메이스', '헬리케이스', 'DNA 중합효소 III']],
+  ['번역 개시 코돈은?', 'AUG', ['UAA', 'UAG', 'UGA']],
+  ['다음 중 종결 코돈이 아닌 것은?', 'UGG', ['UAA', 'UAG', 'UGA']],
+  ['부교감신경 절후 섬유의 신경전달물질은?', '아세틸콜린', ['노르에피네프린', '도파민', '세로토닌']],
+  ['칼시토닌을 분비하는 세포는?', '갑상선 C세포', ['부갑상선 주세포', '췌장 알파세포', '부신 수질세포']],
+  ['알도스테론이 분비되는 부신 피질 층은?', '사구대', ['속상대', '망상대', '수질']],
+  ['코르티솔이 분비되는 부신 피질 층은?', '속상대', ['사구대', '망상대', '수질']],
+  ['산소 해리 곡선을 오른쪽으로 옮기는 것은?', 'pH 감소', ['체온 저하', '2,3-BPG 감소', 'CO2 감소']],
+  ['폐 계면활성제를 만드는 세포는?', '제2형 폐포세포', ['제1형 폐포세포', '술잔세포', '폐포 대식세포']],
+  ['위에서 내인자를 분비하는 세포는?', '벽세포', ['주세포', 'G세포', '점액세포']],
+  ['펩시노겐을 분비하는 세포는?', '주세포', ['벽세포', 'G세포', 'D세포']],
+  ['겸상 적혈구 빈혈의 유전 방식은?', '상염색체 열성', ['상염색체 우성', 'X 연관 열성', '미토콘드리아 유전']],
+  ['헌팅턴병의 유전 방식은?', '상염색체 우성', ['상염색체 열성', 'X 연관 열성', 'X 연관 우성']],
+  ['혈우병 A에서 부족한 응고인자는?', '제8인자', ['제9인자', '제7인자', '제11인자']],
+  ['페니실린이 막는 것은?', '세포벽 합성', ['단백질 합성', 'DNA 복제', '엽산 합성']],
+  ['태반을 통과하는 항체는?', 'IgG', ['IgM', 'IgA', 'IgE']],
+  ['1차 면역 반응에서 가장 먼저 나오는 항체는?', 'IgM', ['IgG', 'IgA', 'IgD']],
+  ['미주신경은 몇 번 뇌신경인가?', '10번', ['7번', '9번', '11번']],
+  ['안면신경은 몇 번 뇌신경인가?', '7번', ['5번', '8번', '10번']],
 ];
 const CFA = [
   ['분산 투자로 줄일 수 있는 위험은?', '비체계적 위험', ['체계적 위험', '시장 위험', '금리 위험']],
-  ['베타가 1보다 크면?', '시장보다 더 출렁인다', ['시장보다 덜 출렁인다', '위험이 없다', '배당이 많다']],
-  ['금리가 오르면 이미 발행된 채권 가격은?', '내린다', ['오른다', '그대로다', '두 배가 된다']],
-  ['72의 법칙으로 연 8% 복리면 원금이 두 배가 되는 데 약 몇 년?', '9년', ['8년', '12년', '6년']],
+  ['CAPM에서 보상받는 위험은?', '체계적 위험', ['비체계적 위험', '기업 고유 위험', '총위험']],
+  ['준강형 효율적 시장이 가격에 반영하는 정보는?', '모든 공개 정보', ['과거 가격만', '내부 정보까지', '거래량만']],
+  ['콜옵션 매수자의 최대 손실은?', '옵션 프리미엄', ['무한대', '행사가격', '기초자산 가격']],
+  ['풋-콜 패리티에서 C + PV(X)와 같은 것은?', 'P + S', ['P - S', 'S - P', 'P + X']],
+  ['GIPS는 무엇에 관한 기준인가?', '투자 성과 공시', ['회계 감사', '신용 평가', '자금 세탁 방지']],
+  ['트레이너 비율의 분모는?', '베타', ['표준편차', '추적 오차', '분산']],
+  ['정보 비율의 분모는?', '추적 오차', ['베타', '표준편차', '무위험 수익률']],
+  ['95% VaR가 뜻하는 것은?', '5% 확률로 그보다 큰 손실', ['95% 확률로 그만큼 손실', '평균 손실', '최대 손실']],
+  ['72의 법칙으로 연 8% 복리면 원금이 두 배가 되는 데 약?', '9년', ['8년', '12년', '6년']],
+  ['수익률 곡선이 역전되면 흔히 무엇을 예고하나?', '경기 침체', ['물가 급등', '증시 과열', '환율 안정']],
+  ['베타가 1보다 큰 주식은?', '시장보다 더 출렁인다', ['시장보다 덜 출렁인다', '위험이 없다', '배당이 많다']],
 ];
 const MBE = [
-  ['미국 수정헌법 제1조가 보장하는 것은?', '표현의 자유', ['무기 소지', '배심 재판', '노예 금지']],
-  ['미란다 원칙이 알려 주는 권리는?', '묵비권', ['투표권', '재산권', '이주권']],
-  ['미국 연방대법관의 임기는?', '종신', ['10년', '6년', '4년']],
-  ['이중 위험(double jeopardy) 금지란?', '같은 죄로 두 번 재판 안 함', ['벌금 두 번', '판사 두 명', '두 배 처벌']],
-  ['계약의 대가(consideration)란?', '서로 주고받는 가치', ['계약서 종이', '공증 비용', '변호사 보수']],
-  ['과실(negligence) 성립 요소가 아닌 것은?', '고의', ['주의 의무', '의무 위반', '손해']],
-  ['미국 대통령의 임기는?', '4년', ['5년', '6년', '8년']],
-  ['연방 판사를 지명하는 사람은?', '대통령', ['주지사', '하원의장', '국무장관']],
+  ['연방 다양성 관할의 소가 기준은?', '75,000달러 초과', ['50,000달러 초과', '100,000달러 초과', '10,000달러 초과']],
+  ['미란다 고지가 필요한 상황은?', '구금 상태의 신문', ['모든 체포', '교통 단속', '법정 증언']],
+  ['수정헌법 제4조가 금지하는 것은?', '부당한 수색·압수', ['자기부죄 강요', '잔혹한 형벌', '이중 위험']],
+  ['수정헌법 제5조에 없는 것은?', '변호인의 조력', ['자기부죄 거부', '이중 위험 금지', '적법 절차']],
+  ['수정헌법 제6조가 보장하는 것은?', '신속한 공개 재판', ['무기 소지', '표현의 자유', '부당한 수색 금지']],
+  ['수정헌법 제8조가 금지하는 것은?', '잔혹하고 이례적인 형벌', ['부당한 수색', '군인의 민가 숙영', '국교 수립']],
+  ['엄격 심사가 적용되는 구분은?', '인종', ['성별', '나이', '소득']],
+  ['성별 구분에 적용되는 심사 기준은?', '중간 심사', ['엄격 심사', '합리성 심사', '심사 없음']],
+  ['사기방지법(Statute of Frauds) 대상이 아닌 것은?', '6개월짜리 용역 계약', ['토지 매매', '1년 넘게 걸리는 계약', '500달러 이상 물품 매매']],
+  ['UCC 제2편이 적용되는 계약은?', '물품 매매', ['부동산 매매', '고용', '용역']],
+  ['전문증거(hearsay)란?', '법정 밖 진술로 그 내용을 증명', ['증인의 직접 목격', '전문가 의견', '물적 증거']],
+  ['가장 완전한 부동산 소유권은?', 'fee simple absolute', ['life estate', 'fee tail', 'leasehold']],
+  ['역점유(adverse possession) 요건이 아닌 것은?', '소유자의 동의', ['공연한 점유', '계속된 점유', '적대적 점유']],
+  ['중범죄 살인 규칙(felony murder)이란?', '중범죄 중 생긴 사망은 살인', ['계획 살인만 살인', '과실치사의 다른 이름', '공범은 면책']],
+  ['res ipsa loquitur의 뜻은?', '사실 자체가 과실을 말한다', ['피해자가 증명한다', '고의를 추정한다', '손해가 없다']],
+  ['비교 과실(comparative negligence)이란?', '과실 비율만큼 배상 감액', ['피해자 과실이면 배상 없음', '가해자 전액 배상', '보험사 책임']],
+  ['연방 대법원 대법관 수는?', '9명', ['7명', '11명', '12명']],
+  ['헌법 수정안 비준에 필요한 주의 비율은?', '4분의 3', ['3분의 2', '과반수', '5분의 3']],
+  ['대통령 거부권을 뒤집는 데 필요한 것은?', '양원 각 3분의 2', ['양원 과반수', '상원 5분의 3', '하원 4분의 3']],
+  ['조약 비준에 필요한 상원 동의는?', '3분의 2', ['과반수', '5분의 3', '4분의 3']],
+  ['형사 재판의 증명 기준은?', '합리적 의심 없는 증명', ['증거의 우세', '명백하고 확실한 증거', '상당한 이유']],
+  ['민사 재판의 일반 증명 기준은?', '증거의 우세', ['합리적 의심 없는 증명', '상당한 이유', '합리적 의심']],
+  ['독수독과 원칙이란?', '위법 증거의 파생 증거도 배제', ['자백만 배제', '전문증거 배제', '증인 격리']],
+  ['Erie 원칙: 다양성 사건에 적용하는 실체법은?', '주 법', ['연방 보통법', '국제법', '판사 재량']],
 ];
 const AFTERLIFE = [
+  ['저승의 시왕은 모두 몇 명인가?', '10명', ['7명', '9명', '12명']],
+  ['염라대왕은 시왕 가운데 몇 번째인가?', '다섯 번째', ['첫 번째', '세 번째', '열 번째']],
+  ['죽은 이의 죄를 비추는 거울은?', '업경대', ['명경지수', '청동거울', '만파식적']],
+  ['지옥 중생을 구하겠다고 서원한 보살은?', '지장보살', ['관세음보살', '문수보살', '미륵보살']],
+  ['저승으로 가는 길에 건너는 강은?', '삼도천', ['황하', '은하수', '요단강']],
+  ['49재는 어떻게 지내나?', '7일마다 7번', ['10일마다 5번', '3일마다 16번', '49일째에 1번']],
+  ['저승길에 쓰라고 넣어 주는 돈은?', '노잣돈', ['세뱃돈', '축의금', '부조금']],
+  ['그리스 신화에서 저승의 강을 건네주는 뱃사공은?', '카론', ['하데스', '케르베로스', '타나토스']],
+  ['그 뱃삯으로 죽은 이의 입에 물리던 동전은?', '오볼로스', ['드라크마', '데나리우스', '탈란트']],
+  ['이집트 신화에서 죽은 이의 심장과 함께 저울에 다는 것은?', '마트의 깃털', ['오시리스의 왕관', '호루스의 눈', '금 한 덩이']],
+  ['바리데기가 부모를 살리려고 구하러 간 것은?', '약수', ['불로초', '여의주', '천도복숭아']],
+  ['차사본풀이에서 강림이 잡으러 간 이는?', '염라대왕', ['옥황상제', '저승사자', '삼신할미']],
   ['저승사자가 쓰는 모자는?', '갓', ['투구', '왕관', '두건']],
-  ['저승의 왕으로 알려진 이는?', '염라대왕', ['옥황상제', '용왕', '산신령']],
-  ['저승으로 가는 길에 건너는 강은?', '삼도천', ['한강', '은하수', '압록강']],
-  ['49재는 사람이 죽은 뒤 며칠째에 지내나?', '49일', ['7일', '100일', '3일']],
   ['저승 명부에 적혀 있다는 것은?', '사람의 수명', ['통장 잔고', '성적', '혈액형']],
-  ['이승은 무엇을 뜻하나?', '지금 사는 세상', ['죽은 뒤 세상', '하늘나라', '바닷속']],
-  ['저승길에 쓰라고 넣어 주는 돈은?', '노잣돈', ['세뱃돈', '용돈', '축의금']],
 ];
 const MULTILAW = [
   ['평행우주의 나에게 빌린 돈은?', '같은 우주 안에서만 갚는다', ['모든 우주에 갚는다', '갚지 않는다', '이자만 갚는다']],
@@ -179,56 +265,95 @@ const MULTILAW = [
   ['우주 47번의 헌법 제1조는?', '고양이가 주권자다', ['사람이 주권자다', 'AI가 주권자다', '주권은 없다']],
   ['다중우주 재판의 배심원 수는?', '무한대', ['12명', '9명', '1명']],
   ['시간여행으로 미리 본 판결은?', '증거로 못 쓴다', ['그대로 확정된다', '두 번 집행된다', '항소할 수 없다']],
+  ['평행우주의 내가 지은 죄의 책임은?', '그 우주의 나만 진다', ['모든 내가 나눠 진다', '가장 가까운 우주의 내가 진다', '아무도 안 진다']],
+  ['우주 간 계약서에 꼭 적어야 하는 것은?', '우주 번호', ['혈액형', '별자리', '중력 상수']],
+  ['갈라진 우주의 재산은 누구 것인가?', '갈라질 때 복제된다', ['원본 우주의 것', '먼저 등기한 쪽', '국고 귀속']],
+  ['슈뢰딩거 유언장의 효력은?', '열기 전까지 유효이자 무효', ['항상 유효', '항상 무효', '상자가 정한다']],
+  ['시간여행자의 공소시효는?', '본인이 겪은 시간으로 센다', ['달력으로 센다', '정지된다', '없다']],
+  ['다중우주 법원의 관할은?', '사건이 관측된 우주', ['피고가 사는 우주', '원고가 고른 우주', '가장 큰 우주']],
+  ['과거의 나를 증인으로 부를 때 필요한 것은?', '미래의 나의 동의', ['과거의 나의 서명', '부모의 동의', '시계 압수']],
 ];
 const CUSTOMS = [
-  ['FOB 조건에서 해상 운임을 부담하는 쪽은?', '매수인(수입자)', ['매도인(수출자)', '운송인', '세관']],
-  ['CIF 가격에 들어가지 않는 것은?', '수입국 관세', ['물품 가격', '해상 운임', '해상 보험료']],
-  ['HS 코드에서 세계 공통으로 쓰는 자릿수는?', '6자리', ['4자리', '8자리', '10자리']],
-  ['인코텀즈(Incoterms)를 만드는 기관은?', '국제상업회의소(ICC)', ['세계무역기구(WTO)', '세계관세기구(WCO)', '국제통화기금(IMF)']],
-  ['선하증권을 뜻하는 약어는?', 'B/L', ['L/C', 'C/O', 'P/L']],
-  ['신용장을 뜻하는 약어는?', 'L/C', ['B/L', 'D/A', 'T/T']],
-  ['원산지증명서를 뜻하는 약어는?', 'C/O', ['B/L', 'L/G', 'D/P']],
-  ['관세의 과세표준은 수입 물품의 무엇인가?', '가격 또는 수량', ['부피', '원산지', '운송 거리']],
-  ['수입 물품에 대한 관세를 낼 의무가 있는 사람은 원칙적으로?', '그 물품을 수입신고한 화주', ['운송 회사', '수출자', '보세창고 운영인']],
-  ['덤핑방지관세를 매기는 까닭은?', '국내 산업 보호', ['세수 확대', '수출 장려', '환율 안정']],
-  ['FTA는 무엇의 줄임말인가?', '자유무역협정', ['관세동맹', '공동시장', '경제동맹']],
-  ['외국 물품을 관세를 내지 않은 채 보관할 수 있는 곳은?', '보세구역', ['자유무역항', '면세점 창고', '물류센터']],
+  ['관세의 과세물건이 확정되는 때는 원칙적으로?', '수입신고를 하는 때', ['선적하는 때', '입항하는 때', '대금을 치르는 때']],
+  ['관세 부과의 제척기간은 원칙적으로?', '5년', ['3년', '7년', '10년']],
+  ['5억 원 미만 관세 징수권의 소멸시효는?', '5년', ['3년', '10년', '7년']],
+  ['관세 과세가격 결정의 제1방법은?', '해당 물품의 거래가격', ['동종·동질물품 가격', '국내 판매가격', '산정가격']],
+  ['FOB 조건에서 위험이 넘어가는 때는?', '본선에 적재한 때', ['공장에서 인도한 때', '도착항에 내린 때', '수입 통관한 때']],
+  ['CIF 가격에 들어가지 않는 것은?', '수입국 관세', ['운임', '보험료', '물품 원가']],
+  ['HS 코드에서 국제 공통인 자릿수는?', '6자리', ['4자리', '8자리', '10자리']],
+  ['한국의 HSK는 몇 자리인가?', '10자리', ['6자리', '8자리', '12자리']],
+  ['세번변경기준이란?', 'HS 번호가 바뀌면 원산지 인정', ['부가가치 40% 이상', '최종 포장한 나라', '선적한 나라']],
+  ['관세 환급 청구권의 소멸시효는?', '5년', ['1년', '3년', '10년']],
+  ['DDP 조건에서 수입 관세를 내는 쪽은?', '매도인', ['매수인', '운송인', '보험사']],
+  ['EXW 조건에서 수출 통관을 맡는 쪽은?', '매수인', ['매도인', '운송인', '세관']],
+  ['간이세율을 적용하는 대표적인 물품은?', '여행자 휴대품', ['대량 원자재', '수출 물품', '보세 운송품']],
+  ['여행자 휴대품의 기본 면세 한도는?', '미화 800달러', ['미화 600달러', '미화 400달러', '미화 1,000달러']],
+  ['선하증권(B/L)의 성격이 아닌 것은?', '보험 증권', ['화물 수령증', '운송계약의 증빙', '권리 증권']],
+  ['신용장 거래에서 대금 지급을 약속하는 곳은?', '개설은행', ['통지은행', '수출자', '선사']],
+  ['관세는 납세신고가 수리된 날부터 며칠 안에 내나?', '15일', ['7일', '30일', '10일']],
+  ['과세가격에 더하는 요소가 아닌 것은?', '수입 뒤 국내 운송비', ['중개료', '포장비', '권리 사용료']],
+  ['덤핑방지관세를 매기는 기준 가격은?', '정상가격', ['국내 최고가', '수출국 최저가', '국제 평균가']],
+  ['관세법상 반송이란?', '외국물품을 그대로 외국으로 반출', ['수입한 물품을 다시 수출', '세관의 압수', '보세구역 사이 이동']],
 ];
 const APPRAISE = [
-  ['감정평가의 3방식에 들지 않는 것은?', '추첨방식', ['원가방식', '비교방식', '수익방식']],
-  ['원가법으로 구한 가액을 무엇이라 하나?', '적산가액', ['비준가액', '수익가액', '과세가액']],
-  ['거래사례비교법으로 구한 가액은?', '비준가액', ['적산가액', '수익가액', '공시가액']],
-  ['수익환원법으로 구한 가액은?', '수익가액', ['적산가액', '비준가액', '보상가액']],
-  ['표준지공시지가의 공시기준일은?', '1월 1일', ['3월 1일', '6월 1일', '12월 31일']],
-  ['표준지공시지가를 공시하는 사람은?', '국토교통부장관', ['시장·군수·구청장', '기획재정부장관', '한국부동산원장']],
-  ['개별공시지가를 결정·공시하는 사람은?', '시장·군수·구청장', ['국토교통부장관', '시·도지사', '감정평가사']],
-  ['토지의 위치를 옮길 수 없다는 특성은?', '부동성', ['부증성', '영속성', '개별성']],
-  ['토지의 양을 늘릴 수 없다는 특성은?', '부증성', ['부동성', '영속성', '용도의 다양성']],
-  ['감정평가에서 원칙으로 삼는 기준가치는?', '시장가치', ['투자가치', '과세가치', '담보가치']],
+  ['원가법으로 구한 가액의 이름은?', '적산가액', ['비준가액', '수익가액', '유추가액']],
+  ['거래사례비교법으로 구한 가액의 이름은?', '비준가액', ['적산가액', '수익가액', '공시가액']],
+  ['표준지공시지가의 공시 기준일은?', '1월 1일', ['6월 1일', '7월 1일', '12월 31일']],
+  ['표준지공시지가를 공시하는 주체는?', '국토교통부장관', ['시장·군수·구청장', '한국부동산원장', '기획재정부장관']],
+  ['개별공시지가를 결정·공시하는 주체는?', '시장·군수·구청장', ['국토교통부장관', '감정평가사협회', '시·도지사']],
+  ['토지 감정평가의 원칙적 방법은?', '공시지가기준법', ['원가법', '수익환원법', '거래사례비교법']],
+  ['건물 감정평가의 원칙적 방법은?', '원가법', ['공시지가기준법', '수익환원법', '거래사례비교법']],
+  ['임대료 감정평가의 원칙적 방법은?', '임대사례비교법', ['적산법', '수익분석법', '원가법']],
+  ['위치에 따라 지대가 달라진다고 본 학자는?', '튀넨', ['리카도', '마르크스', '마셜']],
+  ['비옥도 차이로 지대를 설명한 이론은?', '차액지대설', ['절대지대설', '입찰지대설', '독점지대설']],
+  ['도시 구조의 동심원 이론을 내놓은 학자는?', '버제스', ['호이트', '해리스', '알론소']],
+  ['도시 구조의 선형 이론을 내놓은 학자는?', '호이트', ['버제스', '울만', '튀넨']],
+  ['부동산의 자연적 특성이 아닌 것은?', '용도의 다양성', ['부동성', '부증성', '영속성']],
+  ['기능적 감가의 예는?', '설계 불량', ['마모', '인근 혐오시설', '풍화']],
+  ['부채감당률(DCR)의 식은?', '순영업소득 ÷ 부채서비스액', ['대출액 ÷ 가격', '세전현금 ÷ 지분', '영업경비 ÷ 총소득']],
+  ['감정평가의 기준가치는 원칙적으로?', '시장가치', ['투자가치', '공정가치', '과세가치']],
+  ['다음 중 용익물권이 아닌 것은?', '저당권', ['지상권', '지역권', '전세권']],
+  ['경제적 감가의 예는?', '인근 혐오시설', ['마모', '설계 불량', '설비 노후']],
 ];
 const TRANSFER = [
-  ['Choose the word closest to "ubiquitous".', 'omnipresent', ['scarce', 'obscure', 'fragile']],
-  ['Choose the word closest to "ameliorate".', 'improve', ['worsen', 'postpone', 'conceal']],
-  ['Choose the word closest to "ostensible".', 'apparent', ['hidden', 'costly', 'hostile']],
-  ['Choose the word closest to "pernicious".', 'harmful', ['beneficial', 'stubborn', 'generous']],
-  ['Choose the word closest to "equivocal".', 'ambiguous', ['equal', 'vocal', 'certain']],
-  ['Choose the word closest to "exacerbate".', 'aggravate', ['soothe', 'examine', 'exaggerate']],
-  ['Choose the word closest to "taciturn".', 'reserved', ['talkative', 'tactful', 'tense']],
-  ['Choose the word closest to "prodigal".', 'wasteful', ['gifted', 'thrifty', 'obedient']],
-  ['Choose the word closest to "laconic".', 'concise', ['lazy', 'wordy', 'tearful']],
-  ['Choose the word closest to "capricious".', 'fickle', ['spacious', 'steady', 'cautious']],
+  ['Choose the word closest to "obsequious".', 'fawning', ['defiant', 'frugal', 'taciturn']],
+  ['Choose the word closest to "perfunctory".', 'cursory', ['thorough', 'heartfelt', 'belated']],
+  ['Choose the word closest to "recalcitrant".', 'defiant', ['compliant', 'forgetful', 'lavish']],
+  ['Choose the word closest to "ephemeral".', 'transient', ['perpetual', 'tangible', 'ornate']],
+  ['Choose the word closest to "pernicious".', 'harmful', ['benign', 'sluggish', 'lucid']],
+  ['Choose the word closest to "laconic".', 'terse', ['verbose', 'jovial', 'feeble']],
+  ['Choose the word closest to "equivocal".', 'ambiguous', ['explicit', 'impartial', 'vehement']],
+  ['Choose the word closest to "magnanimous".', 'generous', ['petty', 'timid', 'arrogant']],
+  ['Choose the word closest to "truculent".', 'belligerent', ['docile', 'truthful', 'sluggish']],
+  ['Choose the word closest to "inchoate".', 'rudimentary', ['mature', 'ornate', 'covert']],
+  ['Choose the word closest to "sanguine".', 'optimistic', ['gloomy', 'hasty', 'thrifty']],
+  ['Choose the word closest to "prosaic".', 'mundane', ['poetic', 'verbose', 'exotic']],
+  ['Choose the word closest to "garrulous".', 'talkative', ['reticent', 'greedy', 'clumsy']],
+  ['Choose the word closest to "intransigent".', 'uncompromising', ['flexible', 'itinerant', 'transparent']],
+  ['Choose the word closest to "exacerbate".', 'aggravate', ['alleviate', 'exaggerate', 'excavate']],
+  ['Choose the word closest to "mitigate".', 'alleviate', ['aggravate', 'imitate', 'litigate']],
+  ['Choose the word closest to "ostentatious".', 'showy', ['modest', 'hostile', 'obsolete']],
+  ['Choose the word closest to "parsimonious".', 'stingy', ['lavish', 'pious', 'partial']],
+  ['Choose the word closest to "capricious".', 'fickle', ['steadfast', 'spacious', 'cautious']],
+  ['Choose the word closest to "abstruse".', 'esoteric', ['obvious', 'absurd', 'abrupt']],
+  ['Choose the word closest to "nefarious".', 'wicked', ['virtuous', 'famous', 'nervous']],
+  ['Choose the word closest to "perspicacious".', 'shrewd', ['obtuse', 'sweaty', 'stubborn']],
 ];
 const IBANK = [ // 투자은행 면접 단골 질문
-  ['시계가 3시 15분일 때 시침과 분침 사이의 각도는?', '7.5도', ['0도', '15도', '30도']],
-  ['하루 동안 시침과 분침이 겹치는 횟수는?', '22번', ['24번', '12번', '23번']],
-  ['100명이 서로 한 번씩 악수하면 모두 몇 번?', '4,950번', ['10,000번', '5,050번', '9,900번']],
-  ['동전을 세 번 던져 모두 앞면이 나올 확률은?', '1/8', ['1/6', '1/4', '1/3']],
-  ['PER 10배, 주당순이익 500원이면 주가는?', '5,000원', ['50원', '500원', '50,000원']],
-  ['금리가 오르면 이미 발행된 채권의 가격은?', '내린다', ['오른다', '변하지 않는다', '두 배가 된다']],
-  ['EBITDA를 구할 때 영업이익에 다시 더하는 것은?', '감가상각비', ['법인세', '이자 비용', '배당금']],
+  ['WACC에서 부채 비용에 곱하는 것은?', '(1 - 법인세율)', ['(1 + 법인세율)', '베타', '배당성향']],
+  ['FCFF를 구할 때 빼는 것은?', '자본적 지출', ['감가상각비', '무형자산 상각비', '주식보상비용']],
+  ['고든 성장 모형의 주가 식은?', 'D1 ÷ (r - g)', ['D1 ÷ (r + g)', 'D1 × (1 + g)', 'EPS ÷ r']],
   ['기업 가치(EV)를 구할 때 시가총액에 더하는 것은?', '순차입금', ['현금', '매출', '영업이익']],
-  ['할인율이 오르면 미래 현금흐름의 현재 가치는?', '작아진다', ['커진다', '같다', '0이 된다']],
-  ['1부터 100까지 더하면?', '5,050', ['5,000', '4,950', '10,100']],
+  ['옵션·워런트의 희석 주식 수를 구하는 방법은?', '자기주식법', ['지분법', '원가법', '완성기준']],
+  ['감가상각비가 10 늘면 순이익은? (세율 25%)', '7.5 감소', ['10 감소', '2.5 감소', '변화 없음']],
+  ['감가상각비가 10 늘면 현금은? (세율 25%)', '2.5 증가', ['7.5 감소', '10 증가', '변화 없음']],
+  ['PER 12배 회사가 PER 8배 회사를 주식으로 인수하면 EPS는?', '늘어난다', ['줄어든다', '변화 없다', '0이 된다']],
+  ['베타 1.2, 무위험 3%, 시장 위험 프리미엄 5%면 자기자본비용은?', '9%', ['8.2%', '6%', '11%']],
+  ['매년 100씩 영원히 받는 연금의 현재 가치는? (할인율 5%)', '2,000', ['500', '1,050', '20,000']],
+  ['영업 레버리지가 높은 회사의 특징은?', '고정비 비중이 크다', ['변동비 비중이 크다', '부채가 많다', '배당이 많다']],
+  ['순운전자본이 늘면 잉여현금흐름은?', '줄어든다', ['늘어난다', '변화 없다', '두 배가 된다']],
+  ['EBITDA를 구할 때 영업이익에 다시 더하는 것은?', '감가상각비', ['법인세', '이자 비용', '배당금']],
+  ['LBO에서 지분 수익률을 키우는 핵심은?', '차입 레버리지', ['배당 확대', '증자', '현금 보유']],
 ];
 const OPEN_PROBLEMS = ['리만 가설은 참이다', 'P와 NP는 다르다', '모든 짝수는 두 소수의 합이다', '쌍둥이 소수는 끝없이 있다',
   '콜라츠 추측은 참이다', '양-밀스 질량 간극이 있다', '나비에-스토크스 해는 늘 매끄럽다', '호지 추측은 참이다', '버치-스위너턴다이어 추측은 참이다'];
@@ -273,13 +398,22 @@ const GEN = {
     const { choices, answer } = shuffleChoices(rng, SPELL[idx[0]][0], idx.slice(1).map(i => SPELL[i][1]));
     return { kind: 'text', q: '다음 중 맞춤법이 바른 것은?', choices, answer, human: true };
   },
-  eq(rng, hard) {
-    if (rng() < 0.25) {
-      const n = ri(rng, hard ? 8 : 5, hard ? 14 : 11), ans = 2 ** n;
-      return numQ(rng, `2의 ${n}제곱 = ?`, ans, [ans / 2, ans * 2, 2 * n, ans - 2, ans + 2]);
-    }
-    const a = ri(rng, 2, 9), x = ri(rng, 2, hard ? 29 : 15), b = ri(rng, 1, 40), c = a * x + b;
-    return numQ(rng, `${a}x + ${b} = ${c},  x = ?`, x, [x + 1, x - 1, x + 2, c - b, Math.round(c / a), x + 3]);
+  eq(rng, hard) { // 수능·가오카오 수학: 암산으로는 시간이 모자란 계산 문제
+    const k = Math.floor(rng() * (hard ? 7 : 5));
+    if (k === 0) { const a = ri(rng, 2, 9), d = ri(rng, 2, 7), n = ri(rng, hard ? 15 : 8, hard ? 30 : 15), S = n * (2 * a + (n - 1) * d) / 2;
+      return numQ(rng, `첫째항 ${a}, 공차 ${d}인 등차수열의 첫 ${n}항의 합은?`, S, [S - n, S + n, S + d * n, a + (n - 1) * d, S - d]); }
+    if (k === 1) { const a = ri(rng, 1, 4), b = ri(rng, 2, 6), c = ri(rng, 1, 9), x = ri(rng, hard ? 3 : 2, hard ? 6 : 4), v = 3 * a * x * x + 2 * b * x + c;
+      return numQ(rng, `f(x) = ${a}x^3 + ${b}x^2 + ${c}x 일 때 f'(${x}) = ?`, v, [a * x * x * x + b * x * x + c * x, v - c, 3 * a * x * x + b * x + c, v + x, v + 2 * b]); }
+    if (k === 2) { const a = ri(rng, 1, 4), b = ri(rng, 1, 6), x = ri(rng, hard ? 3 : 2, hard ? 6 : 4), v = a * x * x * x + b * x * x;
+      return numQ(rng, `0부터 ${x}까지 (${3 * a}x^2 + ${2 * b}x)를 적분한 값은?`, v, [3 * a * x * x + 2 * b * x, v + x, 3 * a * x * x * x + 2 * b * x * x, v - b * x, v + a]); }
+    if (k === 3) { const n = ri(rng, hard ? 9 : 6, hard ? 14 : 10), r = ri(rng, hard ? 3 : 2, hard ? 4 : 3); let c = 1, pm = 1; for (let i = 0; i < r; i++) { c = c * (n - i) / (i + 1); pm *= n - i; }
+      return numQ(rng, `서로 다른 ${n}개에서 ${r}개를 뽑는 경우의 수는?`, Math.round(c), [pm, Math.round(c * r / (n - r + 1)), Math.round(c) + n, Math.round(c) - r, n * r]); }
+    if (k === 4) { const a = ri(rng, 1, 3), r = ri(rng, 2, 3), n = ri(rng, hard ? 7 : 5, hard ? 10 : 8), S = a * (r ** n - 1) / (r - 1);
+      return numQ(rng, `첫째항 ${a}, 공비 ${r}인 등비수열의 첫 ${n}항의 합은?`, S, [a * r ** n, a * r ** (n - 1), S - a, S + r, S + 1]); }
+    if (k === 5) { const m = ri(rng, 2, 12), n = ri(rng, 2, 12), sm = m + n, pr = m * n, v = sm * sm - 2 * pr;
+      return numQ(rng, `x^2 - ${sm}x + ${pr} = 0 의 두 근의 제곱의 합은?`, v, [sm * sm, v + pr, sm * sm - pr, v - 2, pr * 2]); }
+    const a = ri(rng, 2, 9), b = ri(rng, 10, 30), m = [7, 11, 13][ri(rng, 0, 2)]; let v = 1; for (let i = 0; i < b; i++) v = v * a % m;
+    return numQ(rng, `${a}의 ${b}제곱을 ${m}으로 나눈 나머지는?`, v, [(v + 1) % m, (v + 2) % m, (v + 3) % m, (v + 5) % m, (v + 4) % m]);
   },
   eqhard(rng) { return GEN.eq(rng, true); },
   toeic(rng) { return poolQ(rng, TOEIC); },
@@ -290,41 +424,48 @@ const GEN = {
   toefl(rng) { return poolQ(rng, TOEFL); },
   sat(rng) {
     if (rng() < 0.5) return poolQ(rng, SAT_WORDS);
-    const a = ri(rng, 2, 9), x = ri(rng, 3, 19), b = ri(rng, 1, 30), c = a * x + b;
-    return numQ(rng, `If ${a}x + ${b} = ${c}, what is x?`, x, [x + 1, x - 1, x + 2, c - b, x + 3]);
+    const x = ri(rng, 2, 12), y = ri(rng, 1, 9), p = ri(rng, 2, 5), q = ri(rng, 2, 5);
+    return numQ(rng, `If ${p}x + ${q}y = ${p * x + q * y} and x - y = ${x - y}, what is x?`, x, [y, x + 1, x - 1, x + y, x + 2]);
   },
   history(rng) { return poolQ(rng, HISTORY); },
   biz(rng) { return poolQ(rng, BIZ); },
   civil(rng) { return rng() < 0.5 ? GEN.spell(rng) : GEN.history(rng); },
-  logic(rng) { // 추리논증: 이웃한 쌍의 비교 세 개로 순서가 하나로 정해진다 (LEET는 지문이 길다)
-    const idx = pickDistinct(rng, NAMES.length, 4), p = idx.map(i => NAMES[i]);
-    const facts = [[p[0], p[1]], [p[1], p[2]], [p[2], p[3]]];
+  logic(rng) { // 추리논증: 다섯 사람의 이웃한 비교 네 개가 섞여 나오고, 부등호 방향도 뒤섞인다
+    const idx = pickDistinct(rng, NAMES.length, 5), p = idx.map(i => NAMES[i]);
+    const facts = [[p[0], p[1]], [p[1], p[2]], [p[2], p[3]], [p[3], p[4]]];
     for (let i = facts.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [facts[i], facts[j]] = [facts[j], facts[i]]; }
-    const tall = rng() < 0.5, ask = Math.floor(rng() * 3);
-    const askText = tall ? ['가장 키가 큰 사람은?', '가장 키가 작은 사람은?', '두 번째로 키가 큰 사람은?']
-      : ['점수가 가장 높은 사람은?', '점수가 가장 낮은 사람은?', '점수가 두 번째로 높은 사람은?'];
-    const ans = ask === 0 ? p[0] : ask === 1 ? p[3] : p[1];
-    const q = `${tall ? '키' : '점수'} 비교: ${facts.map(([a, b]) => `${a} > ${b}`).join(', ')}. ${askText[ask]}`;
-    const { choices, answer } = shuffleChoices(rng, ans, p.filter(x => x !== ans));
+    const tall = rng() < 0.5, ask = Math.floor(rng() * 5), ord = ['첫', '두', '세', '네', '다섯'][ask];
+    const q = `${tall ? '키' : '점수'} 비교: ${facts.map(([a, b]) => rng() < 0.5 ? `${a} > ${b}` : `${b} < ${a}`).join(', ')}. ${tall ? '키가 큰' : '점수가 높은'} 순서로 ${ord} 번째인 사람은?`;
+    const ans = p[ask], rest = p.filter(x => x !== ans), drop = Math.floor(rng() * 4);
+    const { choices, answer } = shuffleChoices(rng, ans, rest.filter((_, i) => i !== drop));
     return { kind: 'text', q, choices, answer, human: true };
   },
-  tax(rng) {
-    const k = Math.floor(rng() * 4);
-    if (k === 0) { const base = ri(rng, 12, 98) * 100000, v = base / 10;
-      return { kind: 'text', q: `공급가액 ${wonText(base)}의 부가가치세(10%)는?`, ...shuffleChoices(rng, wonText(v), [wonText(v / 10), wonText(base + v), wonText(base - v)]), human: true }; }
-    if (k === 1) { const sales = ri(rng, 9, 30) * 1000000, cost = Math.round(sales * (0.4 + rng() * 0.2) / 100000) * 100000, sga = ri(rng, 5, 25) * 100000, op = sales - cost - sga;
-      return { kind: 'text', q: `매출 ${wonText(sales)}, 매출원가 ${wonText(cost)}, 판관비 ${wonText(sga)}일 때 영업이익은?`, ...shuffleChoices(rng, wonText(op), [wonText(sales - cost), wonText(op + sga * 2), wonText(sales - sga)]), human: true }; }
-    if (k === 2) { const c = ri(rng, 4, 20) * 1000000, y = [4, 5, 8, 10][ri(rng, 0, 3)], v = c / y;
-      return { kind: 'text', q: `취득원가 ${wonText(c)}, 잔존가치 0, 내용연수 ${y}년. 정액법 연 감가상각비는?`, ...shuffleChoices(rng, wonText(v), [wonText(v * 2), wonText(Math.round(c / (y + 1) / 1000) * 1000), wonText(Math.round(v / 2))]), human: true }; }
-    const inc = ri(rng, 10, 90) * 100000, v = Math.round(inc * 0.033);
-    return { kind: 'text', q: `사업소득 ${wonText(inc)}의 원천징수액(3.3%)은?`, ...shuffleChoices(rng, wonText(v), [wonText(Math.round(inc * 0.0033)), wonText(Math.round(inc * 0.03)), wonText(Math.round(inc * 0.33))]), human: true };
+  tax(rng) { // 세무·회계 계산: 숫자가 지저분하고 두 단계를 거쳐야 한다
+    const k = Math.floor(rng() * 6), T = (q, ans, wrongs) => ({ kind: 'text', q, ...shuffleChoices(rng, wonText(ans), [...new Set([...wrongs, ans * 2, Math.round(ans / 2), ans * 3, Math.round(ans * 1.5)].map(wonText))].filter(w => w !== wonText(ans)).slice(0, 3)), human: true });
+    if (k === 0) { const out = ri(rng, 310, 980) * 100000, inp = ri(rng, 120, 300) * 100000, v = (out - inp) / 10;
+      return T(`매출 공급가액 ${wonText(out)}, 매입 공급가액 ${wonText(inp)}일 때 부가가치세 납부세액은?`, v, [out / 10, (out + inp) / 10, inp / 10, v * 1.1]); }
+    if (k === 1) { const sales = ri(rng, 900, 3000) * 10000, cost = Math.round(sales * (0.4 + rng() * 0.2) / 10000) * 10000, sga = ri(rng, 50, 250) * 10000, op = sales - cost - sga;
+      return T(`매출 ${wonText(sales)}, 매출원가 ${wonText(cost)}, 판관비 ${wonText(sga)}일 때 영업이익은?`, op, [sales - cost, op + sga * 2, sales - sga, op - 10000]); }
+    if (k === 2) { const y = [4, 5, 8, 10][ri(rng, 0, 3)], c = ri(rng, 4, 20) * y * 100000, sv = c / 10, v = (c - sv) / y;
+      return T(`취득원가 ${wonText(c)}, 잔존가치 ${wonText(sv)}, 내용연수 ${y}년. 정액법 연 감가상각비는?`, v, [c / y, sv / y * 2, v * 2, (c + sv) / y]); }
+    if (k === 3) { const r = [20, 25, 40, 50][ri(rng, 0, 3)], c = ri(rng, 4, 30) * 400000, v = c * (100 - r) / 100 * r / 100;
+      return T(`취득원가 ${wonText(c)}, 정률 ${r}%로 상각할 때 2년 차 감가상각비는?`, v, [c * r / 100, c * (100 - r) / 100, c * r / 100 * r / 100, v / 2]); }
+    if (k === 4) { const B = [[1400, 5000, 15, 126, 6, 0], [5000, 8800, 24, 576, 15, 126], [8800, 15000, 35, 1544, 24, 576], [15000, 30000, 38, 1994, 35, 1544]][ri(rng, 0, 3)];
+      const base = ri(rng, B[0] / 100 + 1, B[1] / 100) * 1000000, v = base * B[2] / 100 - B[3] * 10000;
+      return T(`과세표준 ${wonText(base)}의 종합소득세 산출세액은?`, v, [base * B[2] / 100, base * B[4] / 100 - B[5] * 10000, v + B[3] * 5000, base * B[4] / 100]); }
+    const inc = ri(rng, 123, 987) * 10000, v = Math.round(inc * 0.033);
+    return T(`사업소득 ${wonText(inc)}의 원천징수액(3.3%)은?`, v, [Math.round(inc * 0.0033), Math.round(inc * 0.03), Math.round(inc * 0.33), Math.round(inc * 0.022)]);
   },
   cpa(rng) {
-    const k = Math.floor(rng() * 3);
+    const k = Math.floor(rng() * 5);
     if (k === 0) { const cl = ri(rng, 2, 9) * 100, ca = cl * ri(rng, 11, 30) / 10, r = Math.round(ca / cl * 100);
       return numQ(rng, `유동자산 ${ca}억, 유동부채 ${cl}억일 때 유동비율(%)은?`, r, [Math.round(cl / ca * 100), r + 10, r - 10, r + 50]); }
     if (k === 1) { const eq = ri(rng, 2, 10) * 100, ni = eq * ri(rng, 4, 25) / 100, r = Math.round(ni / eq * 100);
       return numQ(rng, `당기순이익 ${ni}억, 자기자본 ${eq}억일 때 ROE(%)는?`, r, [r * 2, r + 5, Math.max(1, r - 3), r + 10]); }
+    if (k === 2) { const pr = ri(rng, 8, 30) * 1000, vc = Math.round(pr * (0.4 + rng() * 0.3) / 100) * 100, n = ri(rng, 12, 96) * 25, F = n * (pr - vc);
+      return numQ(rng, `고정비 ${wonText(F)}, 단위당 판매가 ${wonText(pr)}, 단위당 변동비 ${wonText(vc)}. 손익분기점 판매량은 몇 개?`, n, [Math.round(F / pr), Math.round(F / vc), n + 25, n - 25, n * 2]); }
+    if (k === 3) { const N = ri(rng, 5, 20) * 1000, M = ri(rng, 1, 5) * 2000, W = N + M / 2, e = ri(rng, 5, 40) * 100, NI = W * e;
+      return numQ(rng, `기초 ${N.toLocaleString('ko-KR')}주, 7월 1일 ${M.toLocaleString('ko-KR')}주 유상증자, 순이익 ${wonText(NI)}. 기본 주당이익은 몇 원?`, e, [Math.round(NI / (N + M)), Math.round(NI / N), e + 100, e - 100]); }
     return GEN.tax(rng);
   },
   law(rng) { return poolQ(rng, LAW); },
@@ -333,19 +474,25 @@ const GEN = {
   customs(rng) { return poolQ(rng, CUSTOMS); },
   psat(rng) { return rng() < 0.5 ? GEN.logic(rng) : poolQ(rng, LAW); },
   appraise(rng) {
-    if (rng() < 0.3) { const noi = ri(rng, 2, 12) * 1000, cap = [4, 5, 8, 10][ri(rng, 0, 3)], v = noi / cap * 100;
+    const k = rng();
+    if (k < 0.25) { const noi = ri(rng, 2, 12) * 1000, cap = [4, 5, 8, 10][ri(rng, 0, 3)], v = noi / cap * 100;
       return numQ(rng, `순영업소득 ${noi}만원, 환원율 ${cap}%일 때 수익가액은 몇 만원?`, v, [noi * cap, v / 10, v * 2, v + noi]); }
+    if (k < 0.5) { const n = [40, 50][ri(rng, 0, 1)], C = n * ri(rng, 100, 400), t = ri(rng, 5, 30), v = C - C / n * t;
+      return numQ(rng, `재조달원가 ${C}만원, 내용연수 ${n}년, 경과 ${t}년(정액법, 잔가 0). 적산가액은 몇 만원?`, v, [C / n * t, C - t * 100, v + C / n, v - C / n, C / n]); }
     return poolQ(rng, APPRAISE);
   },
   oxford(rng) { return poolQ(rng, OXFORD); },
   med(rng) { return poolQ(rng, MED); },
   cfa(rng) {
-    const k = Math.floor(rng() * 3);
-    if (k === 0) { const p = ri(rng, 1, 9) * 100, ans = Math.round(p * 1.21);
-      return numQ(rng, `원금 ${p}만원을 연 10% 복리로 2년 두면 몇 만원?`, ans, [p * 1.2, p * 1.1, p * 1.3, ans + 1]); }
-    if (k === 1) { const sd = [10, 20, 25][ri(rng, 0, 2)], rf = ri(rng, 1, 4), s = [0.2, 0.4, 0.5, 0.8][ri(rng, 0, 3)], rp = rf + s * sd;
-      const { choices, answer } = shuffleChoices(rng, String(s), [String(Math.round((s + 0.1) * 10) / 10), String(Math.round(rp / sd * 10) / 10 === s ? s + 0.3 : Math.round(rp / sd * 10) / 10), String(Math.round((s + 0.6) * 10) / 10)]);
-      return { kind: 'text', q: `수익률 ${rp}%, 무위험 수익률 ${rf}%, 표준편차 ${sd}%일 때 샤프 비율은?`, choices, answer, human: true }; }
+    const k = Math.floor(rng() * 5), S = (q, ans, wrongs) => ({ kind: 'text', q, ...shuffleChoices(rng, ans, [...new Set(wrongs)].filter(w => w !== ans).slice(0, 3)), human: true });
+    if (k === 0) { const p = ri(rng, 1, 9) * 100, r = [5, 8, 10, 12][ri(rng, 0, 3)], ans = Math.round(p * (1 + r / 100) ** 3);
+      return numQ(rng, `원금 ${p}만원을 연 ${r}% 복리로 3년 두면 약 몇 만원?`, ans, [Math.round(p * (1 + 3 * r / 100)), Math.round(p * (1 + r / 100) ** 2), ans + Math.max(2, Math.round(p * r / 1000)), Math.round(p * (1 + r / 100) ** 4)]); }
+    if (k === 1) { const sd = [10, 20, 25][ri(rng, 0, 2)], rf = ri(rng, 1, 4), s = [0.2, 0.4, 0.5, 0.8][ri(rng, 0, 3)], rp = rf + s * sd, f = v => String(Math.round(v * 100) / 100);
+      return S(`수익률 ${rp}%, 무위험 수익률 ${rf}%, 표준편차 ${sd}%일 때 샤프 비율은?`, f(s), [f(rp / sd), f(s + 0.1), f(s + 0.6), f(s / 2), f(s + 0.3), f(s + 0.25)]); }
+    if (k === 2) { const rf = ri(rng, 1, 4), b = [0.8, 1.2, 1.5, 1.8][ri(rng, 0, 3)], mp = ri(rng, 4, 8), f = v => Math.round(v * 10) / 10 + '%';
+      return S(`무위험 수익률 ${rf}%, 베타 ${b}, 시장 위험 프리미엄 ${mp}%일 때 CAPM 기대수익률은?`, f(rf + b * mp), [f(b * mp), f(rf + mp), f((rf + mp) * b), f(rf + b * mp + 1), f(rf + b * mp + 2), f(rf + b * mp - 1)]); }
+    if (k === 3) { const D = ri(rng, 3, 9), dy = [0.5, 1, 1.5][ri(rng, 0, 2)], f = v => (v > 0 ? '+' : '-') + Math.abs(Math.round(v * 100) / 100) + '%';
+      return S(`수정 듀레이션 ${D}인 채권, 금리가 ${dy}%p 오르면 가격 변화는 약?`, f(-D * dy), [f(D * dy), f(-D), f(-D * dy / 2), f(-dy), f(-D * dy * 2), f(-D * dy - 1)]); }
     return poolQ(rng, CFA);
   },
   mbe(rng) { return poolQ(rng, MBE); },
@@ -387,13 +534,19 @@ const ESSAYS = [
   ['소멸시효 제도의 취지를 서술하시오.', ['권리를 오래 행사하지 않으면', '그 권리는 사라진다.', '오래 이어진 사실관계를 존중하고', '증거를 찾기 어려워지기 때문이다.']],
 ];
 function essayQ(rng, n) { const e = ESSAYS[(n + Math.floor(rng() * 2)) % ESSAYS.length]; return { kind: 'essay', q: e[0], lines: e[1], choices: ['', '', '', ''], answer: 0, human: false }; }
-function makeQuestions(rng, tier, part = 0) {
+function makeQuestions(rng, tier, part = 0, used = null) {
   const out = [];
   for (let i = 0; i < tier.qn; i++) {
     const n = part * tier.qn + i;
     if (tier.essay && i === tier.qn - 1) { out.push(essayQ(rng, part)); continue; } // 교시의 마지막 문제는 서술형
-    if (tier.listen && n < tier.listen) out.push(GEN.toeicLC(rng));
-    else out.push(GEN[tier.gen](rng, false, n));
+    let q = null;
+    for (let t = 0; t < 40; t++) { // 한 시험 안에서(교시가 바뀌어도) 같은 문제가 다시 나오지 않게 다시 뽑는다
+      q = tier.listen && n < tier.listen ? GEN.toeicLC(rng) : GEN[tier.gen](rng, false, n);
+      const ch = q.choices || [], keys = [q.q + '|' + [...ch].map(String).sort().join('/')];
+      if (q.answer >= 0 && ch.length) keys.push(q.q + '|' + ch[q.answer]);
+      if (!used || q.kind === 'alien' || q.kind === 'captcha' || !keys.some(k => used.has(k))) { if (used) keys.forEach(k => used.add(k)); break; }
+    }
+    out.push(q);
   }
   return out;
 }

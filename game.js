@@ -488,7 +488,7 @@ function assignAI(qs, firstEver) { // AI의 판단: 맞으면 정답, 틀리면 
 }
 function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
   const T = E.T;
-  E.part = p; E.qs = makeQuestions(rng, T, p);
+  E.part = p; E.qs = makeQuestions(rng, T, p, E.used || (E.used = new Set()));
   if (E.tier === LAST && p === E.parts - 1 && !G.ended) E.qs[E.qs.length - 1] = { kind: 'text', q: '이 시험을 본 건 너인가, 나인가?', choices: ['나', '너', '우리', '모르겠다'], answer: -1, human: false, final: true }; // 마지막 문제
   assignAI(E.qs, firstEver);
   E.qi = 0; E.answers = []; E.via = []; E.scan = 0; E.ai = false; E.fb = null; E.listen = 0; E.earbudT = 0; E.unsafeT = 0;
