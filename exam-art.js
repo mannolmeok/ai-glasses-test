@@ -554,6 +554,30 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
     if (scanning) { const y = HH / 2, w = Math.round((W / 2 - 170) * E.scan); b.globalAlpha = 0.6; R(116, y, w, 1, G1); R(W - 116 - w, y, w, 1, G1); b.globalAlpha = 1; }
   }
 }
+// ---- 면접 × 리듬 (B안 · 한 마디 호흡) 화면 시안. 주소에 ?rh=1|2|3 을 붙이면 박자 표시만 미리 본다 (조작은 아직 지금 방식) ----
+function drawRhythmPreview(k, L, E, now, v, q) {
+  const W = L.W, HH = L.H, b = k.b, R = k.R, M = k.M, T = k.T, t = now * 1.6, beat = t % 4, bar = Math.floor(t / 4), look = bar % 3 === 2, nextLook = (bar + 1) % 3 === 2, C1 = '#7fe9ff', G1 = '#8dffa8', RD = '#ff6a6a';
+  const lines = q.lines || [], ln = lines[bar % Math.max(1, lines.length)] || '', phase = look ? '쉬기' : beat < 2 ? '꾹 · 읽기' : '뗌 · 말하기', pc = look ? RD : beat < 2 ? C1 : G1, hit = !look && (beat % 2) < 0.22;
+  if (v === '1') { // 위쪽 박자 띠: 네 칸이 왼쪽에서 오른쪽으로 찬다. 다음 마디가 옆에 미리 보인다
+    const x0 = W / 2 - 150, y0 = 78, cw = 62, drawBar = (x, lk, a, cur) => { for (let i = 0; i < 4; i++) { const c = lk ? RD : i < 2 ? C1 : G1; b.globalAlpha = a * 0.45; R(x + i * (cw + 4), y0, cw, 20, '#061018'); b.globalAlpha = a * 0.4; R(x + i * (cw + 4), y0, cw, 20, c); if (cur && i < Math.floor(beat) + 1) { b.globalAlpha = a; R(x + i * (cw + 4), y0, i === Math.floor(beat) ? Math.round(cw * (beat % 1)) : cw, 20, c); } b.globalAlpha = 1; } };
+    drawBar(x0, look, 1, true); b.globalAlpha = 0.6; drawBar(x0 + 4 * (cw + 4) + 14, nextLook, 0.5, false); b.globalAlpha = 1;
+    M(look ? '쉬기' : '꾹 · 대본 읽기', x0 + cw + 2, y0 + 10.5, 8, '#ffffff', 'center', 700); M(look ? '면접관이 본다' : '뗌 · 말하기', x0 + 3 * cw + 6, y0 + 10.5, 8, '#ffffff', 'center', 700);
+    R(x0 + Math.round((beat / 4) * (4 * cw + 12)), y0 - 5, 2, 30, '#ffffff'); M(nextLook ? '다음 마디: 쉬기' : '다음 마디', x0 + 4 * (cw + 4) + 14, y0 - 9, 7, nextLook ? RD : '#ffffff', 'left', 700);
+    if (hit) M('딱!', W / 2, y0 + 38, 14, '#ffffff', 'center', 700);
+  } else if (v === '2') { // 면접관 얼굴 둘레의 박자 고리: 네 조각이 시계 방향으로 찬다
+    const cx = W / 2, cy = 128, r = 58; hudDraw(k, c => { c.lineWidth = 7; for (let i = 0; i < 4; i++) { const a0 = -Math.PI / 2 + i * Math.PI / 2 + 0.06, a1 = a0 + Math.PI / 2 - 0.12, col = look ? RD : i < 2 ? C1 : G1; c.strokeStyle = col; c.globalAlpha = 0.25; c.beginPath(); c.arc(cx, cy, r, a0, a1); c.stroke(); if (i <= Math.floor(beat)) { c.globalAlpha = 1; c.beginPath(); c.arc(cx, cy, r, a0, i === Math.floor(beat) ? a0 + (a1 - a0) * (beat % 1) : a1); c.stroke(); } }
+      const ha = -Math.PI / 2 + beat / 4 * Math.PI * 2; c.globalAlpha = 1; c.fillStyle = '#ffffff'; c.beginPath(); c.arc(cx + Math.cos(ha) * r, cy + Math.sin(ha) * r, 5, 0, 7); c.fill(); if (hit) { c.strokeStyle = '#ffffff'; c.lineWidth = 2; c.globalAlpha = 0.7; c.beginPath(); c.arc(cx, cy, r + 10 + (beat % 2) * 40, 0, 7); c.stroke(); } });
+    M(phase, cx, cy + r + 16, 11, pc, 'center', 700); if (nextLook && !look) M('다음 마디는 쉬기', cx, cy + r + 30, 7.5, RD, 'center', 700);
+  } else { // 노래방 자막: 대본 한 줄이 박자에 맞춰 차오른다. 아래 점 네 개가 박자
+    const y = HH - 96, size = 15, tw = k.TW(ln, size, 700) + 8, x = W / 2 - tw / 2, f = look ? 0 : Math.min(1, beat / 2), sf = look ? 0 : Math.max(0, Math.min(1, (beat - 2) / 2));
+    b.globalAlpha = 0.6; R(x - 16, y - 20, tw + 32, 58, '#061018'); b.globalAlpha = 1; k.frame(x - 16, y - 20, tw + 32, 58, pc, 1);
+    M(ln, x, y, size, '#5a6a78', 'left', 700);
+    b.save(); b.beginPath(); b.rect(x - 6, y - 16, (tw + 8) * f, 32); b.clip(); M(ln, x, y, size, C1, 'left', 700); b.restore();
+    b.save(); b.beginPath(); b.rect(x - 6, y - 16, (tw + 8) * sf, 32); b.clip(); M(ln, x, y, size, G1, 'left', 700); b.restore();
+    for (let i = 0; i < 4; i++) { const on = i <= Math.floor(beat), c = look ? RD : i < 2 ? C1 : G1; b.globalAlpha = on ? 1 : 0.3; k.disc(W / 2 - 36 + i * 24, y + 24, i === Math.floor(beat) ? 6 : 4, c); } b.globalAlpha = 1;
+    M(look ? '면접관이 본다 · 이번 마디는 쉬기' : beat < 2 ? '꾹 눌러 읽기' : '손 떼고 말하기', W / 2, y - 32, 9, pc, 'center', 700);
+  }
+}
 // ---- 실험 중인 새 시험들의 화면 효과 ----
 function drawLabFx(k, L, E, now, live) {
   const Mm = E.T.mech, W = L.W, HH = L.H, b = k.b, R = k.R, M = k.M, S = k.S || HUD_SCALE;
@@ -718,7 +742,9 @@ function drawExamHud(k, L, E, now, H) {
     const base = Math.min(0.85, 0.12 + E.sus * 0.9), a = E.rising ? Math.min(1, base + 0.35 + 0.3 * Math.sin(now * 16)) : base;
     k.b.globalAlpha = Math.max(0, a); k.b.drawImage(lensGlow('A', C.bad), 0, 0); k.b.globalAlpha = 1;
   }
-  if ((E.layout === 'table' || (E.qs[Math.min(E.qi, E.qs.length - 1)] || {}).kind === 'speak') && !E.result) drawArCard(k, L, E, now, H);
+  const RHV = typeof params !== 'undefined' && params.get('rh');
+  if ((E.layout === 'table' || (E.qs[Math.min(E.qi, E.qs.length - 1)] || {}).kind === 'speak') && !E.result && RHV !== '3') drawArCard(k, L, E, now, H);
+  if (RHV && live && q && q.kind === 'speak') drawRhythmPreview(k, L, E, now, RHV, q);
   if (q && q.kind === 'essay' && live && E.view === 'paper' && !E.result) drawEssayPanel(k, L, E, now, q);
   if (E.finalQ) { // 마지막 문제: 렌즈가 깨진다
     const n = Math.round(6 + E.glitch * 26);

@@ -31,7 +31,7 @@ const HUBUI = (() => {
   function lapHead(k, title, col, bg) { k.R(0, 0, LW, 26, bg); k.T(title, 10, 13, 15, col, 'left', 800); k.T(`${won(STATE.shown)}원`, LW - 8, 13, 13, PAL.gold, 'right', 800); }
   function lapFoot(k, hv, backLabel, bg, pages, pkey) {
     k.R(0, LH - 28, LW, 28, bg);
-    const out = !!(G.flags.sold || G.black); // 품절·협박 사건 전에는 바탕화면이 없는 것처럼: 뒤로 = 방으로
+    const out = deskOpen(); // 품절·협박 사건 전에는 바탕화면이 없는 것처럼: 뒤로 = 방으로
     btn(k, 6, LH - 24, 92, 20, out ? backLabel : '< 방으로', 'back', { bg: '#1d2433', col: '#4a5a6a', fg: '#ffffff', size: 12 });
     if (out && !G.flags.deskSeen && Math.floor(now * 2) % 2 === 0) k.disc(96, LH - 23, 5, '#e8453e'); // 바탕화면에 새 소식: 빨간 점이 깜빡인다
     if (pages > 1) { const pg = hv.page;
@@ -52,7 +52,7 @@ const HUBUI = (() => {
       if (badge) { k.disc(ix + 94, iy + 12, 11, '#e8453e'); T(String(badge), ix + 94, iy + 12, 13, C.white, 'center', 800); }
       btns.push({ x: ix, y: iy, w: 120, h: 126, key });
     };
-    const tgBadge = G.black || (G.flags.sold && soldOut(gearDef('lens'))) ? 1 : 0;
+    const tgBadge = G.black || (G.flags.sold && soldOut(gearDef('lens'))) || helperPending() ? 1 : 0;
     icon(60, 'AI마켓', 'app:shop', '#0f1722', (cx, cy) => T('AI', cx, cy, 30, C.hud, 'center', 800), shopNewCount());
     icon(220, '텔레그램', 'app:tg', '#2aa3e0', (cx, cy) => k.poly([[cx - 22, cy], [cx + 22, cy - 18], [cx + 11, cy + 19], [cx - 3, cy + 7]], '#ffffff'), tgBadge);
     lapFoot(k, hv, '< 방으로', '#0d1f2c', 1);
@@ -64,6 +64,15 @@ const HUBUI = (() => {
     let by = 34;
     const bubble = (text, mine) => { const ls = wrap(k, text, 250, 12), bw = Math.max(...ls.map(l => k.TW(l, 12, 700))) + 16, bh = ls.length * 15 + 8, bx = mine ? LW - 10 - bw : 10;
       R(bx, by, bw, bh, mine ? '#2b5278' : '#182533'); ls.forEach((l, i) => T(l, bx + 8, by + 12 + i * 15, 12, C.white, 'left', 700)); by += bh + 5; };
+    const hp = helperPending(), hl = helperLast(), hh = hp || (!want ? hl : null);
+    if (!bl && hh && !(want && !hp)) { // 의문의 조력자: 정해진 시험 앞에서 먼저 연락한다
+      T('의문의 조력자', 12, by - 2, 10, '#5eb5f7', 'left', 800); by += 10;
+      const cost = helperCost(hh), has = tgHas(hh.id); hh.lines.slice(has ? -1 : -3).forEach(([t, mine]) => bubble(t, mine));
+      if (has) { bubble('보냈어요', true); bubble(hh.done, false); T(`받은 것: ${hh.name} · ${hh.effect}`, 12, LH - 50, 10, '#8fd8a8', 'left', 800); }
+      else { T(`${hh.name} · ${hh.effect}`, 12, LH - 78, 10, '#9fc4e0', 'left', 800); T(hh.need ? '이게 없으면 다음 시험을 볼 수 없다' : '없어도 시험은 볼 수 있다', 12, LH - 49, 9, hh.need ? '#ffb0b0' : '#8a9aa8', 'left', 700);
+        const ok = G.money >= cost; btn(k, LW - 10 - 220, LH - 62, 220, 26, ok ? `송금 · ${won(cost)}원` : `${won(cost - G.money)}원 모자람`, ok ? 'tgbuy:' + hh.id : null, { off: !ok, bg: '#2b5278', col: '#5eb5f7', fg: '#ffffff', size: 13 }); }
+      lapFoot(k, hv, '< 바탕화면', '#17212b', 1); return;
+    }
     if (!want && !done && !bl) { T('새 대화가 없습니다', LW / 2, 100, 15, '#6d7f8f', 'center', 800); T('모르는 사람의 메시지는 조심하세요', LW / 2, 124, 11, '#4a5a6a', 'center', 700); }
     else if (bl) { // 다시 연락 온 브로커: 입막음비를 내거나, 제보당하거나
       bubble('사장님 오랜만. 요즘 단속 심해진 거 아시죠?', false);

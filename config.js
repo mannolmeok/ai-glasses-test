@@ -278,6 +278,20 @@ window.CONFIG = {
       head: ["Humanity's Last Exam", '모든 것'], lines: [] },
   ],
 
+  // 텔레그램 조력자: 정해진 시험이 열리면 먼저 연락한다. tier: 그 시험 번호, need: 없으면 응시할 수 없음, mult: 값 = 그 시험의 문제당 상금 x mult
+  // (국내의 필수는 지금 있는 초소형 카메라 품절 장면이라 여기에는 다섯 개만 있다)
+  helper: [
+    { id: 'cctvmap', tier: 6, need: false, mult: 2, name: 'CCTV 사각 지도', effect: 'CCTV에 찍혀도 의심이 절반만 오른다',
+      lines: [['관세사 보시죠? 이번부터 시험장에 CCTV가 달립니다.', false], ['그걸 어떻게 아세요', true], ['카메라마다 안 닿는 자리가 있습니다. 지도, 필요하시죠.', false]], done: '보냈습니다. 지도는 외우고 지우세요.' },
+    { id: 'visa', tier: 13, need: true, mult: 3, name: '여권 · 비자 급행', effect: '해외 시험에 응시할 수 있다', block: '여권과 비자가 없어요 · 텔레그램을 확인하세요',
+      lines: [['국내는 다 끝내셨네요. 이제 나가셔야죠.', false], ['SAT는 미국에서만 봅니다. 여권도 비자도 없으시잖아요.', false], ['…구해 줄 수 있어요?', true], ['사흘이면 됩니다. 값은 좀 나갑니다.', false]], done: '공항에서 뵙죠. 아, 뵐 일은 없겠네요.' },
+    { id: 'leak', tier: 19, need: false, mult: 2, name: '면접 질문지', effect: '투자은행 면접에서 문항마다 대본 두 줄이 미리 읽혀 있다',
+      lines: [['월가 최종 면접까지 가셨군요.', false], ['임원들이 뭘 물을지, 제가 좀 압니다.', false], ['어떻게요', true], ['묻지 않는 게 서로 좋습니다.', false]], done: '질문지 보냈습니다. 답은 안경이 알아서 하겠죠.' },
+    { id: 'trans', tier: 20, need: true, mult: 3, name: '외계어 번역 팩', effect: '외계 시험에 응시할 수 있다', block: 'AI가 외계 문자를 읽지 못해요 · 텔레그램을 확인하세요',
+      lines: [['지구 시험은 여기까지입니다.', false], ['다음은 은하수능인데, 당신 AI는 그쪽 글자를 못 읽습니다.', false], ['그걸 왜 당신이 알아요', true], ['번역 팩, 필요하시죠.', false]], done: '설치됐습니다. 이제부터는 저도 처음 가 보는 곳입니다.' },
+    { id: 'coin', tier: 21, need: false, mult: 2, name: '노잣돈', effect: '저승 입학시험에서 저승사자 한 명이 40초 늦게 온다',
+      lines: [['저승 시험장에는 사자가 둘입니다.', false], ['한 명은 돈을 받습니다. 예전부터 그랬어요.', false], ['…예전부터?', true], ['노잣돈, 대신 전해 드리죠.', false]], done: '전했습니다. 한 분은 좀 늦으실 겁니다.' },
+  ],
   // 실험 중인 새 시험 (테스트용). 주소에 ?exam=<id> 를 붙이면 slot 번째 시험 자리에서 대신 열린다. 난이도·상금은 그 자리 시험을 물려받는다
   lab: {
     ielts: { slot: 15, act: 2, name: 'IELTS 스피킹', subject: 'Speaking Part 3', gen: 'ielts', qn: 5, time: 80, room: 'ielts', layout: 'table', device: 'ar', sec: [], mech: ['interview'], staff: [{ type: 'teacher', name: '시험관', fixed: true }], head: ['IELTS Speaking Test', 'Part 3'], lines: [],

@@ -539,6 +539,7 @@ function startExam(ti) {
   if (G.audit) { G.mail = null; goHub('mail'); return true; } // 재시험 통보가 와 있으면 다른 시험은 못 본다: 통보부터 읽게 한다
   ti = clamp(ti, 0, G.unlocked - 1); if (!CHECKED) netCountPlay(); if (!CHECKED && !STATE.titleBuild && netOn()) runPending(1); // 시험 한 번 = 한 판 (타이틀 뒤에 깔리는 시험장은 세지 않는다)
   const T = TIERS[ti], fee = examFee(T);
+  { const nh = CONFIG.helper.find(h => h.need && ti >= h.tier && (h.id === 'visa' ? T.act === 2 : T.act === 3) && !tgHas(h.id)); if (nh && !STATE.titleBuild && !params.get('scene')) { sfx.no(); STATE.note = { text: nh.block, t: 0 }; return false; } } // 조력자의 길이 있어야 넘어가는 구간
   if (G.money < fee) { sfx.no(); STATE.note = { text: `응시료 ${won(fee)}원이 모자라요`, t: 0 }; return false; }
   G.money -= fee; G.stats.fees += fee; STATE.shown = Math.min(STATE.shown, G.money);
   const g = G.gear, firstEver = ti === 0 && G.stats.exams === 0, R = WORLD_LAYOUT(T);
@@ -554,6 +555,7 @@ function startExam(ti) {
     cloneT: T.mech.includes('clones') ? tune.clone_gap : 0, clones: 0,
     cctv: T.sec.includes('cctv') ? { ph: rng() * 6.28, a: 1, on: false } : null,
     pulse: T.sec.includes('pulse') ? { next: 3 + rng() * 3, warn: 0, active: 0 } : null };
+  if (T.id === 'afterlife' && tgHas('coin')) { const r0 = E.staff.find(s => s.type === 'reaper'); if (r0) { r0.visit = 'drop'; r0.out = true; r0.outT = 40; } } // 노잣돈: 저승사자 한 명이 늦게 온다
   E.pulseCut = T.pulse === 'screen' ? gearCut(g.screenfilm) : jamFactor(g.jammer, 3);
   E.stickerSlow = 1; E.dead = null; E.deadNext = null; E.intro = null; E.wetT = 0; // 단추 스티커는 이제 느려지는 게 아니라 아예 가려진다 (E.dead)
   // 입실 검사: 시작부터 의심을 안고 들어간다
@@ -740,7 +742,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
     if (s.type === 'webcam' && s.phase === 'watch' && E.view !== 'paper') idle += base * tune.look_away_rate * gearCut(g.deepcam); // 웹캠 앞에서 딴 데 보기
   }
   if (T.mech.includes('telepathy') && E.ai && !E.fb && E.staff.some(s => !s.out && s.phase === 'watch')) { idle += base * 0.9; E.mindRead = true; } else if (E) E.mindRead = false; // 독심: 답을 떠올리고 있는 동안 보면 읽힌다
-  if (E.cctv && E.cctv.on) add(base * tune.cctv_rate * jamFactor(g.cctvjam, 3), 'cctv', null);
+  if (E.cctv && E.cctv.on) add(base * tune.cctv_rate * (tgHas('cctvmap') ? 0.5 : 1) * jamFactor(g.cctvjam, 3), 'cctv', null);
   r *= Math.pow(1 - tune.stealth_cut, g.stealth); idle *= Math.pow(1 - tune.stealth_cut, g.stealth);
   if (E.pulse && E.pulse.active > 0) { const v = tune.pulse_rate * E.pulseCut; r += v; if (v > 0 && (!src || v > src.v)) src = { v, how: T.pulse || 'pulse', by: null }; }
   return { r, idle, src };
@@ -901,7 +903,7 @@ function updateExam(dt) {
   }
   const speak = q.kind === 'speak';
   if (speak && !E.fb) { // 면접: 대본을 읽어 둔 데까지만 말할 수 있다. 읽어 둔 게 떨어지면 말이 끊긴다
-    if (!E.sp || E.sp.q !== q) E.sp = { q, read: 0, said: 0, stam: 0, t: 0, um: false };
+    if (!E.sp || E.sp.q !== q) E.sp = { q, read: T.id === 'ibank' && tgHas('leak') ? 2 : 0, said: 0, stam: 0, t: 0, um: false };
     const sp = E.sp, N = q.lines.length; sp.t += dt;
     const gz = T.mech.includes('gaze'), wait = gz ? tune.aiiv_present + (T.think != null ? T.think : tune.aiiv_think) : tune.speak_wait, ready = !gz || sp.t >= tune.aiiv_present;
     if (gz) { // 시선 규칙: 대본을 보는 동안 벗어난 시간이 쌓이고, 카메라를 다시 보면 풀린다
@@ -1099,7 +1101,13 @@ function leaveTitle(T0) { if (!CHECKED && netOn()) runPending(1); /* 첫 시험�
   if (!G.run.done) G.run.started = true; ptrs.clear(); releases = []; STATE.titleOut = 0.9; scene = 'play'; events.push({ type: 'exam', tier: 0, fee: 0 });
 }
 function goHub(view) { scene = 'hub'; const hv = STATE.hv; hv.view = 'room'; hv.target = 'room'; hv.zoom = 0; hv.bpage = null; if (view) enterView(view, true); }
-const deskOpen = () => !!(G.flags.sold || G.black); // 바탕화면으로 나갈 수 있는가
+function tgHas(id) { return !!(G.tg && G.tg[id]); }
+function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].reward * tune.reward_scale * tune.cost_scale); }
+function helperOpen() { return CONFIG.helper.filter(h => G.unlocked - 1 >= h.tier); } // 그 시험이 일정표에 열리면 연락이 온다
+function helperPending() { return helperOpen().filter(h => !tgHas(h.id)).pop() || null; }
+function helperLast() { return helperOpen().pop() || null; }
+function buyHelper(id) { const h = CONFIG.helper.find(x => x.id === id); if (!h || tgHas(id)) return; const c = helperCost(h); if (G.money < c) { sfx.no(); return; } G.money -= c; (G.tg || (G.tg = {}))[id] = true; sfx.buy(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: `${h.name} 받음`, col: PAL.good || PAL.white }); save(); }
+const deskOpen = () => !!(G.flags.sold || G.black || helperOpen().length); // 바탕화면으로 나갈 수 있는가
 function enterView(v, instant) {
   const hv = STATE.hv; hv.view = v; hv.target = v; hv.zoom = instant ? 1 : 0;
   if (v === 'laptop') { hv.app = deskOpen() && !G.flags.deskSeen ? 'desk' : 'shop'; if (hv.app === 'desk') G.flags.deskSeen = true; hv.page = 0; hv.tab = shopItems('new').length ? 'new' : G.fresh.model ? 'model' : hv.tab === 'new' ? 'glass' : hv.tab; G.hints.shop = true; STATE.shownIds.clear(); }
@@ -1144,6 +1152,7 @@ function hubKey(key) { // 다가간 화면에서 누른 칸
   else if (a === 'app') { hv.app = b; hv.page = 0; sfx.flip(); if (b === 'shop') hv.tab = shopItems('new').length ? 'new' : G.fresh.model ? 'model' : hv.tab === 'new' ? 'glass' : hv.tab; }
   else if (a === 'hush') { if (G.black && G.money >= G.black.amount) { G.money -= G.black.amount; G.black = null; sfx.buy(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: '입막음비 송금 완료', col: PAL.warn }); save(); } else sfx.no(); }
   else if (a === 'refuse') { if (G.black) reportByBroker('후회하실 텐데'); }
+  else if (a.startsWith('tgbuy:')) buyHelper(a.slice(6));
   else if (a === 'broker') { if (G.money >= brokerCost()) buyGear('lens', true); else sfx.no(); }
   else if (a === 'tab') { hv.tab = b; hv.page = 0; sfx.flip(); }
   else if (a === 'page') hv.page += Number(b);
@@ -1177,7 +1186,7 @@ function hubAction(a) { // 방에서 누른 물건
 function openParcels() { // 상자를 열지 않고 시험 보러 가도 장비는 쓴다
   const hv = STATE.hv; hv.hidden = {}; hv.order = []; hv.parcel = null; hv.parcelT = 0;
 }
-function updateHub(dt) { soundHub(dt);
+function updateHub(dt) { soundHub(dt); { const hp = helperPending(); if (hp && !(G.tgTold || (G.tgTold = {}))[hp.id]) { G.tgTold[hp.id] = true; addNews('tg', `텔레그램 새 메시지: "${hp.lines[0][0]}"`); sfx.news(); } }
   if (TESTSITE && params.get('real') !== '1' && G.money < 1e11) G.money = 1e11; // 테스트용 사이트: 방에 있을 때는 돈이 늘 1,000억원 (주소에 ?real=1 을 붙이면 끔)
   const hv = STATE.hv;
   STATE.wipeArm = Math.max(0, STATE.wipeArm - dt);
