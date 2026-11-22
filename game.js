@@ -57,6 +57,7 @@ const between = (a, b) => a + rng() * (b - a);
 const TIERS = CONFIG.tiers, LAST = TIERS.length - 1;
 // 시험해 보는 전형: AI 면접. 아직 진행 순서에는 넣지 않았고, 주소에 exam=aiiv 를 붙였을 때만 토플 자리에 들어간다
 if (new URLSearchParams(location.search).get('exam') === 'aiiv') TIERS[4] = Object.assign({}, TIERS[4], { id: 'aiiv', name: '대기업 AI 역량검사', subject: '상황 면접', gen: 'aiiv', qn: 5, time: 170, mech: ['webcam', 'gaze'] });
+{ const X = new URLSearchParams(location.search).get('exam'), Lb = CONFIG.lab && CONFIG.lab[X]; if (Lb) { const o = Object.assign({}, TIERS[Lb.slot], { id: X, news: null, swap: null, boss: false, essay: false, listen: 0, noAuto: false, check: null, pulse: null, parts: null, layout: null, device: null }, Lb); for (const k of ['parts', 'layout', 'device', 'pulse', 'check', 'news', 'swap']) if (o[k] == null) delete o[k]; TIERS[Lb.slot] = o; } } // 실험 중인 새 시험
 function rewardAt(x) { // x번째 시험의 문제당 상금. 사이 값은 등비로 잇고, 범위 밖은 끝의 비율로 늘인다
   const r = i => TIERS[i].reward;
   if (x <= 0) return r(0) * Math.pow(r(1) / r(0), x);
@@ -402,7 +403,8 @@ function viewInput(taps) { // 화면 왼쪽·오른쪽·위를 누르고 있는 
   if (FORCE_VIEW) { setView(FORCE_VIEW); return; }
   const front = E.layout === 'room' ? 'front' : 'paper'; let z = null;
   for (const p of ptrs.values()) if (p.zone === 'L' || p.zone === 'R' || p.zone === 'T') z = p.zone;
-  setView(z === 'L' || down.has('ArrowLeft') || down.has('KeyA') ? 'left' : z === 'R' || down.has('ArrowRight') || down.has('KeyD') ? 'right' : z === 'T' || down.has('ArrowUp') || down.has('KeyW') ? front : 'paper');
+  const mir = E.T.mech.includes('mirror'), wantL = z === 'L' || down.has('ArrowLeft') || down.has('KeyA'), wantR = z === 'R' || down.has('ArrowRight') || down.has('KeyD');
+  setView((mir ? wantR : wantL) ? 'left' : (mir ? wantL : wantR) ? 'right' : z === 'T' || down.has('ArrowUp') || down.has('KeyW') ? front : 'paper');
 }
 function scanPointer() { // 시험장: 가운데를 꾹. 면접: 화면 왼쪽(AI 답변이 뜨는 쪽)을 꾹
   for (const p of ptrs.values()) if (E && E.layout === 'table' ? p.x < EXAM_LAYOUT.W * 0.45 && p.y < 270 : p.zone === 'C') return true; return false; }
@@ -704,6 +706,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
     if (s.phase === 'check' && s.check.stage === 'at' && E.ai && !E.fb && g.autooff < 1) idle += base * tune.glow_rate;          // 렌즈에 뜬 AI 답이 보인다
     if (s.type === 'webcam' && s.phase === 'watch' && E.view !== 'paper') idle += base * tune.look_away_rate * gearCut(g.deepcam); // 웹캠 앞에서 딴 데 보기
   }
+  if (T.mech.includes('telepathy') && E.ai && !E.fb && E.staff.some(s => !s.out && s.phase === 'watch')) { idle += base * 0.9; E.mindRead = true; } else if (E) E.mindRead = false; // 독심: 답을 떠올리고 있는 동안 보면 읽힌다
   if (E.cctv && E.cctv.on) add(base * tune.cctv_rate * jamFactor(g.cctvjam, 3), 'cctv', null);
   r *= Math.pow(1 - tune.stealth_cut, g.stealth); idle *= Math.pow(1 - tune.stealth_cut, g.stealth);
   if (E.pulse && E.pulse.active > 0) { const v = tune.pulse_rate * E.pulseCut; r += v; if (v > 0 && (!src || v > src.v)) src = { v, how: T.pulse || 'pulse', by: null }; }
@@ -824,9 +827,18 @@ function updateExam(dt) {
     if (E.ai) E.downT = Math.max(E.downT, 1);
     return;
   }
-  E.timeLeft -= dt; E.clockT += dt;
+  const M_ = T.mech, warp = M_.includes('warp') ? (E.warp = 1.15 + 0.85 * Math.sin(E.clockT * 0.55)) : 1; // 블랙홀: 시계와 감독관의 시간이 빨라졌다 느려졌다 한다
+  E.timeLeft -= dt * warp; E.clockT += dt;
   if (E.timeLeft <= 0) { E.timeLeft = 0; endPart(false); return; }
-  for (const s of E.staff) stepStaff(s, T, dt);
+  for (const s of E.staff) stepStaff(s, T, dt * warp);
+  if (E.labSay) { E.labSay.t += dt; if (E.labSay.t > 2.2) E.labSay = null; }
+  if (E.gasp > 0) E.gasp -= dt;
+  if (M_.includes('spin')) E.roll = Math.sin(E.clockT * 0.55) * 0.42 + Math.sin(E.clockT * 1.3) * 0.08; // 회전 장치: 화면이 기운다
+  if (M_.includes('loop')) { if (E.loopPart !== E.part) { if (E.loopPart != null) { (E.loopLog || (E.loopLog = [])).push(E.loopNow || []); E.loopPrev = E.loopCur || []; if (E.loopQs) { E.qs = E.loopQs.map(q => Object.assign({}, q)); } } else E.loopQs = E.qs.map(q => Object.assign({}, q)); E.loopPart = E.part; E.partT = 0; E.loopNow = []; } E.partT += dt; E.loopCur = E.answers.slice(); }
+  if (M_.includes('dream') && !E.fb) { if (E.dreamT == null) E.dreamT = between(7, 10); E.dreamT -= dt;
+    if (E.dreamT <= 0) { E.dreamT = between(6, 9); const q0 = E.qs[E.qi]; if (q0 && q0.choices && q0.kind !== 'essay' && q0.kind !== 'speak' && !q0.final) { const pm = [1, 2, 3, 0].map(i => (i + Math.floor(rng() * 3)) % 4), perm = [0, 1, 2, 3].sort((a, b) => pm[a] - pm[b] || a - b); const sh = perm[0] === 0 && perm[1] === 1 && perm[2] === 2 ? [1, 2, 3, 0] : perm, inv = []; sh.forEach((from, to) => inv[from] = to);
+        q0.choices = sh.map(i => q0.choices[i]); if (q0.answer >= 0) q0.answer = inv[q0.answer]; if (q0.aiPick != null) q0.aiPick = inv[q0.aiPick]; if (q0.elim) q0.elim = q0.elim.map(i => inv[i]); E.scan = 0; E.ai = false; E.earbudT = 0; E.labSay = { text: '(…보기 순서가 바뀌었다.)', t: 0 }; sfx.warp(); } } }
+  if (M_.includes('omega') && !E.finalQ) { const down = Math.floor(E.qi / tune.omega_strip); if (down !== (E.omegaDown || 0)) { E.omegaDown = down; const order = ['brain', 'contact', 'mil', 'proto', 'used'], cur = order.indexOf(g.lens >= 7 ? 'brain' : g.lens >= 6 ? 'contact' : g.lens >= 5 ? 'mil' : g.lens >= 4 ? 'proto' : 'used'); E.stageForce = order[Math.min(order.length - 1, cur + down)]; E.labSay = { text: `Ω: "그 장비는 이미 배웠습니다." (안경 ${down}단계 하락)`, t: 0 }; sfx.pulse(); } }
   if (E.cctv) stepCctv(E.cctv, dt);
   if (E.pulse) stepPulse(E.pulse, dt);
   stepEvents(T, dt);
@@ -841,7 +853,7 @@ function updateExam(dt) {
     if (safe) { E.unsafeT = 0; if (E.view === 'front') setView('paper'); } else E.unsafeT += dt;
     autoHold = onPaper && (safe || E.unsafeT < autoDelayAt(g.autoscan));
   }
-  const hold = (manual || autoHold) && !E.ai && !E.fb && !E.dead; // 장비가 먹통이면 아무리 눌러도 스캔되지 않는다
+  const hold = (manual || autoHold) && !E.ai && !E.fb && !E.dead && !(E.gasp > 0); // 장비가 먹통이면 아무리 눌러도 스캔되지 않는다
   E.tryHold = !!E.dead && manual;
   const essay = q.kind === 'essay', table = E.layout === 'table', blind = table && E.staff.some(s => s.fixed && s.phase === 'watch'); // 면접관이 보는 동안은 읽히지 않는다
   if (essay) { // 서술형: 한 줄 읽기(위험) → 그 줄 옮겨 쓰기(안전). 읽은 줄은 손을 떼고 있으면 잊는다
@@ -869,17 +881,20 @@ function updateExam(dt) {
   }
   const risky = hold && !(essay && E.es.mem > 0); // 서술형에서 쓰는 동안은 평범한 수험생으로 보인다
   if (hold && !E.wasHold && T.mech.includes('omega') && E.scan < 0.05) { // Ω는 스캔 박자를 읽는다: 지난번과 같은 간격이면 들킨다
-    const t = E.clockT, gap = E.lastScanT == null ? null : t - E.lastScanT, win = tune.omega_window * gearCut(g.offbeat);
+    const t = E.clockT, gap = E.lastScanT == null ? null : t - E.lastScanT, win = tune.omega_window * (1 + tune.omega_grow * E.qi) * Math.max(tune.omega_floor, gearCut(g.offbeat));
     if (gap != null && E.lastGap != null && Math.abs(gap - E.lastGap) < win) { E.sus = Math.min(1, E.sus + tune.omega_jump); E.source = { how: 'omega', by: E.staff[0] }; flash('Ω가 박자를 읽었다! 간격을 바꿔라', PAL.bad); sfx.pulse(); }
     E.lastGap = gap; E.lastScanT = t;
   }
+  if (hold && !E.wasHold && M_.includes('loop')) { const t = E.partT || 0; E.loopNow.push(t); if ((E.loopLog || []).some(a => a.some(v => Math.abs(v - t) < 1.2))) { E.sus = Math.min(1, E.sus + 0.34); E.source = { how: 'loop', by: E.staff[0] }; E.labSay = { text: '담임 선생님: "지난번에도 딱 이때 숙였지."', t: 0 }; sfx.pulse(); } }
+  if (M_.includes('breath')) { E.breath = clamp((E.breath == null ? 1 : E.breath) + (hold ? -dt / 4.5 : dt / 3), 0, 1); if (E.breath <= 0 && hold) { E.breath = 0.25; E.gasp = 1.6; E.sus = Math.min(1, E.sus + 0.3); E.source = { how: 'breath', by: E.staff[0] }; E.labSay = { text: '(숨이 터졌다. 공기 방울이 솟는다!)', t: 0 }; sfx.pulse(); } }
+  if (M_.includes('helmet')) E.fog = clamp((E.fog || 0) + (hold ? dt / 3.2 : -dt / 2.2), 0, 1);
   const peeker = E.staff.find(s => s.phase === 'peek' && s.peek.stage === 'stare');
   if (peeker && risky) { E.sus = 1; E.source = { how: 'peek', by: peeker }; getCaught(); return; } // 올려다보는 눈과 마주친 채 스캔하면 끝
   if (!hold && !E.ai && !E.fb && E.scan > 0) E.scan = table ? Math.floor(E.scan * 4 + 1e-6) / 4 : tune.scan_drop >= 10 ? 0 : Math.max(0, E.scan - tune.scan_drop * dt); // 손을 떼면 스캔이 처음으로 돌아간다
   E.wasHold = hold; E.holding = hold; E.autoHolding = autoHold && !manual;
   E.rising = (risky && th.r > 0) || th.idle > 0;
   if (risky && th.r > 0) { E.sus += th.r * dt; E.source = th.src; }
-  if (th.idle > 0) { E.sus += th.idle * dt; if (!(risky && th.r > 0)) E.source = { how: atDesk ? 'check' : 'webcam', by: E.staff.find(s => s.phase === 'check') || E.staff[0] }; }
+  if (th.idle > 0) { E.sus += th.idle * dt; if (!(risky && th.r > 0)) E.source = { how: E.mindRead ? 'mind' : atDesk ? 'check' : 'webcam', by: E.staff.find(s => s.phase === 'check') || E.staff[0] }; }
   if (!E.rising) E.sus -= tune.sus_decay * dt;
   E.sus = clamp(E.sus, 0, 1);
   if (E.sus >= 1) { getCaught(); return; }
@@ -887,7 +902,8 @@ function updateExam(dt) {
   if (hold && !essay && !speak && !blind) { // 스캔: 1/3, 2/3에서 오답이 하나씩 지워지고, 끝나면 AI의 답
     if (table) G.hints.iv = true;
     const before = Math.floor(E.scan * 3 + 1e-6);
-    const secs = scanSecondsAt(g.lens) * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
+    const labSlow = (M_.includes('spin') ? 1 + 2.2 * Math.abs(E.roll || 0) : 1) * (M_.includes('helmet') ? 1 + 2.5 * (E.fog || 0) : 1) * (M_.includes('mirror') ? 1.6 : 1);
+    const secs = scanSecondsAt(Math.max(3, g.lens - (E.omegaDown || 0))) * labSlow * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
     E.scan += dt / secs * (1 - tune.float_wobble * E.float);
     E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); }
     if (E.scan >= 1) completeScan();
@@ -1430,6 +1446,7 @@ STATE.hv = newHubView();
 if (params.get('tier')) { G.unlocked = clamp(Number(params.get('tier')) + 1, 1, TIERS.length); for (let i = 0; i < G.unlocked - 1; i++) G.cleared[i] = true; }
 if (params.get('gear')) { const lv = Number(params.get('gear')); for (const d of CONFIG.gear) G.gear[d.id] = gearOpen(d) ? Math.min(gearCap(d), lv) : 0; let m = 0; while (modelOpen(m + 1)) m++; G.gear.model = m; }
 if (params.get('money')) G.money = Number(params.get('money'));
+if (params.get('auto') === '0') G.gear.autoscan = 0; // check only: 자동 스캔 없이 직접 해 본다
 if (params.get('lens')) G.gear.lens = Number(params.get('lens')); // check only: 촬영·표시 장비 단계를 정해서 본다
 state = makeState();
 awayEarnings();

@@ -368,6 +368,36 @@ const AIIV_IV = [ // AI 역량검사: 상황을 주고 어떻게 할지 묻는�
   ['회의에서 당신의 의견만 계속 묻힙니다. 어떻게 하시겠습니까?', ['제 전달 방식부터 돌아보겠습니다.', '다음에는 결론을 먼저 말하고', '숫자 하나를 근거로 붙이겠습니다.', '회의 전에 한 사람에게 미리 공유해', '같이 말해 줄 사람을 만들겠습니다.']],
   ['시험에서 옆 사람의 부정행위를 봤습니다. 어떻게 하시겠습니까?', ['그 자리에서 소란을 만들지는 않겠습니다.', '시험이 끝난 뒤 감독관에게', '본 사실만 조용히 알리겠습니다.', '모두가 같은 조건에서 치러야', '결과를 믿을 수 있기 때문입니다.']],
 ];
+const IELTS_IV = [
+  ['Why do some people prefer living in big cities?', ['대도시에는 일자리가 많습니다.', '병원과 학교도 가까이 있습니다.', '대신 집값이 비싸고 붐빕니다.', '그래도 기회가 많아 사람들이 모입니다.']],
+  ['Do you think children should learn to cook at school?', ['네, 배워야 한다고 생각합니다.', '혼자 살 때 꼭 필요한 기술입니다.', '건강한 식습관도 함께 익힙니다.', '다만 주요 과목 시간은 지켜야 합니다.']],
+  ['How has technology changed the way people communicate?', ['예전에는 편지와 전화가 전부였습니다.', '지금은 어디서든 바로 연락합니다.', '덕분에 멀리 있는 가족과도 가깝습니다.', '반면 직접 만나는 일은 줄었습니다.']],
+  ['Is it better to travel alone or with others?', ['둘 다 장점이 있습니다.', '혼자면 일정을 마음대로 정합니다.', '함께면 비용과 기억을 나눕니다.', '저는 가까운 친구 한 명이 좋습니다.']],
+  ['What makes a good teacher?', ['먼저 과목을 깊이 알아야 합니다.', '그리고 쉽게 설명할 줄 알아야 합니다.', '학생의 질문을 귀찮아하지 않습니다.', '무엇보다 기다려 줄 줄 압니다.']],
+  ['Should public transport be free?', ['무료면 차가 줄어 공기가 맑아집니다.', '소득이 낮은 사람에게도 도움이 됩니다.', '하지만 운영비는 세금으로 메워야 합니다.', '저는 일부 구간부터 해 보자고 봅니다.']],
+  ['Why do people keep pets?', ['외로움을 덜어 주기 때문입니다.', '돌보면서 책임감도 생깁니다.', '산책을 하니 건강에도 좋습니다.', '가족처럼 느끼는 사람이 많습니다.']],
+];
+const TAXI_IV = [
+  ['매너하우스 역에서 깁슨 스퀘어까지.', ['그린 레인스를 따라 남쪽으로 갑니다.', '하이버리 그로브로 들어섭니다.', '어퍼 스트리트에서 오른쪽으로 돕니다.', '시어볼드 로드를 지나 깁슨 스퀘어입니다.']],
+  ['킹스크로스 역에서 대영박물관까지.', ['유스턴 로드에서 서쪽으로 갑니다.', '어퍼 워번 플레이스로 왼쪽입니다.', '러셀 스퀘어를 끼고 돕니다.', '그레이트 러셀 스트리트에서 내립니다.']],
+  ['패딩턴 역에서 하이드 파크 코너까지.', ['프레이드 스트리트로 나옵니다.', '서식스 가든스를 따라 내려갑니다.', '베이스워터 로드에서 왼쪽입니다.', '파크 레인을 타고 코너에 닿습니다.']],
+  ['워털루 역에서 세인트 폴 대성당까지.', ['요크 로드에서 북쪽으로 갑니다.', '워털루 다리를 건넙니다.', '스트랜드에서 오른쪽, 플리트 스트리트.', '러드게이트 힐을 올라 대성당입니다.']],
+  ['빅토리아 역에서 트라팔가 광장까지.', ['빅토리아 스트리트로 나옵니다.', '팔리아먼트 스퀘어를 돕니다.', '화이트홀을 따라 북쪽으로 갑니다.', '끝에서 트라팔가 광장입니다.']],
+  ['리버풀 스트리트 역에서 타워 브리지까지.', ['비숍스게이트를 따라 남쪽으로 갑니다.', '그레이스처치 스트리트로 이어집니다.', '이스트칩에서 왼쪽으로 돕니다.', '타워 힐을 지나 다리 앞입니다.']],
+];
+const ESSAY_POOLS = {
+  TODAI: [
+    ['「言葉は道具である」という考えを論じよ。 (말은 도구라는 생각을 논하시오)', ['말은 생각을 전하는 도구이다.', '그러나 말이 생각을 만들기도 한다.', '이름이 없는 것은 떠올리기 어렵다.', '그러므로 말은 도구 이상이다.']],
+    ['近代化が失わせたものを述べよ。 (근대화가 잃게 한 것을 서술하시오)', ['근대화는 속도와 편리를 주었다.', '대신 기다리는 시간을 잃었다.', '마을의 얼굴 아는 관계도 옅어졌다.', '얻은 것만큼 잃은 것도 헤아려야 한다.']],
+    ['「無知の知」の意味を説明せよ。 (무지의 지의 뜻을 설명하시오)', ['자기가 모른다는 것을 아는 일이다.', '안다고 믿으면 더 묻지 않는다.', '모름을 인정해야 배움이 시작된다.', '그래서 가장 낮은 자리가 출발점이다.']],
+    ['読書の価値について述べよ。 (독서의 가치를 서술하시오)', ['책은 남의 삶을 대신 살게 한다.', '한 사람의 평생을 며칠에 읽는다.', '그 사이 내 생각의 폭이 넓어진다.', '독서는 가장 싼 여행이다.']],
+  ],
+  BAC: [
+    ['Peut-on être libre sans connaître la vérité ? (진실을 모르고도 자유로울 수 있는가)', ['자유는 원하는 대로 하는 것처럼 보인다.', '그러나 속은 채로 한 선택은', '남이 정해 준 선택과 다르지 않다.', '무엇을 고르는지 알아야 고른 것이다.', '따라서 진실을 아는 일은', '자유의 조건이라고 할 수 있다.', '다만 모든 진실을 알 수는 없으므로', '자유는 알아 가는 과정 속에 있다.']],
+    ['Le travail nous rend-il plus humains ? (노동은 우리를 더 인간답게 하는가)', ['노동은 먹고살기 위한 수단이다.', '그러나 사람은 일을 하며', '세상을 자기 손으로 바꾼다.', '바뀐 세상에서 자기 흔적을 본다.', '그 점에서 노동은 사람을 만든다.', '반면 뜻 없이 되풀이되는 일은', '사람을 부품처럼 닳게 한다.', '어떤 노동이냐에 따라 답이 갈린다.']],
+  ],
+};
+function essayFrom(rng, key, n) { const P = ESSAY_POOLS[key], e = P[(n + Math.floor(rng() * P.length)) % P.length]; return { kind: 'essay', q: e[0], lines: e[1], choices: ['', '', '', ''], answer: 0, human: false }; }
 function speakQ(rng, pool) { const it = pool[Math.floor(rng() * pool.length)]; return { kind: 'speak', q: it[0], lines: it[1], choices: ['매끄럽게 말함', '무난하게 말함', '말이 끊김', '대답하지 못함'], answer: 0, human: false }; }
 const IBANK = [ // 투자은행 면접 단골 질문
   ['WACC에서 부채 비용에 곱하는 것은?', '(1 - 법인세율)', ['(1 + 법인세율)', '베타', '배당성향']],
@@ -513,6 +543,8 @@ const GEN = {
   },
   oxford(rng) { return speakQ(rng, OXFORD_IV); },
   aiiv(rng) { return speakQ(rng, AIIV_IV); },
+  ielts(rng) { return speakQ(rng, IELTS_IV); },
+  taxi(rng) { return speakQ(rng, TAXI_IV); },
   med(rng) { return poolQ(rng, MED); },
   cfa(rng) {
     const k = Math.floor(rng() * 5), S = (q, ans, wrongs) => ({ kind: 'text', q, ...shuffleChoices(rng, ans, [...new Set(wrongs)].filter(w => w !== ans).slice(0, 3)), human: true });
@@ -569,6 +601,7 @@ function makeQuestions(rng, tier, part = 0, used = null) {
   const out = [];
   for (let i = 0; i < tier.qn; i++) {
     const n = part * tier.qn + i;
+    if (tier.essayAll) { out.push(essayFrom(rng, tier.essayAll, n)); continue; } // 논술 시험: 전부 서술형
     if (tier.essay && i === tier.qn - 1) { out.push(essayQ(rng, part)); continue; } // 교시의 마지막 문제는 서술형
     let q = null;
     for (let t = 0; t < 40; t++) { // 한 시험 안에서(교시가 바뀌어도) 같은 문제가 다시 나오지 않게 다시 뽑는다
@@ -606,7 +639,7 @@ const CAUGHT_LINE = {
   prof: '"자네, 학점은 포기한 건가?"', teacher: '"Excuse me. Glasses off, please."', cnproctor: '"안경 이리 주세요. 검사합니다."',
   don: '"흥미롭군요. 그 대답은 안경이 한 거죠?"', don2: '"논리적으로, 당신은 방금 걸렸습니다."', judge: '"향이 아니라 렌즈를 맡고 계셨군요."', banker: '"방금 그 답, 본인 생각입니까?"',
   alien: '"삐빅. 반칙 전파 감지."', reaper: '"명부에 커닝도 적혀 있구나."', yeomra: '"이승에서 하던 짓을 여기서도 하느냐!"',
-  omega: '"이미 예측했습니다."', gaze: '"시선 이탈이 5초를 넘었습니다. 응시를 종료합니다."', webcam: '"응시자분, 화면에서 눈을 떼지 마세요."',
+  omega: '"이미 예측했습니다."', gaze: '"시선 이탈이 5초를 넘었습니다. 응시를 종료합니다."', webcam: '"응시자분, 화면에서 눈을 떼지 마세요."', loop: '"지난번에도 딱 이때 숙였지."', breath: '"거기, 공기 방울."', mind: '"방금 그 답, 네 생각이 아니구나."',
 };
 const PROCTOR_NAME = { homeroom: '담임', dean: '감독관', suneung: '수능 감독관', agent: '시험 관리관', robot: 'AI 감독관', ta: '조교', prof: '교수님',
   teacher: '미국 선생님', cnproctor: '가오카오 감독관', don: '옥스퍼드 교수', don2: '논리학 교수', judge: '소믈리에 심사위원', banker: '면접관', alien: '외계인', reaper: '저승사자', yeomra: '염라대왕', omega: 'Ω', webcam: '웹캠' };
@@ -616,7 +649,7 @@ const SEC_NAME = { cctv: 'CCTV 회전', pulse: 'AI 탐지 전파', drone: '드�
 const MECH_NAME = { peek: '책상 밑 감시', sticker: '단추 스티커', tutorial: '걸려도 혼나고 끝', metal: '입실 금속탐지기', visit: '불시 순시', listen: '듣기 문항', webcam: '웹캠 원격 감독',
   crowd: '다른 수험생', idcheck: '신분 확인 순회', calc: '계산기 검사', long: '긴 지문', sessions: '3교시 연속', adaptive: '적응형 2모듈',
   glasscheck: '안경 물에 담그기', interview: '마주 보는 면접', fatigue: '눈 피로', swap: '블록마다 교대', tasting: '블라인드 테이스팅',
-  threeeyes: '세 눈 감독관', float: '무중력', silent: '발소리 없음', teleport: '순간이동', clones: '늘어나는 감독관', human: 'AI 사용 감지', omega: '박자 예측' };
+  threeeyes: '세 눈 감독관', float: '무중력', silent: '발소리 없음', teleport: '순간이동', clones: '늘어나는 감독관', human: 'AI 사용 감지', omega: '박자 예측', essayall: '전부 서술형', spin: '회전 장치', helmet: '헬멧 김 서림', breath: '숨 참기', dream: '바뀌는 문제', loop: '되풀이', mirror: '좌우 반전', telepathy: '독심', warp: '시간 왜곡', bolt: '번개 감시' };
 
 // 장비 효과 문구: lv(그 단계를 가졌을 때)의 효과
 const pct = v => Math.round(v * 100) + '%';

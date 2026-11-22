@@ -331,6 +331,10 @@ const WORLD = (() => {
     hell: { amb: [0xff9a8a, 0.55], hemi: [0xff7a6a, 0x1a0608, 0.8], sun: [0xff5a3a, 1.2], fog: 0x1a0a0e, glass: ['#3a0a0a', '#8a1a0a', '#1a0505'] },
     glitch: { amb: [0xd8c8ff, 0.8], hemi: [0xff8aff, 0x1a1a40, 1.0], sun: [0x8affff, 1.8], fog: 0x221a3a, glass: ['#ff3aa0', '#3affd0', '#2a1a5a'] },
     white: { amb: [0xffffff, 1.2], hemi: [0xffffff, 0x8a92a0, 1.2], sun: [0xffffff, 2.0], fog: 0xdfe4ea, glass: ['#e8f0f8', '#ffffff', '#c8d0d8'] },
+    mars: { amb: [0xffc8a0, 0.9], hemi: [0xffb080, 0x3a1a10, 1.0], sun: [0xff9a60, 2.2], fog: 0x9a4a2a, glass: ['#c8602a', '#e89a5a', '#8a3a1a'] },
+    sea: { amb: [0x9ae0ff, 0.9], hemi: [0x8ad8f0, 0x0a2a3a, 1.0], sun: [0xc8f4ff, 1.6], fog: 0x0e4a5e, glass: ['#0a4a6a', '#2a8aa8', '#0a2a3a'] },
+    dreamy: { amb: [0xffd8f4, 1.0], hemi: [0xf4c8ff, 0x4a3a6a, 1.1], sun: [0xffe0f8, 2.0], fog: 0xcaa8e0, glass: ['#ffb8e0', '#fff0c8', '#b8a0ff'] },
+    storm: { amb: [0xa8b0d8, 0.55], hemi: [0x9aa4d0, 0x0a0a14, 0.7], sun: [0xd8e0ff, 1.1], fog: 0x12141f, glass: ['#0a0c18', '#2a3050', '#0a0a12'] },
     void: { amb: [0xb8c0ff, 0.7], hemi: [0xc8d0ff, 0x05050a, 0.9], sun: [0xffffff, 1.4], fog: 0x020208, glass: ['#000000', '#05050a', '#000000'] },
   };
   const ROOMS = {
@@ -354,6 +358,20 @@ const WORLD = (() => {
     multiverse: { wall: 0x3a2c58, wain: 0x221a3a, floor: 'darktile', board: 'screen', sky: 'glitch', hall: true, ceil: 0x221a3a },
     server: { wall: 0xf2f4f6, wain: 0xc8ccd2, floor: 'tile', board: 'screen', sky: 'white', racks: true },
     void: { void: true, sky: 'void', floor: 'none', board: 'none' },
+    todai: { wall: 0xe8e4d8, wain: 0x5a4a3a, floor: 'darkwood', board: 'green', sky: 'dawn', hall: true },
+    iit: { wall: 0xe8d8b0, wain: 0x8a6a3a, floor: 'tile', board: 'green', sky: 'day', hall: true, huge: true },
+    bac: { wall: 0xf0e8d8, wain: 0x6a7a9a, floor: 'wood', board: 'green', sky: 'day' },
+    nasa: { wall: 0xdfe4ea, wain: 0x3a4a6a, floor: 'metal', board: 'screen', sky: 'night', ceil: 0x8a94a6 },
+    mars: { wall: 0xb86a4a, wain: 0x6a3a2a, floor: 'metal', board: 'screen', sky: 'mars', ceil: 0x7a4a3a },
+    sea: { wall: 0x2a7a8a, wain: 0x1a4a5a, floor: 'tile', board: 'red', sky: 'sea', floaty: true, ceil: 0x1a5a6a },
+    dream: { wall: 0xf4d8f0, wain: 0xb8a0e0, floor: 'wood', board: 'white', sky: 'dreamy', floaty: true },
+    mirror: { wall: 0xe8eef4, wain: 0xa8b4c4, floor: 'tile', board: 'white', sky: 'white', hall: true },
+    tele: { wall: 0x4a3a7a, wain: 0x2a1f4a, floor: 'darktile', board: 'screen', sky: 'glitch', ceil: 0x2a1f4a },
+    court: { wall: 0x2a2e3a, wain: 0x14161e, floor: 'darktile', board: 'screen', sky: 'night', hall: true, racks: true, redLight: true },
+    hole: { wall: 0x1a1a2a, wain: 0x0a0a14, floor: 'metal', board: 'screen', sky: 'space', floaty: true, ceil: 0x0a0a14 },
+    storm: { wall: 0xc8c8d0, wain: 0x8a8a96, floor: 'tile', board: 'none', sky: 'storm', hall: true, ceil: 0x3a3c4a },
+    ielts: { layout: 'table', wall: 0xdfe6ea, wain: 0x9aa8b4, floor: 'tile', sky: 'day' },
+    taxi: { layout: 'table', wall: 0x5a6a4a, wain: 0x3a4630, floor: 'darkwood', sky: 'day', shelves: true },
     oxford: { layout: 'table', wall: 0x6a4a32, wain: 0x4a3222, floor: 'darkwood', sky: 'dusk', shelves: true },
     tasting: { layout: 'table', wall: 0x2a2228, wain: 0x1a1418, floor: 'darkwood', sky: 'night', cloth: true, glasses: true },
     ibank: { layout: 'table', wall: 0x2a3040, wain: 0x1a2030, floor: 'darktile', sky: 'night' },
@@ -735,7 +753,7 @@ const WORLD = (() => {
     buildExam(E.tier);
     const V = EX.views, a = V[E.prevView] || V.paper, b = V[E.view] || V.paper, k = ease(clamp(E.viewT, 0, 1)), cam = EX.cam;
     cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003;
-    cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004;
+    cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004;
     const fov = lerp(a.fov, b.fov, k); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
     const predict = E.gear.predict > 0 || (E.gear.thirdeye > 0 && E.T.mech.includes('threeeyes'));
     // 평행우주: 늘어난 감독관 모델을 만든다

@@ -100,7 +100,10 @@ window.CONFIG = {
   ai_sus_gain: { value: 0.22, min: 0, max: 1, step: 0.01 },        // 인간 인증: AI 답을 고를 때마다 AI 의심도 +
   ai_sus_drop: { value: 0.12, min: 0, max: 1, step: 0.01 },        // 인간 인증: 직접 고를 때마다 AI 의심도 -
   omega_window: { value: 0.45, min: 0.1, max: 1.5, step: 0.05 },   // Ω: 같은 박자로 스캔하면 들킴 (간격 차이 허용 초)
-  omega_jump: { value: 0.3, min: 0, max: 1, step: 0.05 },          // Ω에게 박자를 읽히면 오르는 의심도
+  omega_jump: { value: 0.3, min: 0, max: 1, step: 0.05 },
+  omega_grow: { value: 0.2, min: 0, max: 1, step: 0.05 },          // Ω: 문제를 풀수록 읽는 박자 폭이 넓어지는 비율 (문항당)
+  omega_floor: { value: 0.4, min: 0, max: 1, step: 0.05 },         // Ω: 엇박자 칩을 다 달아도 남는 비율
+  omega_strip: { value: 2, min: 1, max: 8, step: 1 },              // Ω: 이만큼 문제를 풀 때마다 안경이 한 단계씩 내려간다          // Ω에게 박자를 읽히면 오르는 의심도
 
   // ---- 장비 효과 ----
   stealth_cut: { value: 0.15, min: 0, max: 0.4, step: 0.01 },      // 스텔스 코팅 단계당 의심도 증가 x(1-값), 입실 검사도 줄임
@@ -268,12 +271,47 @@ window.CONFIG = {
       staff: [{ type: 'robot', name: 'AI 감독관' }],
       stand: [1.6, 2.6], walk: [0.9, 1.5], tell: 0.5, watch: 2.4, speed: 0.12, cross: 0.3, feint: 0.3, sus: 1.5, ai: 13.3, reward: 1200000000000000, pay: '인류 인증서',
       head: ['인간 인증 시험', '나는 로봇이 아닙니다'], lines: ['인간 인증 시험', 'AI 사용 감지 시스템 가동'] },
-    { id: 'hle', act: 3, name: '인류의 마지막 시험', subject: '모든 것', gen: 'hle', qn: 8, time: 150, room: 'void', sec: [], mech: ['omega'], boss: true,
+    { id: 'hle', act: 3, name: '인류의 마지막 시험', subject: '모든 것', gen: 'hle', qn: 8, time: 150, room: 'void', sec: [], mech: ['omega'], boss: true, noAuto: true,
       staff: [{ type: 'omega', name: '감독관 Ω', fixed: true }],
       stand: [1.2, 2.2], walk: [1, 1], tell: 0.5, watch: 2.0, speed: 0, cross: 0, feint: 0.35, sus: 1.4, ai: 14.5, reward: 4500000000000000, pay: '인류의 미래',
       head: ["Humanity's Last Exam", '모든 것'], lines: [] },
   ],
 
+  // 실험 중인 새 시험 (테스트용). 주소에 ?exam=<id> 를 붙이면 slot 번째 시험 자리에서 대신 열린다. 난이도·상금은 그 자리 시험을 물려받는다
+  lab: {
+    ielts: { slot: 15, act: 2, name: 'IELTS 스피킹', subject: 'Speaking Part 3', gen: 'ielts', qn: 5, time: 80, room: 'ielts', layout: 'table', device: 'ar', sec: [], mech: ['interview'], staff: [{ type: 'teacher', name: '시험관', fixed: true }], head: ['IELTS Speaking Test', 'Part 3'], lines: [],
+      how: '시험관과 1대1 · 녹음되는 대화', beat: '시험관이 메모하느라 고개를 숙일 때 왼쪽 대본을 읽어 두고, 읽어 둔 만큼만 말한다' },
+    todai: { slot: 14, act: 2, name: '도쿄대 본고사', subject: '국어 논술', gen: 'spell', essayAll: 'TODAI', qn: 3, time: 150, room: 'todai', sec: [], mech: ['essayall'], staff: [{ type: 'dean', name: '시험 감독' }, { type: 'suneung', name: '보조 감독' }], head: ['東京大学 第2次学力試験', '国語'], lines: ['東京大学 個別学力試験', '答案はすべて手書き'],
+      how: '객관식이 없다 · 전부 손으로 쓰는 서술형', beat: '모범 답안 한 줄을 읽고(위험) 그 줄을 옮겨 쓴다(안전). 감독이 볼 때는 쓰기만 한다' },
+    iit: { slot: 18, act: 2, name: '인도 IIT-JEE', subject: 'Physics · Mathematics', gen: 'eqhard', qn: 14, time: 170, room: 'iit', device: null, sec: ['pulse'], pulse: 'drone', mech: ['crowd', 'peek'], staff: [{ type: 'cnproctor', name: '감독관' }, { type: 'cnproctor', name: '감독관' }, { type: 'cnproctor', name: '감독관' }, { type: 'agent', name: '경찰' }], head: ['JEE (Advanced)', 'Paper 1'], lines: ['JEE (Advanced)', '창밖 접근 금지 · 드론 순찰 중'],
+      how: '체육관에 천 명 · 문제 14개 · 감독관 넷 · 드론', beat: '감독관이 많아 안전한 틈이 짧다. 다른 수험생이 걸려 감독관이 몰려갈 때 몰아서 읽는다' },
+    bac: { slot: 16, act: 2, name: '프랑스 바칼로레아', subject: '철학 논술', gen: 'spell', essayAll: 'BAC', qn: 1, time: 150, room: 'bac', device: null, parts: null, sec: [], mech: ['essayall', 'visit'], staff: [{ type: 'ta', name: '감독 교사' }, { type: 'prof', name: '장학관', visit: 'drop' }], head: ['Baccalauréat général', 'Philosophie'], lines: ['Baccalauréat · Philosophie', '4시간 · 한 문제'],
+      how: '네 시간짜리 논술 한 문제 · 여덟 줄', beat: '한 줄씩 읽고 옮겨 쓴다. 읽은 줄은 5초 안에 쓰지 않으면 잊는다. 장학관이 불쑥 들어온다' },
+    gre: { slot: 16, act: 2, name: 'GRE 시험센터', subject: 'Verbal · Quant', gen: 'sat', qn: 10, time: 130, room: 'testcenter', device: 'tablet', parts: null, sec: ['cctv'], mech: ['idcheck'], staff: [{ type: 'agent', name: '센터 직원' }, { type: 'dean', name: '센터 직원' }], head: ['GRE General Test', 'Verbal Reasoning'], lines: ['GRE Test Center', '자리마다 카메라 · 손바닥 인증'],
+      how: '칸막이 자리 · 머리 위 카메라 · 불시 손바닥 인증', beat: '카메라가 내 쪽을 볼 때와 직원이 책상 앞에 설 때는 멈춘다' },
+    taxi: { slot: 19, act: 2, name: '런던 택시기사 시험', subject: 'The Knowledge · 구술', gen: 'taxi', qn: 5, time: 90, room: 'taxi', layout: 'table', device: 'ar', sec: [], mech: ['interview'], boss: false, staff: [{ type: 'prof', name: '시험관', fixed: true }], head: ['The Knowledge of London', 'Appearance'], lines: [],
+      how: '출발지와 도착지를 주면 길을 말로 왼다', beat: '시험관이 지도를 볼 때 경로를 읽어 두고, 막힘없이 말한다' },
+    nasa: { slot: 17, act: 2, name: 'NASA 우주비행사 선발', subject: '회전 장치 필기', gen: 'eqhard', qn: 8, time: 120, room: 'nasa', sec: [], mech: ['spin'], check: null, staff: [{ type: 'agent', name: '선발관' }, { type: 'dean', name: '선발관' }], head: ['Astronaut Candidate Selection', 'Written Test'], lines: ['Astronaut Selection', '다축 회전 장치 가동 중'],
+      how: '도는 장치 안에서 필기 · 화면이 기운다', beat: '화면이 많이 기울수록 스캔이 느리다. 수평에 가까울 때 읽는다' },
+    mars: { slot: 20, act: 3, name: '화성 이주 자격시험', subject: '생존 수학', gen: 'eqhard', qn: 10, time: 120, room: 'mars', sec: [], mech: ['helmet'], staff: [{ type: 'suneung', name: '이주 관리관' }, { type: 'agent', name: '이주 관리관' }], head: ['Mars Settler Qualification', 'Survival Mathematics'], lines: ['화성 이주 자격시험', '헬멧을 벗지 마시오'],
+      how: '우주복을 입고 본다 · 숨을 쉴수록 헬멧에 김이 서린다', beat: '스캔하는 동안 김이 서려 느려지고 앞이 안 보인다. 짧게 끊어 읽고, 김이 걷히길 기다린다' },
+    sea: { slot: 21, act: 3, name: '용궁 과거시험', subject: '시무책', gen: 'psat', qn: 10, time: 130, room: 'sea', sec: [], mech: ['float', 'breath'], staff: [{ type: 'don', name: '거북 감독관' }, { type: 'don2', name: '잉어 감독관' }], head: ['용궁 과거시험', '시무책'], lines: ['용궁 과거시험', '숨은 알아서 참으시오'],
+      how: '물속 · 시험지가 물결에 흔들린다', beat: '스캔하는 동안 숨을 쓴다. 숨이 바닥나면 공기 방울이 솟아 들킨다. 숨이 찰 때까지 쉰다' },
+    dream: { slot: 21, act: 3, name: '꿈속 시험', subject: '기억나지 않는 과목', gen: 'spell', qn: 8, time: 110, room: 'dream', sec: [], mech: ['dream'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['꿈속 시험', '기억나지 않는 과목'], lines: ['꿈속 시험', '눈을 떼면 바뀐다'],
+      how: '보는 사이에 보기 순서가 바뀐다', beat: '화면이 일렁이면 곧 바뀐다. 바뀌기 전에 읽고 바로 마킹한다. 바뀌면 처음부터 다시 읽는다' },
+    loop: { slot: 22, act: 3, name: '타임루프 재시험', subject: '어제와 같은 시험', gen: 'psat', qn: 5, time: 60, parts: ['1회차', '2회차', '3회차'], room: 'hs', sec: [], pulse: null, mech: ['loop'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['2026학년도 6월 고3 전국연합학력평가', '국어 영역'], lines: ['6월 모의평가', '…또 6월이다'],
+      how: '같은 시험이 세 번 되풀이된다 · 첫 시험장 그대로', beat: '감독관은 지난 회차에 내가 숙인 때를 기억하고 그때 본다. 빨간 표시를 피해 다른 때에 읽는다' },
+    mirror: { slot: 22, act: 3, name: '거울 나라 시험', subject: '뒤집힌 수학', gen: 'eq', qn: 10, time: 120, room: 'mirror', sec: [], pulse: null, mech: ['mirror'], staff: [{ type: 'dean', name: '거울 감독관' }, { type: 'dean', name: '거울 감독관' }], head: ['거울 나라 시험', '수학'], lines: ['거울 나라 시험', '왼쪽이 오른쪽입니다'],
+      how: '시험지 글자와 좌우가 뒤집혀 있다', beat: '왼쪽을 누르면 오른쪽을 본다. AI도 뒤집힌 글자를 읽느라 스캔이 느리다' },
+    telepathy: { slot: 23, act: 3, name: '텔레파시 학교 입시', subject: '추리', gen: 'logic', qn: 8, time: 120, room: 'tele', sec: [], mech: ['telepathy'], staff: [{ type: 'alien', name: '독심 감독관' }, { type: 'alien', name: '독심 감독관' }], head: ['텔레파시 학교 입학시험', '추리'], lines: ['텔레파시 학교 입학시험', '생각은 조용히'],
+      how: '감독관이 생각을 읽는다', beat: '답이 떠 있는 동안 감독관이 보면 의심이 오른다. 답이 뜨면 바로 마킹해서 머리를 비운다' },
+    aicourt: { slot: 23, act: 3, name: 'AI 재판소 배심 시험', subject: '판례', gen: 'law', qn: 10, time: 130, room: 'court', sec: ['cctv'], mech: ['human'], noAuto: true, staff: [{ type: 'robot', name: 'AI 판사' }, { type: 'robot', name: 'AI 서기' }, { type: 'robot', name: 'AI 집행관' }], head: ['AI 재판소 배심원 자격시험', '판례'], lines: ['AI 재판소', '모든 답안은 기록됩니다'],
+      how: '감독관이 전부 AI · 자동 장비가 막힌다', beat: 'AI가 준 답만 내면 AI 감지가 찬다. 가끔은 직접 골라 감지를 낮춘다' },
+    hole: { slot: 23, act: 3, name: '블랙홀 가장자리 시험', subject: '상대론', gen: 'eqhard', qn: 10, time: 130, room: 'hole', sec: [], mech: ['warp'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }, { type: 'alien', name: '사건의 지평선 감독관' }], head: ['사건의 지평선 자격시험', '상대론'], lines: ['블랙홀 가장자리 시험', '시간은 사람마다 다르게 흐릅니다'],
+      how: '시간이 빨라졌다 느려졌다 한다', beat: '시간이 빠를 때는 감독관도 시계도 빠르다. 느려졌을 때 몰아서 읽는다' },
+    gods: { slot: 23, act: 3, name: '신들의 수능', subject: '신화 추리', gen: 'logic', qn: 10, time: 130, room: 'storm', sec: [], mech: ['bolt'], staff: [{ type: 'yeomra', name: '제우스', fixed: true }], stand: [2.2, 5.0], tell: 0.7, watch: 0.5, feint: 0.3, sus: 3.6, head: ['올림포스 수학능력시험', '신화 추리'], lines: ['올림포스 수학능력시험', '번개가 칠 때 다 보입니다'],
+      how: '어두운 신전 · 번개가 치는 순간에만 감시', beat: '천둥이 우르릉 하면 0.7초 뒤 번개. 번쩍하는 순간에 숙이고 있으면 한 번에 크게 오른다' },
+  },
   // AI 모델 15단계: 2026년 10월 Artificial Analysis 지능 지수 v5 순서 + 3막은 회사마다 이름 규칙을 이어 지음.
   // rel: 처음 합격하면 이 모델이 출시되는 시험 번호(0부터), -1은 처음부터
   models: [
