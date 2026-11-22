@@ -45,7 +45,7 @@ const HUBUI = (() => {
   function drawDesk(k, hv, now) {
     const { R, T } = k, C = PAL;
     for (let i = 0; i < 8; i++) R(0, i * 30, LW, 30, ['#16324a', '#183a52', '#1a425a', '#1c4a60', '#1e5266', '#205a6a', '#22626c', '#24686c'][i]);
-    T('고시원 노트북', 10, 13, 12, '#c9e6f0', 'left', 700); T(`${won(STATE.shown)}원`, LW - 8, 13, 13, C.gold, 'right', 800);
+    T('내 노트북', 10, 13, 12, '#c9e6f0', 'left', 700); T(`${won(STATE.shown)}원`, LW - 8, 13, 13, C.gold, 'right', 800);
     const icon = (ix, label, key, col, glyph, badge) => {
       const iy = 54, hot = inR({ x: ix, y: iy, w: 120, h: 126 }, hover);
       if (hot) { k.b.globalAlpha = 0.25; R(ix, iy, 120, 126, '#ffffff'); k.b.globalAlpha = 1; }

@@ -439,7 +439,6 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     M(E.finalQ ? '--:--' : `${mm}:${ss}`, W - x0, y0 + 2, 18, low ? '#ff5a5a' : INK, 'right', 700); M(`Q ${q2(qn)}/${q2(qt)}${part}`, W - x0, y0 + 18, 8, INK, 'right', 700);
     const n = 8, on = Math.round(sus * n), bx = W / 2 - 44;
     M('의심', bx - 8, y0, 9, E.rising ? '#ff5a5a' : INK, 'right', 700); for (let i = 0; i < n; i++) { k.b.globalAlpha = i < on ? 1 : 0.3; R(bx + i * 9, y0 - 5, 6, 10, i < on && sp >= 60 ? '#ff5a5a' : INK); } k.b.globalAlpha = 1; M(`${sp}%`, bx + n * 9 + 4, y0, 9, INK, 'left', 700);
-    R(430, 124, 2, 2, '#000000'); R(434, 128, 2, 2, '#ff3ad0'); R(150, 300, 2, 2, '#000000'); // 죽은 화소
     const gl = (now * 0.37) % 1; if (gl < 0.045) { k.b.globalAlpha = 0.35; R(0, 80 + Math.floor(((now * 7.3) % 1) * 200), W, 5, INK); R(0, 150 + Math.floor(((now * 3.1) % 1) * 150), W, 2, INK); k.b.globalAlpha = 1; } // 화면 밀림
   } else if (ST === 'proto') { // 시제품 안경: 얇은 선, 흰색과 하늘색
     const x0 = 40, y0 = 30, ink = '#ffffff';

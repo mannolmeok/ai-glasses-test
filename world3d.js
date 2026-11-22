@@ -916,6 +916,7 @@ const WORLD = (() => {
     else { g.fillStyle = '#0d1430'; g.fillRect(0, 0, 64, 48); for (let i = 0; i < 9; i++) { g.fillStyle = '#080b18'; g.fillRect(i * 7, 20 + (i * 5) % 12, 6, 30); } g.fillStyle = '#f5cc4a'; for (let i = 0; i < 18; i++) g.fillRect((i * 13) % 62, 26 + (i * 7) % 20, 1, 1); }
     T.t.needsUpdate = true; return T.t;
   }
+  const HUB_KEEP = {}; // 방을 새로 지어도(이사) 그대로 쓰는 화면 캔버스들
   function buildHub() {
     if (HUB.scene) return;
     const sc = new THREE.Scene(), B = batch(), hubAct = CONFIG.tiers[typeof nextTierIndex === 'function' ? nextTierIndex(G) : 0].act, THN = new URLSearchParams(location.search).get('hub') || CONFIG.hub_by_act[hubAct - 1], TH = HUB_THEMES[THN] || HUB_THEMES.gosi; HUB.themed = TH !== HUB_THEMES.gosi; HUB.builtAct = hubAct;
@@ -958,22 +959,22 @@ const WORLD = (() => {
     sc.add(B.mesh());
     // 누르는 물건들 (각자 재질을 따로 둬서 마우스를 올리면 밝아진다)
     const hot = { exams: [], gear: [], log: [], go: [], parcel: [], tv: [] }, hm = (key, color, extra) => { const m = ownMat(color, extra); hot[key].push(m); return m; };
-    const cork = canvasTex(256, 176, false), boardT = canvasTex(800, 534, true); // boardT: 다가갔을 때의 진짜 일정표
+    const cork = canvasTex(256, 176, false), boardT = HUB_KEEP.boardT || (HUB_KEEP.boardT = canvasTex(800, 534, true)); // boardT: 다가갔을 때의 진짜 일정표
     const board = pivot(sc, -0.74, 1.12, Z0 + 0.012); bx(board, 0.72, 0.5, 0.02, 0, 0, 0, 0, genProps ? hm('exams', 0xb89a80, { map: genTex('wood', 1, 1), flatShading: false }) : hm('exams', 0x8a6a46));
     const corkFace = plane(board, 0.66, 0.44, hm('exams', 0xffffff, { map: cork.t }), 0, 0, 0.012);
     const boardFace = plane(board, 0.66, 0.44, new THREE.MeshBasicMaterial({ map: boardT.t, fog: false, color: 0xe6e0d4 }), 0, 0, 0.0128); boardFace.visible = false; // 다가갔을 때만 보이는 진짜 일정표
     const laptop = pivot(sc, -0.42, 0.76, -0.33); bx(laptop, 0.36, 0.02, 0.24, 0, 0, 0, 0, hm('gear', 0x3a3d46));
     if (genProps) plane(laptop, 0.352, 0.232, hm('gear', 0xffffff, { map: genTex('keys', 1, 1), flatShading: false }), 0, 0.0105, 0, -Math.PI / 2); // 자판 면
     const scr = pivot(laptop, 0, 0.0, -0.12); scr.rotation.x = -0.32; bx(scr, 0.36, 0.23, 0.012, 0, 0, 0.115, 0, hm('gear', 0x2c2f38));
-    const screenT = canvasTex(800, 480, true);
+    const screenT = HUB_KEEP.screenT || (HUB_KEEP.screenT = canvasTex(800, 480, true));
     const shop = canvasTex(256, 160, false), shopFace = plane(scr, 0.33, 0.2, new THREE.MeshBasicMaterial({ map: shop.t, fog: false }), 0, 0.115, 0.008); hot.gear.push(shopFace.material);
     const camLed = glowMat(0x2a1010); bx(scr, 0.01, 0.006, 0.004, 0, 0, 0.222, 0.008, camLed); bx(scr, 0.016, 0.01, 0.003, 0x0a0a0e, 0.016, 0.222, 0.007);
     const phone = pivot(sc, 0.06, 0.765, -0.2); phone.rotation.set(-Math.PI / 2, 0, -0.25); bx(phone, 0.08, 0.15, 0.012, 0, 0, 0, 0, hm('log', 0x1a1a20));
-    const phoneT = canvasTex(64, 120, false), phoneFace = plane(phone, 0.07, 0.135, new THREE.MeshBasicMaterial({ map: phoneT.t, fog: false }), 0, 0, 0.0065); hot.log.push(phoneFace.material);
+    const phoneT = HUB_KEEP.phoneT || (HUB_KEEP.phoneT = canvasTex(64, 120, false)), phoneFace = plane(phone, 0.07, 0.135, new THREE.MeshBasicMaterial({ map: phoneT.t, fog: false }), 0, 0, 0.0065); hot.log.push(phoneFace.material);
     const held = pivot(sc, 0, -5, 0); held.visible = false; bx(held, 0.1, 0.16, 0.01, 0, 0, 0, 0, ownMat(0x0c0c10)); // 집어 든 폰: 카메라 앞에 든다
     const heldMail = pivot(sc, 0, -5, 0); heldMail.visible = false; // 집어 든 성적 통지표
-    const mailT = canvasTex(PAPER_W, PAPER_H, true), mailFace = plane(heldMail, 0.118, 0.164, new THREE.MeshBasicMaterial({ map: mailT.t, fog: false, color: 0xe6e0d2 }), 0, 0, 0); bx(heldMail, 0.118, 0.164, 0.0006, 0x2a2620, 0.003, -0.004, -0.004);
-    const heldT = canvasTex(504, 810, true), heldFace = plane(held, 0.092, 0.148, new THREE.MeshBasicMaterial({ map: heldT.t, fog: false }), 0, 0, 0.0056);
+    const mailT = HUB_KEEP.mailT || (HUB_KEEP.mailT = canvasTex(PAPER_W, PAPER_H, true)), mailFace = plane(heldMail, 0.118, 0.164, new THREE.MeshBasicMaterial({ map: mailT.t, fog: false, color: 0xe6e0d2 }), 0, 0, 0); bx(heldMail, 0.118, 0.164, 0.0006, 0x2a2620, 0.003, -0.004, -0.004);
+    const heldT = HUB_KEEP.heldT || (HUB_KEEP.heldT = canvasTex(504, 810, true)), heldFace = plane(held, 0.092, 0.148, new THREE.MeshBasicMaterial({ map: heldT.t, fog: false }), 0, 0, 0.0056);
     const door = pivot(sc, 0.84, 1.03, Z0 + 0.03);
     bx(door, 0.82, 2.06, 0.05, 0, 0, 0, 0, genProps ? hm('go', 0xffffff, { map: genTex('door', 1, 1), flatShading: false }) : hm('go', TH.door || 0x7a5a3c)); bx(door, 0.06, 0.06, 0.08, 0, -0.3, -0.02, 0.05, hm('go', 0xd4b25a));
     const sign = canvasTex(128, 96, false); plane(door, 0.36, 0.27, hm('go', 0xffffff, { map: sign.t }), 0.05, 0.35, 0.03);
