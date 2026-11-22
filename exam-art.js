@@ -484,7 +484,7 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
 // ---- 장비 단계별로 더 붙는 화면: 안경이 좋아질수록 보여 주는 것이 늘어난다 (전부 실제 값만 보여 준다) ----
 function staffWord(s) { return s.out ? '자리 비움' : s.phase === 'watch' ? '주시 중' : s.phase === 'tell' ? '돌아보는 중' : s.phase === 'check' ? '검사 중' : s.phase === 'help' ? '다른 자리' : s.phase === 'peek' ? '안 보임' : s.phase === 'walk' ? '이동 중' : '등 돌림'; }
 function staffCol(s) { return s.out || s.phase === 'help' ? '#9aa0aa' : s.phase === 'watch' ? '#ff5a5a' : s.phase === 'tell' || s.phase === 'check' || s.phase === 'peek' ? '#ffcf5a' : '#9dff8a'; }
-function hudDraw(k, fn) { const b = k.b; b.save(); fn(b); b.restore(); }
+function hudDraw(k, fn) { const b = k.b; b.save(); try { fn(b); } catch (_) { } b.restore(); } // 그리다 실패해도 게임은 멈추지 않는다
 function rrect(b, x, y, w, h, r) { b.beginPath(); b.moveTo(x + r, y); b.arcTo(x + w, y, x + w, y + h, r); b.arcTo(x + w, y + h, x, y + h, r); b.arcTo(x, y + h, x, y, r); b.arcTo(x, y, x + w, y, r); b.closePath(); }
 const NEURO = (() => { const out = []; let s = 7; const r = () => { s = (Math.imul(s, 1103515245) + 12345) >>> 0; return (s >>> 8) / 16777216; }; for (let i = 0; i < 11; i++) out.push([8 + r() * 96, 78 + i * 22 + r() * 10]); return out; })();
 function drawStageFx(k, L, E, now, ST, INK, live, q) {
@@ -536,7 +536,7 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
         hudDraw(k, c => { c.fillStyle = 'rgba(8,44,52,0.45)'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.fill(); c.lineCap = 'round'; c.lineWidth = 3; c.strokeStyle = 'rgba(255,255,255,0.2)'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.stroke(); c.strokeStyle = c1; c.beginPath(); c.arc(x, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (l == null ? 1 : f)); c.stroke();
           rrect(c, x + 19, y - 9, 74, 18, 9); c.fillStyle = 'rgba(8,44,52,0.42)'; c.fill(); });
         T(l == null ? '–' : l.toFixed(0), x, y, 9, '#ffffff', 'center', 700); T(staffWord(s), x + 26, y, 7, c1, 'left', 700); });
-      if (WORLD.staffRects) WORLD.staffRects().forEach(r => { const s = E.staff[r.i]; if (!s || r.h < 24) return; const c1 = staffCol(s), h = Math.min(HH - 6 - r.y, r.h); hudDraw(k, c => { c.strokeStyle = c1; c.lineWidth = 1.2; c.setLineDash([4, 4]); c.globalAlpha = 0.85; c.beginPath(); c.ellipse(r.x + r.w / 2, r.y + h / 2, r.w / 2 + 4, h / 2 + 4, 0, 0, 7); c.stroke(); }); }); }
+      if (WORLD.staffRects) WORLD.staffRects().forEach(r => { const s = E.staff[r.i]; if (!s || r.h < 24) return; const c1 = staffCol(s), h = Math.min(HH - 6 - r.y, r.h); if (h < 8 || r.w < 4) return; hudDraw(k, c => { c.strokeStyle = c1; c.lineWidth = 1.2; c.setLineDash([4, 4]); c.globalAlpha = 0.85; c.beginPath(); c.ellipse(r.x + r.w / 2, r.y + h / 2, r.w / 2 + 4, h / 2 + 4, 0, 0, 7); c.stroke(); }); }); }
   } else if (ST === 'brain') { // 뇌 임플란트: 양옆에 신경망이 켜지고, 생각이 줄지어 지나간다. 위에는 시험 전체의 답
     const G1 = '#ffd678', V1 = '#c9a0ff', n = E.qs.length, bw = Math.min(24, Math.floor((W - 200) / n)), x0 = W / 2 - n * bw / 2, y0 = 38, ph = picked ? 1 : scanning ? E.scan : 0;
     for (let i = 0; i < n; i++) { const x = x0 + i * bw, a = E.answers[i], cur = i === E.qi;
@@ -555,24 +555,23 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
   }
 }
 // ---- 면접(새 방식): A·B·C 순서 입력. 면접관이 안 볼 때만 누른다 ----
-function drawAbc(k, L, E, now, q) { // 화면 오른쪽의 세 줄. 눌러야 할 블록이 위에서 아래로 쌓여 있고, 맨 아랫줄이 지금 누를 것. 하나 누르면 전부 한 칸 내려온다
-  const sq = E.sq; if (!sq || sq.q !== q) return; const W = L.W, HH = L.H, b = k.b, R = k.R, M = k.M, T = k.T, n = sq.seq.length, blind = E.staff.some(s => s.fixed && s.phase === 'watch'), tell = E.staff.some(s => s.fixed && s.phase === 'tell');
-  const COL = ['#ff7a7a', '#ffd35a', '#6ad8ff'], frame = blind ? '#ff5a5a' : tell ? '#ffcf5a' : '#7fe9ff', lw = 58, gap = 6, rows = 7, rh = 26, px = W - 30 - (lw * 3 + gap * 2) - 12, py = 62, pw = lw * 3 + gap * 2 + 24, ph = rows * rh + 86;
-  b.globalAlpha = 0.72; R(px, py, pw, ph, '#061018'); b.globalAlpha = 1; k.frame(px, py, pw, ph, frame, 1);
-  const left = Math.max(0, sq.lim - sq.t), tf = left / sq.lim; M(`${n - sq.i}개 남음`, px + 12, py + 11, 8, '#ffffff', 'left', 700); M(`${left.toFixed(1)}초`, px + pw - 12, py + 11, 9, tf < 0.25 ? '#ff6a6a' : '#ffffff', 'right', 700);
-  b.globalAlpha = 0.3; R(px + 12, py + 20, pw - 24, 3, '#ffffff'); b.globalAlpha = 1; R(px + 12, py + 20, Math.round((pw - 24) * tf), 3, tf < 0.25 ? '#ff6a6a' : '#ffffff');
-  const lx = i => px + 12 + i * (lw + gap), top = py + 30, slide = sq.ok > 0 ? (sq.ok / 0.15) * rh : 0; // 방금 눌렀으면 블록이 한 칸 내려오는 중
-  for (let i = 0; i < 3; i++) { b.globalAlpha = 0.14; R(lx(i), top, lw, rows * rh, COL[i]); b.globalAlpha = 1; }
-  b.globalAlpha = 0.5; R(px + 8, top + (rows - 1) * rh - 2, pw - 16, rh + 2, '#ffffff'); b.globalAlpha = 1; R(px + 8, top + (rows - 1) * rh - 2, pw - 16, 1, '#ffffff'); // 맨 아랫줄 = 지금 누를 자리
-  b.save(); b.beginPath(); b.rect(px, top, pw, rows * rh); b.clip();
-  for (let r = rows; r >= 0; r--) { const v = sq.seq[sq.i + r]; if (v == null) continue; const y = top + (rows - 1 - r) * rh - slide + 2; b.globalAlpha = blind ? 0.4 : r === 0 ? 1 : Math.max(0.35, 0.9 - r * 0.1); R(lx(v) + 3, y + 3, lw - 6, rh - 6, '#0a0c10'); R(lx(v) + 3, y, lw - 6, rh - 6, COL[v]); if (r === 0 && !blind) k.frame(lx(v) + 1, y - 2, lw - 2, rh - 2, '#ffffff', 2); b.globalAlpha = 1; }
-  b.restore();
-  const by = top + rows * rh + 8; E.abcRects = [];
-  for (let i = 0; i < 3; i++) { const next = sq.seq[sq.i] === i && !blind; b.globalAlpha = blind ? 0.35 : 1; R(lx(i), by + 3, lw, 30, '#0a0c10'); R(lx(i), by, lw, 30, next ? '#ffffff' : COL[i]); if (next) R(lx(i) + 3, by + 3, lw - 6, 24, COL[i]); b.globalAlpha = 1; M(['A', 'S', 'D'][i], lx(i) + lw / 2, by + 15.5, 10, '#10141c', 'center', 700); E.abcRects.push({ i, x: lx(i) - 3, y: top, w: lw + 6, h: rows * rh + 44 }); } // 줄 전체가 누르는 자리
-  M(blind ? '면접관이 본다 · 누르지 마!' : tell ? '곧 본다…' : '아랫줄부터 차례로', px + pw / 2, by + 42, 8, frame, 'center', 700);
-  if (sq.bad > 0) { b.globalAlpha = Math.min(0.35, sq.bad); R(0, 0, W, HH, '#ff2020'); b.globalAlpha = 1; }
-  const qy = HH - 58; b.globalAlpha = 0.6; R(30, qy - 12, px - 50, 24, '#061018'); b.globalAlpha = 1; R(30, qy - 12, 2, 24, frame); M(q.q, 40, qy, 9, '#ffffff', 'left', 700);
-  const said = (q.lines || []).slice(0, Math.ceil(sq.i / n * (q.lines || []).length)).pop(); if (said) k.SUB(`"${said}"`, (px + 30) / 2, qy - 30, 11, '#ffffff', 'center'); else if (sq.t > 1.2) k.SUB('"… 어…"', (px + 30) / 2, qy - 30, 11, '#ffffff', 'center');
+function drawAbc(k, L, E, now, q) { // 창도 숫자도 없다. 안경이 띄운 블록 세 줄이 허공에서 내려오고, 누를 때마다 한 어절씩 자막으로 말이 나간다
+  const sq = E.sq; if (!sq || sq.q !== q) return; const W = L.W, HH = L.H, b = k.b, n = sq.seq.length, blind = E.staff.some(s => s.fixed && s.phase === 'watch'), tell = E.staff.some(s => s.fixed && s.phase === 'tell');
+  const INK = blind ? '#ff5a5a' : tell ? '#ffcf5a' : '#7fe9ff', lw = 46, gap = 12, rows = 7, rh = 30, x0 = W - 44 - (lw * 3 + gap * 2), hitY = HH - 112, lx = i => x0 + i * (lw + gap), slide = sq.ok > 0 ? (sq.ok / 0.12) * rh : 0;
+  hudDraw(k, c => {
+    for (let i = 0; i < 3; i++) { const cx = lx(i) + lw / 2, gr = c.createLinearGradient(0, hitY - rows * rh, 0, hitY + 10); gr.addColorStop(0, 'rgba(127,233,255,0)'); gr.addColorStop(1, blind ? 'rgba(255,90,90,0.5)' : 'rgba(127,233,255,0.5)'); c.strokeStyle = gr; c.lineWidth = 1; c.setLineDash([2, 5]); c.beginPath(); c.moveTo(cx, hitY - rows * rh); c.lineTo(cx, hitY + 8); c.stroke(); c.setLineDash([]);
+      c.strokeStyle = INK; c.globalAlpha = 0.8; c.lineWidth = 1.2; c.beginPath(); c.moveTo(lx(i), hitY + 12); c.lineTo(lx(i), hitY + 17); c.lineTo(lx(i) + lw, hitY + 17); c.lineTo(lx(i) + lw, hitY + 12); c.stroke(); c.globalAlpha = 1; } // 받침: 여기 닿은 블록을 누른다
+    for (let r = rows - 1; r >= 0; r--) { const v = sq.seq[sq.i + r]; if (v == null) continue; const yy = hitY - 14 - r * rh - slide, cur = r === 0, a = blind ? 0.35 : cur ? 1 : Math.max(0.18, 0.8 - r * 0.12), x = lx(v);
+      c.globalAlpha = a * (cur ? 0.55 : 0.2); c.fillStyle = INK; c.fillRect(x, yy, lw, 18); c.globalAlpha = a; c.strokeStyle = cur && !blind ? '#ffffff' : INK; c.lineWidth = cur ? 1.6 : 1; c.strokeRect(x + 0.5, yy + 0.5, lw - 1, 17);
+      c.fillStyle = cur && !blind ? '#ffffff' : INK; c.fillRect(x + 4, yy + 4, 3, 3); c.fillRect(x + 10, yy + 4, lw - 28 - (r * 5) % 12, 1); c.fillRect(x + 10, yy + 8, lw - 20 - (r * 7) % 14, 1); c.fillRect(x + 4, yy + 12, lw - 14, 1); // 블록 안의 가는 줄: 데이터 조각처럼
+      if (cur && !blind) { c.globalAlpha = 0.35 + 0.25 * Math.sin(now * 10); c.strokeStyle = '#ffffff'; c.strokeRect(x - 2.5, yy - 2.5, lw + 5, 23); } c.globalAlpha = 1; }
+    const tf = Math.max(0, 1 - sq.t / sq.lim), bw = 220; c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(W / 2 - bw / 2, HH - 22, bw, 1.5); c.globalAlpha = 0.9; c.fillStyle = tf < 0.25 ? '#ff6a6a' : '#ffffff'; c.fillRect(W / 2 - bw / 2, HH - 22, bw * tf, 1.5); c.globalAlpha = 1; }); // 남은 시간: 자막 아래의 가는 선 하나
+  E.abcRects = [0, 1, 2].map(i => ({ i, x: lx(i) - gap / 2, y: hitY - rows * rh, w: lw + gap, h: rows * rh + 60 }));
+  for (let i = 0; i < 3; i++) k.M(['A', 'S', 'D'][i], lx(i) + lw / 2, hitY + 26, 7, INK, 'center', 500);
+  if (sq.bad > 0) { b.globalAlpha = Math.min(0.3, sq.bad); k.R(0, 0, W, HH, '#ff2020'); b.globalAlpha = 1; }
+  let left = sq.i, line = []; for (const g of sq.groups) { if (left <= g.length) { line = g.slice(0, left); break; } left -= g.length; line = g; } // 지금 말하고 있는 줄에서, 누른 만큼의 어절
+  const text = line.join(' ') + (sq.rush > 0 ? '— 어, 그' : ''); if (sq.i > 0 || sq.rush > 0) k.SUB(text, W / 2, HH - 40, 14, sq.rush > 0 ? '#ffd0d0' : '#ffffff', 'center');
+  if (sq.t < 3.2 || sq.i === 0) k.SUB(`${E.T.staff[0].name}: "${q.q}"`, W / 2, 40, 11, '#ffffff', 'center');
 }
 // ---- 면접 × 리듬 (B안 · 한 마디 호흡) 화면 시안. 주소에 ?rh=1|2|3 을 붙이면 박자 표시만 미리 본다 (조작은 아직 지금 방식) ----
 function drawRhythmPreview(k, L, E, now, v, q) {

@@ -357,7 +357,7 @@ window.CONFIG = {
   gear: [
     // 새 마켓: 세 줄의 사다리. at: 단계마다 그 제품이 입고되는 시험 번호(그 시험이 일정표에 열리면 살 수 있다), 값 = mult x 그 시험의 문제당 상금
     // 사면 바로 장착되고 앞 제품의 기능은 새 제품에 들어 있다. 아래 hidden 줄들은 이 세 줄에서 계산되는 속 기능이다 (game.js syncGear)
-    { id: 'lens', name: '안경', group: 'glass', mult: 4, at: ['mock', 'toeic', 'cpa', 'mdeet', 'ielts', 'usmle', 'ibank', 'mars', 'multi'],
+    { id: 'lens', name: '안경', group: 'glass', mult: 4, at: ['mock', 'toeic', 'cpa', 'mdeet', 'ielts', 'usmle', 'ibank', 'galaxy', 'multi'],
       ladder: ['지우개 액정', '초소형 카메라', '중고 AI 안경', '실리콘밸리 시제품 안경', '군용 정찰 렌즈', '스마트 콘택트렌즈', '뉴럴링코', '제3의 눈 렌즈', '겹눈 고글'] },
     { id: 'aux', name: '보조 장비', group: 'aux', mult: 3, at: ['suneung', 'transfer', 'toeic', 'civil7', 'leet', 'sat', 'oxford', 'galaxy', 'afterlife', 'dream', 'aicourt'],
       ladder: ['전자 손목시계', '사이드미러 스티커', '유선 이어폰', '후방 카메라', '골전도 이어폰', '감독관 동선 AI', '어금니 스피커', '무중력 추', '촛불 감지기', '저승 풍향계', '1초 뒤 미래'] },
@@ -406,9 +406,53 @@ window.CONFIG = {
     'sat', 'ielts', 'todai', 'iit', 'gaokao', 'bac', 'oxford', 'gre', 'usmle', 'aiiv2', 'cfa', 'calbar', 'nasa', 'ibank',
     'galaxy', 'mars', 'sea', 'afterlife', 'dream', 'loop', 'multi', 'mirror', 'telepathy', 'aicourt', 'human', 'hole', 'gods', 'hle'],
   model_rel: [-1, 0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38], // AI 모델이 출시되는 시험 번호 (그 시험에 합격하면)
-  reward_first: 200, reward_last: 4500000000000000, // 문제당 상금: 첫 시험과 마지막 시험. 그 사이는 같은 배수로 오른다 (시험마다 약 2.1배)
+  // 시험마다 정해 둔 값 (고정): [문제 수(교시가 있으면 교시당), 제한 시간(초, 교시당), 만점 상금(원), AI 난도]
+  // 만점 상금은 시험마다 약 2.1배씩 오르게 잡았다. 장비·모델·응시료 값은 여기 만점 상금에서 나온다. 밸런스는 이 표의 숫자를 직접 고치면 된다
+  exam_table: {
+    mock: [5, 60, 1000, 0],
+    suneung: [8, 100, 3360, 0.95],
+    transfer: [6, 70, 7200, 1.31],
+    toeic: [8, 100, 15200, 1.66],
+    toefl: [6, 80, 32000, 2.01],
+    civil7: [8, 90, 68000, 2.37],
+    customs: [10, 120, 144000, 2.72],
+    tax: [8, 110, 304000, 3.08],
+    cpa: [10, 130, 648000, 3.43],
+    appraiser: [10, 130, 1360000, 3.78],
+    aiiv: [5, 170, 2880000, 4.14],
+    leet: [7, 120, 6080000, 4.49],
+    mdeet: [11, 165, 12800000, 4.84],
+    bar: [8, 105, 27200000, 5.2],
+    sat: [8, 95, 57600000, 5.55],
+    ielts: [5, 100, 120000000, 5.9],
+    todai: [3, 150, 256000000, 6.26],
+    iit: [14, 170, 552000000, 6.61],
+    gaokao: [13, 155, 1200000000, 6.97],
+    bac: [1, 150, 2480000000, 7.32],
+    oxford: [5, 95, 5200000000, 7.67],
+    gre: [10, 130, 11200000000, 8.03],
+    usmle: [8, 95, 23200000000, 8.38],
+    aiiv2: [5, 160, 49600000000, 8.73],
+    cfa: [13, 155, 104000000000, 9.09],
+    calbar: [16, 210, 224000000000, 9.44],
+    nasa: [8, 145, 472000000000, 9.8],
+    ibank: [6, 150, 960000000000, 10.15],
+    galaxy: [14, 170, 2080000000000, 10.5],
+    mars: [10, 120, 4480000000000, 10.86],
+    sea: [10, 130, 9600000000000, 11.21],
+    afterlife: [14, 170, 20000000000000, 11.56],
+    dream: [8, 110, 42400000000000, 11.92],
+    loop: [5, 60, 88000000000000, 12.27],
+    multi: [16, 185, 192000000000000, 12.62],
+    mirror: [10, 120, 400000000000000, 12.98],
+    telepathy: [8, 120, 880000000000000, 13.33],
+    aicourt: [10, 170, 1760000000000000, 13.69],
+    human: [10, 120, 3760000000000000, 14.04],
+    hole: [10, 130, 8000000000000000, 14.39],
+    gods: [10, 140, 16800000000000000, 14.75],
+    hle: [5, 85, 36000000000000000, 15.1],
+  },
   hub_by_act: ['gosi', 'dorm', 'cabin'], // 구간별 거점: 고시원 → 유학생 기숙사 → 우주선 선실
-  ai_last: 14.5, // 마지막 시험의 AI 난도. 시험마다 고르게 오른다
   helper_at: { cctvmap: 'customs', visa: 'sat', leak: 'ibank', trans: 'galaxy', coin: 'afterlife' },
 };
 (function () { // 정식 순서대로 시험을 엮고, 상금·난도·입고 시점을 번호로 바꾼다
@@ -416,8 +460,9 @@ window.CONFIG = {
   const tiers = C.order.map(id => { if (byId[id]) return Object.assign({}, byId[id]);
     const Lb = C.lab[id], o = Object.assign({}, old[Lb.slot], { id, news: null, swap: null, boss: false, essay: false, listen: 0, noAuto: false, check: null, pulse: null, parts: null, layout: null, device: null }, Lb);
     for (const k of ['parts', 'layout', 'device', 'pulse', 'check', 'news', 'swap']) if (o[k] == null) delete o[k]; delete o.slot; return o; });
-  const n = tiers.length, r = Math.pow(C.reward_last / C.reward_first, 1 / (n - 1)), ix = id => tiers.findIndex(t => t.id === id);
-  tiers.forEach((t, i) => { const v = C.reward_first * Math.pow(r, i), m = Math.pow(10, Math.max(0, Math.floor(Math.log10(v)) - 1)); const rnd = x => { const mm = Math.pow(10, Math.max(0, Math.floor(Math.log10(x)) - 1)); return Math.round(x / mm) * mm; }; t.base = rnd(v); t.reward = i === 0 ? t.base : rnd(v * 8 / (t.qn * (t.parts ? t.parts.length : 1))); /* 만점 상금이 문제 수와 상관없이 고르게 오르도록 */ t.ai = i === 0 ? 0 : +(i * C.ai_last / (n - 1) + 0.6).toFixed(2); t.act = i < 14 ? 1 : i < 28 ? 2 : 3; });
+  const ix = id => tiers.findIndex(t => t.id === id);
+  tiers.forEach((t, i) => { const [qn, time, prize, ai] = C.exam_table[t.id]; t.qn = qn; t.time = time; t.ai = ai; t.act = i < 14 ? 1 : i < 28 ? 2 : 3;
+    t.base = prize / 8; t.reward = prize / (qn * (t.parts ? t.parts.length : 1)); }); // base: 장비 값의 기준(문제 8개짜리 시험의 문제당 상금으로 환산) · reward: 문제당 상금
   C.tiers = tiers; C.models.forEach((m, i) => { m.rel = C.model_rel[i]; });
   C.gear.forEach(d => { if (d.at) d.at = d.at.map(ix); else d.unlock = 9999; });
   C.helper.forEach(h => { h.tier = ix(C.helper_at[h.id]); });

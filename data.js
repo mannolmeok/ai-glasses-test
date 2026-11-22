@@ -723,3 +723,4 @@ const GEAR_REVIEW = {
   clone: '나랑 나랑 나랑 ★★★★★', humanmod: '로봇 아니냐는 소리 안 들음 ★★★★☆', offbeat: 'Ω도 못 따라옴 ★★★★★',
   model: '똑똑해졌어요 ★★★★★',
 };
+{ const lensText = GEAR_TEXT.lens; GEAR_TEXT.lens = lv => (lv >= 4 ? '두 문제를 한 번에 읽음 · ' : '') + lensText(lv); }
