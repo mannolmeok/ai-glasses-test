@@ -709,8 +709,9 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
 function markAnswer(i, how) { // 정답인지는 시험이 끝날 때까지 모른다
   if (!E || E.fb || E.caught || E.over || E.start > 0 || E.breakT > 0 || i < 0 || i > 3) return;
   if (E.qs[E.qi].kind === 'essay' && how !== 'essay') return; // 서술형은 다 옮겨 써야 답이 된다
-  if (how !== 'auto' && (E.view !== 'paper' || E.viewT < 1)) { if (how === 'key' && E.layout !== 'table') setView('paper'); return; } // 시험지를 보고 있어야 마킹 (숫자 키는 먼저 고개를 숙인다)
-  const q = E.qs[E.qi], viaAI = how === 'auto' || how === 'essay' || (E.ai && i === q.aiPick);
+  if (E.qs[E.qi].kind === 'speak' && how !== 'speak') return; // 면접은 끝까지 말해야 답이 된다
+  if (how !== 'auto' && how !== 'speak' && (E.view !== 'paper' || E.viewT < 1)) { if (how === 'key' && E.layout !== 'table') setView('paper'); return; } // 시험지를 보고 있어야 마킹 (숫자 키는 먼저 고개를 숙인다)
+  const q = E.qs[E.qi], viaAI = how === 'auto' || how === 'essay' || how === 'speak' || (E.ai && i === q.aiPick);
   if (q.final) { if (E.ai && how !== 'auto') finishFinal(i); return; } // 마지막 문제: 무엇을 골라도 채점 없이 엔딩으로
   E.answers[E.qi] = i; E.via[E.qi] = how === 'auto' ? 'auto' : viaAI ? 'ai' : 'self';
   E.fb = { pick: i, t: 0, how };
@@ -762,7 +763,7 @@ function examHint() { // 첫 시험(모의평가)에서만, 한 번에 하나
   if (E.dead) return E.dead === 'water' ? '안경이 물을 먹어 켜지지 않는다 · 직접 풀기' : E.dead === 'sticker' ? '단추 카메라가 가려졌다 · 직접 풀기' : 'EMP에 장비가 전부 꺼졌다 · 직접 풀기';
   const q0 = E.qs[E.qi]; if (E.rising && (E.layout === 'table' || (q0 && q0.kind === 'essay'))) return '보고 있어요! 손 떼기';
   if (q0 && q0.kind === 'essay' && !G.hints.essay) return '서술형: 가운데를 꾹 눌러 한 줄 읽고(위험) 옮겨 쓰기(안전)';
-  if (E.layout === 'table' && !G.hints.iv && !E.ai) return '화면 왼쪽을 꾹: AI 답변 읽기 · 면접관이 볼 땐 떼기 (←)';
+  if (E.layout === 'table' && !G.hints.iv && !E.ai) return '화면 왼쪽을 꾹: 대본 읽기 · 면접관이 볼 땐 떼기 (←)';
   if (E.tier !== 0 || G.stats.exams > 0) return null;
   if (E.rising) return '누가 보고 있어요! 손 떼기';
   // 첫 시험의 조작 안내: 한 번에 하나씩, 해 보면 다음으로 (책상 꾹 → 위 → 양옆 → 손 떼기)
@@ -846,6 +847,15 @@ function updateExam(dt) {
       else { es.w += dt / tune.essay_write; E.tick += dt; if (E.tick > 0.14) { E.tick = 0; sfx.pencil(); } if (es.w >= 1) { es.w = 0; es.mem = 0; es.done++; G.hints.essay = true; if (es.done >= q.lines.length) { E.wasHold = hold; markAnswer(q.answer, 'essay'); } } } }
     else { es.r = 0; if (es.mem > 0) { es.mem -= dt; if (es.mem <= 0) { es.mem = 0; es.w = 0; } } }
   }
+  const speak = q.kind === 'speak';
+  if (speak && !E.fb) { // 면접: 대본을 읽어 둔 데까지만 말할 수 있다. 읽어 둔 게 떨어지면 말이 끊긴다
+    if (!E.sp || E.sp.q !== q) E.sp = { q, read: 0, said: 0, stam: 0, t: 0, um: false };
+    const sp = E.sp, N = q.lines.length; sp.t += dt;
+    if (hold && !blind && sp.read < N) { sp.read = Math.min(N, sp.read + dt / tune.speak_read); G.hints.iv = true; E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); } }
+    if (sp.t > tune.speak_wait) { if (sp.read - sp.said > 1e-6) { sp.said = Math.min(sp.read, sp.said + dt / tune.speak_say); sp.um = false; } else if (sp.said < N) { sp.stam += dt; sp.um = true; } }
+    if (sp.said >= N - 1e-6) { E.wasHold = hold; markAnswer(sp.stam <= tune.speak_stam ? 0 : 2, 'speak'); }
+    else if (sp.stam > tune.speak_stam + 4) { E.wasHold = hold; markAnswer(3, 'speak'); } // 너무 오래 말이 없으면 면접관이 다음 질문으로 넘어간다
+  }
   const risky = hold && !(essay && E.es.mem > 0); // 서술형에서 쓰는 동안은 평범한 수험생으로 보인다
   if (hold && !E.wasHold && T.mech.includes('omega') && E.scan < 0.05) { // Ω는 스캔 박자를 읽는다: 지난번과 같은 간격이면 들킨다
     const t = E.clockT, gap = E.lastScanT == null ? null : t - E.lastScanT, win = tune.omega_window * gearCut(g.offbeat);
@@ -863,7 +873,7 @@ function updateExam(dt) {
   E.sus = clamp(E.sus, 0, 1);
   if (E.sus >= 1) { getCaught(); return; }
   if (listen && !E.ai && !E.fb && g.earbud > 0 && !E.dead) { E.listen += dt / tune.listen_time; if (E.listen >= 1) { E.listen = 1; completeScan(); } } // 이어폰이 방송을 받아쓴다
-  if (hold && !essay && !blind) { // 스캔: 1/3, 2/3에서 오답이 하나씩 지워지고, 끝나면 AI의 답
+  if (hold && !essay && !speak && !blind) { // 스캔: 1/3, 2/3에서 오답이 하나씩 지워지고, 끝나면 AI의 답
     if (table) G.hints.iv = true;
     const before = Math.floor(E.scan * 3 + 1e-6);
     const secs = scanSecondsAt(g.lens) * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);

@@ -77,6 +77,10 @@ window.CONFIG = {
   long_scan: { value: 1.5, min: 1, max: 3, step: 0.05 },           // LEET 긴 지문: 스캔 시간 배율
   essay_read: { value: 0.9, min: 0.2, max: 3, step: 0.1 },         // 서술형: 모범 답안 한 줄을 읽는 시간(초). 이 동안이 위험하다
   essay_write: { value: 1.1, min: 0.2, max: 3, step: 0.1 },        // 서술형: 읽은 한 줄을 옮겨 쓰는 시간(초). 이 동안은 안전하다
+  speak_read: { value: 0.9, min: 0.2, max: 3, step: 0.1 },         // 면접: 대본 한 줄을 읽는 시간(초). 면접관이 볼 때는 읽을 수 없다
+  speak_say: { value: 2.2, min: 0.5, max: 5, step: 0.1 },          // 면접: 한 줄을 말하는 시간(초). 읽어 둔 데까지만 말할 수 있다
+  speak_wait: { value: 1.6, min: 0, max: 5, step: 0.1 },           // 면접: 질문이 끝나고 입을 떼기까지(초)
+  speak_stam: { value: 2.6, min: 0.5, max: 10, step: 0.1 },        // 면접: 한 문항에서 말이 끊겨도 되는 시간(초). 넘으면 그 문항은 감점
   essay_mem: { value: 5, min: 1, max: 15, step: 0.5 },             // 서술형: 읽은 줄을 기억하는 시간(초). 손을 떼고 있으면 줄어든다
   stairs_time: { value: 10, min: 4, max: 20, step: 1 },             // LEET 쉬는 시간 계단 질주: 뛰는 시간(초)
   stairs_need: { value: 34, min: 10, max: 80, step: 2 },            // 이만큼 계단을 밟으면 머리가 맑아진다 (2교시는 AI 없이도 답이 보인다)

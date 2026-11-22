@@ -6,9 +6,10 @@
 'use strict';
 
 const PIXEL_LOOK = (new URLSearchParams(location.search).get('look') || CONFIG.look) === 'pixel';
+const PXF = 'px2'; // 안경이 띄우는 글씨는 픽셀 글꼴(갈무리11), 큰 제목(타이틀·석차표·일시정지·적발)만 Black Han Sans 그대로
 const FONT_BODY = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR","NanumGothic",sans-serif'; // 시험지·칠판처럼 인쇄된 글자
 const FONT_SUB = '"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif'; // 자막
-const FONT_KO = (PIXEL_LOOK ? '"Galmuri11",' : CONFIG.hud_font === 'dohyeon' ? '"Do Hyeon",' : CONFIG.hud_font === 'pretendard' ? '"Pretendard",' : '') + '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR","NanumGothic",sans-serif';
+const FONT_KO = (PIXEL_LOOK || PXF ? '"Galmuri11",' : CONFIG.hud_font === 'dohyeon' ? '"Do Hyeon",' : CONFIG.hud_font === 'pretendard' ? '"Pretendard",' : '') + '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR","NanumGothic",sans-serif';
 const PAL = {
   ol: '#1c1726', white: '#ffffff', dark: '#0d0b13',
   skin: '#f3caa1', skin2: '#d9a57c',
@@ -30,7 +31,7 @@ const LAYOUTS = {
 
 // ---- 도트 도구 ----
 const TEXT_CACHE = new Map();
-if (document.fonts) { for (const f of PIXEL_LOOK ? ['400 12px Galmuri11', '700 12px Galmuri11'] : ['400 12px "Do Hyeon"', '400 12px Pretendard', '600 12px Pretendard', '700 12px Pretendard', '800 12px Pretendard']) document.fonts.load(f); document.fonts.ready.then(() => TEXT_CACHE.clear()); } // 픽셀 글꼴이 오면 그려 둔 글자를 다시 만든다
+if (document.fonts) { for (const f of PIXEL_LOOK || PXF ? ['400 12px Galmuri11', '700 12px Galmuri11'] : ['400 12px "Do Hyeon"', '400 12px Pretendard', '600 12px Pretendard', '700 12px Pretendard', '800 12px Pretendard']) document.fonts.load(f); document.fonts.ready.then(() => TEXT_CACHE.clear()); } // 픽셀 글꼴이 오면 그려 둔 글자를 다시 만든다
 let HUD_SCALE = 1; // HUD 층을 화면 실제 픽셀 수로 그리는 배율 (game.js fit()이 정한다)
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
 function mix(h1, h2, k) { const a = hexRgb(h1), z = hexRgb(h2); return '#' + a.map((v, i) => Math.round(v + (z[i] - v) * k).toString(16).padStart(2, '0')).join(''); }
@@ -122,7 +123,7 @@ function makeKit(b) {
     const S = K.S || HUD_SCALE, key = 'm|' + str + '|' + size + '|' + col + '|' + weight + '|' + S;
     let c = TEXT_CACHE.get(key);
     if (!c) {
-      const m = document.createElement('canvas'), g = m.getContext('2d'), f = `${weight} ${size * S}px "SF Mono","Menlo","Consolas","Roboto Mono","D2Coding",${FONT_KO}`; g.font = f;
+      const m = document.createElement('canvas'), g = m.getContext('2d'), f = `${weight} ${size * S}px ${PXF ? '"Galmuri11",' : ''}"SF Mono","Menlo","Consolas","Roboto Mono","D2Coding",${FONT_KO}`; g.font = f;
       const pad = 4 * S, w = Math.max(1, Math.ceil(g.measureText(str).width) + pad * 2), h = Math.ceil(size * 1.7 * S);
       m.width = w; m.height = h; g.font = f; g.textBaseline = 'middle';
       g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = 2.5 * S; g.shadowOffsetY = 0.8 * S; g.fillStyle = col; g.fillText(str, pad, h / 2); g.fillText(str, pad, h / 2);
@@ -352,7 +353,8 @@ function drawResults(k, L, Rz, now, H) {
   return btns;
 }
 
-const TITLE_FONT = '"Black Han Sans","Do Hyeon",' + FONT_KO, BOOT_FONT = '"VT323","SF Mono","Menlo","Consolas",monospace,' + FONT_KO;
+const BOOT_K = PXF ? 0.8 : 1, TITLE_K = PXF === 'px' ? 0.82 : 1;
+const TITLE_FONT = (PXF === 'px' ? '"Galmuri11",' : '') + '"Black Han Sans","Do Hyeon",' + FONT_KO, BOOT_FONT = (PXF ? '"Galmuri11",' : '') + '"VT323","SF Mono","Menlo","Consolas",monospace,' + FONT_KO;
 if (document.fonts) { document.fonts.load('400 40px "Black Han Sans"', 'AI 안경으로 살아남기 적발 일시정지 AI는 답을 알려 줍니다. 어디에 쓸지는 알려 주지 않습니다. 전국 석차표 응시자 이름 등록'); document.fonts.load('400 16px "VT323"', 'LENS-OS 0.9b ENTER'); }
 function drawTitle(k, L, now, hasSave, info) { // 타이틀: 첫 시험장의 내 책상을 안경 너머로 본다. 초점이 잡히고 답이 뜬 순간 (시안 F 그대로)
   const { R } = k, b = k.b, W = L.W, HH = L.H, G1 = '#74ff8e', RK = info.rank || { k: 0, rows: [] }, rk = RK.k, mix = (p, q) => p + (q - p) * rk;
@@ -367,11 +369,11 @@ function drawTitle(k, L, now, hasSave, info) { // 타이틀: 첫 시험장의 �
   const pulse = rk > 0 ? 0 : Math.max(0, 0.3 - (now % 3.6)) / 0.3, gx = pulse * 26, gy = pulse * 18, l = 20, x0 = fx - gx, y0 = fy - gy, x1 = fx + fw + gx, y1 = fy + fh + gy; // 3.6초마다 초점을 다시 잡는다
   for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { R(sx > 0 ? cx : cx - l, sy > 0 ? cy : cy - 2, l, 2, G1); R(sx > 0 ? cx : cx - 2, sy > 0 ? cy : cy - l, 2, l, G1); }
   const text = (str, x, y, font, col, align, glow) => { b.font = font; b.textAlign = align; b.textBaseline = 'alphabetic'; b.shadowColor = glow || 'transparent'; b.shadowBlur = glow ? 4 * (k.S || HUD_SCALE) : 0; b.fillStyle = col; b.fillText(str, x, y); b.shadowBlur = 0; b.shadowColor = 'transparent'; };
-  const moving = rk > 0 && rk < 1, half = rk >= 0.5, bf = sz => `400 ${sz}px ${BOOT_FONT}`;
+  const moving = rk > 0 && rk < 1, half = rk >= 0.5, bf = sz => `400 ${sz * BOOT_K}px ${BOOT_FONT}`;
   const scr = (str, salt) => !moving ? str : [...str].map((ch, i) => ch === ' ' ? ' ' : (Math.abs(Math.sin((i + 1) * 12.9898 + salt * 7.13 + Math.floor(now * 30) * 78.233) * 43758.5453) % 1) < 0.25 + Math.abs(rk - 0.5) * 1.5 ? ch : '▓░▒#'[(i + Math.floor(now * 30)) % 4]).join(''); // 글자가 지지직 흐트러졌다 맞춰진다
   if (rk < 1) { b.globalAlpha = 1 - Math.min(1, rk * 2.5); const n = Math.min(4, 1 + Math.floor((now % 14) / 0.4)); // 왼쪽 위 부팅 줄: 석차표로 바뀌면 사라진다
     ['LENS-OS 0.9b', '초점 ......... 고정', '정답 ......... 수신', '감독관 ....... 등 돌림'].slice(0, n).forEach((ln, i) => text(ln, 65, 60 + i * 15.6, bf(12.5), G1, 'left', '#0a4018')); b.globalAlpha = 1; }
-  const tx = W - 65, tf = `400 46px ${TITLE_FONT}`, jit = (now * 0.29) % 1 < 0.035 ? Math.round(Math.sin(now * 90) * 3) : 0;
+  const tx = W - 65, tf = `400 ${46 * TITLE_K}px ${TITLE_FONT}`, jit = (now * 0.29) % 1 < 0.035 ? Math.round(Math.sin(now * 90) * 3) : 0;
   (half ? [['전국', 106], ['석차표', 156]] : [['AI 안경으로', 106], ['살아남기', 156]]).forEach(([str, y], q) => { const s2 = scr(str, q); text(s2, tx + 2.5 + jit, y, tf, 'rgba(255,60,60,0.45)', 'right'); text(s2, tx - 2 + jit, y, tf, 'rgba(60,160,255,0.4)', 'right'); text(s2, tx + jit, y, tf, G1, 'right', '#0a4018'); });
   const rows = RK.rows, total = RK.total || rows.length, mineI = rows.findIndex(r => r.me), rankOf = i => rows[i].rank || i + 1, per = 10, pages = Math.max(1, Math.ceil(rows.length / per)), page = Math.max(0, Math.min(pages - 1, RK.page || 0)), btns = [];
   if (half) { text(scr(RK.online ? `응시자 ${total.toLocaleString()}명` : `이 기기의 기록 ${total}개`, 3), tx, 178, bf(14), G1, 'right', '#0a4018'); text(scr(mineI >= 0 ? `내 석차 ${rankOf(mineI)}등` : '내 석차 미정', 4), tx, 194, bf(14), G1, 'right', '#0a4018'); if (RK.online && RK.runs > 0) text(scr(`누적 응시 ${RK.runs.toLocaleString()}회`, 5), tx, 210, bf(14), G1, 'right', '#0a4018'); }
@@ -402,10 +404,10 @@ function drawTitle(k, L, now, hasSave, info) { // 타이틀: 첫 시험장의 �
   return btns;
 }
 function drawRankIn(k, L, now, RI, rows, total, online) { // 엔딩 뒤 이름 입력(시안 B): 석차표에서 내 자리가 벌어지고, 그 줄에 이름을 써 넣는다
-  const { R } = k, b = k.b, W = L.W, HH = L.H, G1 = '#74ff8e', bf = sz => `400 ${sz}px ${BOOT_FONT}`, btns = [];
+  const { R } = k, b = k.b, W = L.W, HH = L.H, G1 = '#74ff8e', bf = sz => `400 ${sz * BOOT_K}px ${BOOT_FONT}`, btns = [];
   const text = (str, x, y, font, col, align, glow) => { b.font = font; b.textAlign = align; b.textBaseline = 'alphabetic'; b.shadowColor = glow || 'transparent'; b.shadowBlur = glow ? 4 * (k.S || HUD_SCALE) : 0; b.fillStyle = col; b.fillText(str, x, y); b.shadowBlur = 0; b.shadowColor = 'transparent'; };
   b.globalAlpha = 0.74; R(0, 0, W, HH, '#061e0e'); b.globalAlpha = 0.13; for (let y = 0; y < HH; y += 1.5) R(0, y, W, 0.5, '#000000'); b.globalAlpha = 1;
-  const tf = `400 30px ${TITLE_FONT}`; text('전국 석차표', W / 2 + 2, 52, tf, 'rgba(255,60,60,0.45)', 'center'); text('전국 석차표', W / 2 - 1.5, 52, tf, 'rgba(60,160,255,0.4)', 'center'); text('전국 석차표', W / 2, 52, tf, G1, 'center', '#0a4018');
+  const tf = `400 ${30 * TITLE_K}px ${TITLE_FONT}`; text('전국 석차표', W / 2 + 2, 52, tf, 'rgba(255,60,60,0.45)', 'center'); text('전국 석차표', W / 2 - 1.5, 52, tf, 'rgba(60,160,255,0.4)', 'center'); text('전국 석차표', W / 2, 52, tf, G1, 'center', '#0a4018');
   const mi = rows.findIndex(r => r.me), rankOf = i => rows[i].rank || i + 1, type = RI.phase === 'type', myRank = mi >= 0 ? rankOf(mi) : 0;
   text(type ? `${myRank}등으로 진입! 이름을 남기세요` : RI.phase === 'send' ? '전송 중…' : `${myRank}등 · ${RI.msg || '등록되었습니다'}`, W / 2, 76, bf(15), '#ffe98a', 'center', '#0a4018');
   const x0 = 165, x1 = W - 165, lh = 23, from = Math.max(0, Math.min(mi - 3, rows.length - 6)), list = rows.slice(from, from + 6), y0 = 108;
@@ -424,11 +426,11 @@ function drawLensScreen(k, L, now, o) { // 타이틀과 같은 안경 화면: �
   const b = k.b, W = L.W, HH = L.H, R = k.R;
   const text = (str, x, y, font, col, align, glow) => { b.font = font; b.textAlign = align; b.textBaseline = 'alphabetic'; b.shadowColor = glow || 'transparent'; b.shadowBlur = glow ? 4 * (k.S || HUD_SCALE) : 0; b.fillStyle = col; b.fillText(str, x, y); b.shadowBlur = 0; b.shadowColor = 'transparent'; };
   b.globalAlpha = 0.55; R(0, 0, W, HH, o.tint); b.globalAlpha = 0.13; for (let y = 0; y < HH; y += 1.5) R(0, y, W, 0.5, '#000000'); b.globalAlpha = 1;
-  o.lines.forEach((ln, i) => text(ln, 65, 60 + i * 15.6, `400 12.5px ${BOOT_FONT}`, o.col, 'left', o.glow));
-  const jit = (now * 0.29) % 1 < 0.05 ? Math.round(Math.sin(now * 90) * 3) : 0, f = `400 75px ${TITLE_FONT}`, y = o.y || 178;
+  o.lines.forEach((ln, i) => text(ln, 65, 60 + i * 15.6, `400 ${12.5 * BOOT_K}px ${BOOT_FONT}`, o.col, 'left', o.glow));
+  const jit = (now * 0.29) % 1 < 0.05 ? Math.round(Math.sin(now * 90) * 3) : 0, f = `400 ${75 * TITLE_K}px ${TITLE_FONT}`, y = o.y || 178;
   text(o.big, W / 2 + 2.5 + jit, y, f, 'rgba(255,60,60,0.45)', 'center'); text(o.big, W / 2 - 2 + jit, y, f, 'rgba(60,160,255,0.4)', 'center'); text(o.big, W / 2 + jit, y, f, o.col, 'center', o.glow);
   b.globalAlpha = 0.35; R(0, 165, W, 5, o.col); b.globalAlpha = 0.3; R(0, 260, W, 2, o.col); b.globalAlpha = 1;
-  if (o.sub) text(o.sub, W / 2, y + 62, `400 13px ${BOOT_FONT}`, o.col, 'center', o.glow);
+  if (o.sub) text(o.sub, W / 2, y + 62, `400 ${13 * BOOT_K}px ${BOOT_FONT}`, o.col, 'center', o.glow);
   b.textAlign = 'left'; b.drawImage(rimFor('land'), 0, 0);
 }
 function drawTitleOut(k, L, now, a) { // 타이틀에서 시험으로: 안경 화면이 지직거리며 꺼진다 (a: 1 → 0)
@@ -467,8 +469,8 @@ function drawEnding(k, L, G, now, H, info) {
     if (!shot && t > E2.line1 - 1) { // 엔딩 문구: 타이틀과 같은 안경 화면. 끝나면 화면이 꺼진다
       const al = Math.min(1, (t - (E2.line1 - 1)) / 0.8), off = Math.max(0, Math.min(1, (t - (E2.stats - 1.1)) / 0.9));
       lens(al); const n = Math.floor((t - (E2.line1 - 0.8)) / 0.5);
-      ['LENS-OS 0.9b', '시험 ......... 전부 통과', '사용자 ....... 확인 불가', '전원 ......... 끄는 중'].slice(0, Math.max(0, Math.min(4, n))).forEach((ln, i) => text(ln, 65, 60 + i * 15.6, `400 12.5px ${BOOT_FONT}`, G1, 'left', '#0a4018'));
-      const big = (str, y, a2) => { if (a2 <= 0) return; b.globalAlpha = a2; const f = `400 31px ${TITLE_FONT}`; text(str, W / 2 + 2, y, f, 'rgba(255,60,60,0.45)', 'center'); text(str, W / 2 - 1.5, y, f, 'rgba(60,160,255,0.4)', 'center'); text(str, W / 2, y, f, G1, 'center', '#0a4018'); b.globalAlpha = 1; };
+      ['LENS-OS 0.9b', '시험 ......... 전부 통과', '사용자 ....... 확인 불가', '전원 ......... 끄는 중'].slice(0, Math.max(0, Math.min(4, n))).forEach((ln, i) => text(ln, 65, 60 + i * 15.6, `400 ${12.5 * BOOT_K}px ${BOOT_FONT}`, G1, 'left', '#0a4018'));
+      const big = (str, y, a2) => { if (a2 <= 0) return; b.globalAlpha = a2; if (PXF) { const f2 = `400 22px ${BOOT_FONT}`; text(str, W / 2, y + (y > 180 ? -6 : 0), f2, G1, 'center', 'rgba(116,255,142,0.55)'); if (y > 180 && Math.floor(now * 2) % 2 === 0) { b.font = f2; const hw = b.measureText(str).width / 2; R(W / 2 + hw + 4, y - 24, 11, 20, G1); } b.globalAlpha = 1; return; } const f = `400 ${31 * TITLE_K}px ${TITLE_FONT}`; text(str, W / 2 + 2, y, f, 'rgba(255,60,60,0.45)', 'center'); text(str, W / 2 - 1.5, y, f, 'rgba(60,160,255,0.4)', 'center'); text(str, W / 2, y, f, G1, 'center', '#0a4018'); b.globalAlpha = 1; };
       big('AI는 답을 알려 줍니다.', 168, fade(E2.line1, 0)); big('어디에 쓸지는 알려 주지 않습니다.', 210, fade(E2.line2, 0));
       b.textAlign = 'left'; b.drawImage(rimFor('land'), 0, 0);
       if (off > 0) { const h = HH / 2 * Math.min(1, off * 1.6), w2 = off > 0.62 ? W / 2 * Math.min(1, (off - 0.62) / 0.3) : 0; R(0, 0, W, h, '#000000'); R(0, HH - h, W, h, '#000000'); R(0, 0, w2, HH, '#000000'); R(W - w2, 0, w2, HH, '#000000'); // 브라운관처럼 가운데 한 줄로 접혔다가 점이 되어 꺼진다
@@ -478,8 +480,8 @@ function drawEnding(k, L, G, now, H, info) {
   }
   const a = Math.min(1, (t - E2.stats) / 0.8); // 종료 기록: 같은 안경 화면에 줄줄이
   R(0, 0, W, HH, '#000000'); b.globalAlpha = a; R(0, 0, W, HH, '#04140a'); lens(a); b.globalAlpha = a;
-  const tf = `400 30px ${TITLE_FONT}`; text('AI 안경으로 살아남기', W / 2 + 2, 66, tf, 'rgba(255,60,60,0.45)', 'center'); text('AI 안경으로 살아남기', W / 2 - 1.5, 66, tf, 'rgba(60,160,255,0.4)', 'center'); text('AI 안경으로 살아남기', W / 2, 66, tf, G1, 'center', '#0a4018');
-  const bf = sz => `400 ${sz}px ${BOOT_FONT}`, lx = W / 2 - 150, rx = W / 2 + 150; let y = 92;
+  const tf = `400 ${30 * TITLE_K}px ${TITLE_FONT}`; text('AI 안경으로 살아남기', W / 2 + 2, 66, tf, 'rgba(255,60,60,0.45)', 'center'); text('AI 안경으로 살아남기', W / 2 - 1.5, 66, tf, 'rgba(60,160,255,0.4)', 'center'); text('AI 안경으로 살아남기', W / 2, 66, tf, G1, 'center', '#0a4018');
+  const bf = sz => `400 ${sz * BOOT_K}px ${BOOT_FONT}`, lx = W / 2 - 150, rx = W / 2 + 150; let y = 92;
   const row = (l, v, col) => { text(l, lx, y, bf(13), G1, 'left', '#0a4018'); text(v, rx, y, bf(13), col || G1, 'right', '#0a4018'); y += 16; };
   row('타임어택', info.time + (info.rank ? `  (내 기록 ${info.rank}위${info.rank === 1 ? ' · 신기록' : ''})` : ''), '#eafff0');
   for (const sp of info.splits) row(`  ${sp.name}`, sp.time);

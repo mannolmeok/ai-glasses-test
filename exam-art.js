@@ -324,7 +324,7 @@ function drawScreenTexture(g, E, now) {
 // ---- 마주 앉는 시험: 안경이 띄우는 AR 카드 (문제·보기 넷) ----
 function arCardRect(E, k) {
   const q = E.qs[Math.min(E.qi, E.qs.length - 1)], lines = q ? wrapKit(k, q.q, 560, 12) : [''];
-  const h = 16 + lines.length * 16 + 40, w = 584, x = (640 - w) / 2, y = 346 - h;
+  const sp = q && q.kind === 'speak', h = 16 + lines.length * 16 + (sp ? q.lines.length * 15 + 8 : 40), w = 584, x = (640 - w) / 2, y = (sp ? 353 : 346) - h;
   return { x, y, w, h, lines };
 }
 function wrapKit(k, str, maxW, size) {
@@ -341,6 +341,20 @@ function drawArCard(k, L, E, now, H) {
   R(c.x, c.y, 10, 2, H.c); R(c.x, c.y, 2, 10, H.c); R(c.x + c.w - 10, c.y + c.h - 2, 10, 2, H.c); R(c.x + c.w - 2, c.y + c.h - 10, 2, 10, H.c);
   if (q.kind === 'wine') { const red = q.color === 'red'; R(c.x + 10, c.y + 8, 8, 10, red ? '#8a1a2a' : '#e8d070'); k.frame(c.x + 9, c.y + 7, 10, 12, '#dfe8f2', 1); }
   c.lines.forEach((ln, i) => T(ln, c.x + (q.kind === 'wine' ? 26 : 12), c.y + 14 + i * 16, 12, C.white, 'left', 800));
+  if (q.kind === 'speak') { // 면접: 읽은 데까지만 글자가 보이고, 말한 부분은 흐려진다
+    const sp = E.sp && E.sp.q === q ? E.sp : { read: 0, said: 0, stam: 0, um: false }, y0 = c.y + 14 + c.lines.length * 16 + 4, x0 = c.x + 22, cl = (v, i) => Math.max(0, Math.min(1, v - i));
+    q.lines.forEach((ln, i) => { const y = y0 + i * 15, n = Math.round(ln.length * cl(sp.read, i)), ns = Math.min(n, Math.round(ln.length * cl(sp.said, i))), w1 = k.TW(ln.slice(0, ns), 12, 800), w2 = k.TW(ln.slice(ns, n), 12, 800);
+      R(c.x + 12, y - 4, 3, 9, n >= ln.length ? H.c : '#2a3a40');
+      if (ns > 0) T(ln.slice(0, ns), x0, y, 12, '#5a8a74', 'left', 800);
+      if (n > ns) T(ln.slice(ns, n), x0 + w1, y, 12, H.c, 'left', 800);
+      if (n < ln.length) T('·'.repeat(ln.length - n), x0 + w1 + w2 + (n ? 3 : 0), y, 12, '#34504a', 'left', 800); });
+    const left = Math.max(0, Math.min(1, 1 - sp.stam / tune.speak_stam)); T('유창함', c.x + c.w - 100, c.y + 14, 10, '#8fa0b8', 'left', 800);
+    for (let i = 0; i < 6; i++) R(c.x + c.w - 62 + i * 8, c.y + 10, 6, 8, i < Math.ceil(left * 6 - 1e-6) ? (left < 0.34 ? C.bad : H.c) : '#2a3a40');
+    const li = Math.min(q.lines.length - 1, Math.floor(sp.said + 1e-6)), said = q.lines[li].slice(0, Math.round(q.lines[li].length * cl(sp.said, li))), full = sp.said >= li + 1 - 1e-6 && li > 0 ? q.lines[li] : said;
+    if (!E.fb && E.start <= 0) { if (sp.um) k.SUB(`"${said || ''}… 어…"`, 320, c.y - 16, 13); else if (said) k.SUB(`"${said}"`, 320, c.y - 16, 13); }
+    if (E.holding && !E.fb && E.start <= 0) { k.b.globalAlpha = 0.6; R(c.x + 4, c.y + 4 + ((now * 90) % (c.h - 8)), c.w - 8, 1, H.c); k.b.globalAlpha = 1; }
+    return;
+  }
   const bw = Math.floor((c.w - 24 - 18) / 4), by = c.y + c.h - 34;
   const strikes = E.start > 0 ? 0 : Math.min(2, q.pre ? 2 : Math.floor(E.scan * 4 + 1e-6)), struck = q.elim.slice(0, strikes);
   drawAnswerPanel(k, L, E, now, q);
