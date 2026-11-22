@@ -129,7 +129,10 @@ function actSplit(a) { // 그 막의 구간 기록: 막의 마지막 시험에 �
 }
 
 // ---- Save ------------------------------------------------------------------------------
-const SAVE_KEY = 'ai-glasses-save-v4', REC_KEY = 'ai-glasses-records';
+const SAVE_KEY = 'ai-glasses-save-v4', REC_KEY = 'ai-glasses-records', BAK_KEY = SAVE_KEY + '-bak';
+const NOSAVE = !!new URLSearchParams(location.search).get('scene'); // 화면 확인용 주소(?scene=…)로 연 판은 저장하지 않는다: 하던 기록을 덮어쓰지 않게
+function backupSave() { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) localStorage.setItem(BAK_KEY, raw); } catch (_) { } } // 기록을 갈아엎기 직전에 한 벌 남겨 둔다
+function hasBackup() { try { return !!localStorage.getItem(BAK_KEY); } catch (_) { return false; } }
 function newGame() {
   const gear = { model: 0 }; for (const g of CONFIG.gear) gear[g.id] = 0;
   return { v: 4, heat: 0, lamps: 0, audit: null, tv: [], tvSeen: 0, lastPass: null, black: null, money: 0, gear, unlocked: 1, cleared: TIERS.map(() => false), best: TIERS.map(() => 0),
@@ -147,7 +150,7 @@ function adopt(s) { // 저장된 값을 새 게임 틀에 얹는다 (빠진 칸�
   g.unlocked = clamp(Math.floor(g.unlocked) || 1, 1, TIERS.length); g.money = Number(g.money) || 0;
   return g;
 }
-function save() { try { G.last = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (_) { } }
+function save() { if (NOSAVE) return; try { G.last = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (_) { } }
 function load() { try { const raw = localStorage.getItem(SAVE_KEY); return raw ? adopt(JSON.parse(raw)) : null; } catch (_) { return null; } }
 function awayEarnings() { // 저장해 둔 마지막 시각과 지금의 차이만큼 대리 응시가 번 돈 (불러올 때 한 번)
   if (!G.last || !(G.gear.bot > 0)) return;
@@ -1193,7 +1196,8 @@ function hubKey(key) { // 다가간 화면에서 누른 칸
   else if (a === 'opt' && b === 'timer') { G.opts.timer = !G.opts.timer; save(); }
   else if (a === 'save' && b === 'export') exportSave();
   else if (a === 'save' && b === 'import') importSave();
-  else if (a === 'wipe') { if (STATE.wipeArm > 0) wipe(); else STATE.wipeArm = 3; }
+  else if (a === 'jump') { const cur = STATE.jump || nextTierIndex() + 1; if (b === 'go') { jumpTo(cur, true); STATE.jump = 0; E = null; sfx.buy(); STATE.note = { text: `${cur}번 ${TIERS[cur - 1].name} 앞으로 이동`, sub: '장비와 돈을 그 단계에 맞췄습니다', t: 0 }; goHub(); } else if (b === 'undo') { if (restoreBackup()) { STATE.jump = 0; sfx.buy(); STATE.note = { text: '직전 기록을 되살렸습니다', t: 0 }; goHub(); } else sfx.no(); } else STATE.jump = clamp(cur + Number(b), 1, TIERS.length); }
+  else if (a === 'wipe') { if (STATE.wipeArm > 0) { backupSave(); wipe(); } else STATE.wipeArm = 3; }
 }
 function hubAction(a) { // 방에서 누른 물건
   const hv = STATE.hv;
@@ -1510,13 +1514,18 @@ window.game = {
 
 reset();
 G = (params.get('fresh') === '1' || params.get('scene')) ? newGame() : (load() || newGame());
-{ // 테스트 사이트 전용: 주소에 ?go=<시험 번호> 를 붙이면 그 시험 바로 앞까지 깬 상태로 시작한다 (그때까지 나온 장비·모델·조력자 물건을 다 가진 채로). 저장도 된다
-  const J = Number(params.get('go')); if (J >= 1 && J <= TIERS.length && (TESTSITE || location.protocol === 'file:')) { const n = J - 1; G = newGame();
-    G.cleared = TIERS.map((_, i) => i < n); G.unlocked = J; if (n > 0) { G.flags.cam = true; G.flags.sold = true; G.hints = Object.assign(G.hints || {}, { scan: true, look: true }); }
-    for (const d of CONFIG.gear) if (d.at) G.gear[d.id] = Math.max(d.id === 'lens' ? 1 : 0, d.at.filter(t => t <= n - 1).length);
-    G.gear.model = Math.max(0, CONFIG.models.reduce((m, x, i) => x.rel <= n - 2 ? i : m, 0)); G.tg = {}; for (const h of CONFIG.helper) if (h.tier < n) G.tg[h.id] = true;
-    syncGear(); G.money = params.get('real') === '1' ? examFee(TIERS[n]) * 3 : G.money; save(); history.replaceState(null, '', location.pathname + (params.get('real') === '1' ? '?real=1' : '')); } // 주소에서 go를 지워 새로고침해도 다시 초기화되지 않게
+const CAN_JUMP = /\/ai-glasses-test(\/|$)/.test(location.pathname) || location.protocol === 'file:'; // 단계 건너뛰기는 테스트 사이트에서만
+function jumpTo(J, lean) { // J번 시험 바로 앞까지 깬 상태로 만든다. 그때까지 나온 장비·모델·조력자 물건을 다 가진 채로, 돈은 그 시험 응시료의 세 배
+  if (!CAN_JUMP || !(J >= 1 && J <= TIERS.length)) return; backupSave(); const n = J - 1, opts = G && G.opts; G = newGame(); if (opts) G.opts = opts;
+  G.cleared = TIERS.map((_, i) => i < n); G.unlocked = J; if (n > 0) { G.flags.cam = true; G.flags.sold = true; G.hints = Object.assign(G.hints || {}, { scan: true, look: true }); }
+  for (const d of CONFIG.gear) if (d.at) G.gear[d.id] = Math.max(d.id === 'lens' ? 1 : 0, d.at.filter(t => t <= n - 1).length);
+  G.gear.model = Math.max(0, CONFIG.models.reduce((m, x, i) => x.rel <= n - 2 ? i : m, 0)); G.tg = {}; G.tgTold = {}; for (const h of CONFIG.helper) if (h.tier < n) G.tg[h.id] = true;
+  syncGear(); if (lean) G.money = examFee(TIERS[n]) * 3; save();
 }
+function restoreBackup() { try { const raw = localStorage.getItem(BAK_KEY); if (!raw) return false; const cur = localStorage.getItem(SAVE_KEY); G = adopt(JSON.parse(raw)); if (cur) localStorage.setItem(BAK_KEY, cur); save(); return true; } catch (_) { return false; } }
+if (params.get('fresh') === '1') backupSave();
+{ const J = Number(params.get('go')); if (J >= 1 && CAN_JUMP) { G = load() || G; jumpTo(J, true); history.replaceState(null, '', location.pathname + (params.get('real') === '1' ? '?real=1' : '')); } } // 주소의 ?go=번호 로도 건너뛴다
+
 STATE.hv = newHubView();
 if (TIER_Q) { G.unlocked = clamp(Number(TIER_Q) + 1, 1, TIERS.length); for (let i = 0; i < G.unlocked - 1; i++) G.cleared[i] = true; }
 if (params.get('gear')) { const lv = Number(params.get('gear')); for (const d of CONFIG.gear) G.gear[d.id] = d.hidden ? 0 : gearOpen(d) ? Math.min(gearCap(d), lv >= 9 ? 99 : lv) : 0; syncGear(); let m = 0; while (modelOpen(m + 1)) m++; G.gear.model = m; }

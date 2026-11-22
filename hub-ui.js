@@ -242,8 +242,11 @@ const HUBUI = (() => {
       b(muted ? '소리 켜기' : '소리 끄기', 'opt:mute');
       if (canFullscreen()) b(isFullscreen() ? '전체 화면 끄기' : '전체 화면 켜기 (F)', 'opt:fs');
       b(G.opts.timer ? '시험 중 시계: 켜짐' : '시험 중 시계: 꺼짐', 'opt:timer');
-      b('저장 코드 복사', 'save:export');
-      b('저장 코드 붙여넣기', 'save:import');
+      if (typeof CAN_JUMP !== 'undefined' && CAN_JUMP) { // 테스트 전용: 단계 건너뛰기
+        const J = STATE.jump || nextTierIndex() + 1, bw = Math.floor((w - 12 - 9) / 4); [['-5', '◀◀'], ['-1', '◀'], ['1', '▶'], ['5', '▶▶']].forEach(([d, lb], i) => btn(k, 6 + i * (bw + 3), ry, bw, 20, lb, 'jump:' + d, { size: 10 })); ry += 23;
+        b(`${J}번 ${TIERS[J - 1].name.slice(0, 9)} 앞으로`, 'jump:go', { bg: '#12283a', col: '#5eb5f7', fg: '#ffffff' });
+        if (hasBackup()) b('직전 기록 되살리기', 'jump:undo'); }
+      { const hw = Math.floor((w - 12 - 3) / 2); btn(k, 6, ry, hw, 23, '코드 복사', 'save:export', { size: 10 }); btn(k, 6 + hw + 3, ry, hw, 23, '코드 붙여넣기', 'save:import', { size: 10 }); ry += 26; } // 저장 코드: 한 줄에 둘
       b(STATE.wipeArm > 0 ? '한 번 더 누르면 지워요' : '저장 지우고 처음부터', 'wipe', { bg: '#2a1218', col: PAL.bad, fg: '#ffd6da' });
       for (const ln of ['← → 고개 · Space 스캔', '1~4 마킹 · P 정지 · M 소리', STATE.standalone ? '홈 화면 앱으로 실행 중' : STATE.ios ? '공유 → 홈 화면에 추가' : '']) { if (ln && ry + 6 < bottom) T(ln, w / 2, ry + 6, 10, '#6f7a8c', 'center', 700); ry += 12; }
     }
