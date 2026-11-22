@@ -55,6 +55,8 @@ const between = (a, b) => a + rng() * (b - a);
 
 // ---- Economy ---------------------------------------------------------------------------
 const TIERS = CONFIG.tiers, LAST = TIERS.length - 1;
+// 시험해 보는 전형: AI 면접. 아직 진행 순서에는 넣지 않았고, 주소에 exam=aiiv 를 붙였을 때만 토플 자리에 들어간다
+if (new URLSearchParams(location.search).get('exam') === 'aiiv') TIERS[4] = Object.assign({}, TIERS[4], { id: 'aiiv', name: '대기업 AI 역량검사', subject: '상황 면접', gen: 'aiiv', qn: 5, time: 170, mech: ['webcam', 'gaze'] });
 function rewardAt(x) { // x번째 시험의 문제당 상금. 사이 값은 등비로 잇고, 범위 밖은 끝의 비율로 늘인다
   const r = i => TIERS[i].reward;
   if (x <= 0) return r(0) * Math.pow(r(1) / r(0), x);
@@ -687,6 +689,7 @@ function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생
 }
 function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔하지 않아도 오르는 의심도
   const T = E.T, g = G.gear, base = T.sus * tune.sus_scale, table = E.layout === 'table';
+  if (T.mech.includes('gaze')) return { r: 0, idle: 0, src: null }; // AI 면접: 의심이 쌓이는 게 아니라 시선 5초 규칙으로만 걸린다
   let r = 0, idle = 0, src = null;
   const add = (v, how, by) => { if (v > 0) { r += v; if (!src || v > src.v) src = { v, how, by }; } };
   for (const s of E.staff) {
@@ -763,6 +766,7 @@ function examHint() { // 첫 시험(모의평가)에서만, 한 번에 하나
   if (E.dead) return E.dead === 'water' ? '안경이 물을 먹어 켜지지 않는다 · 직접 풀기' : E.dead === 'sticker' ? '단추 카메라가 가려졌다 · 직접 풀기' : 'EMP에 장비가 전부 꺼졌다 · 직접 풀기';
   const q0 = E.qs[E.qi]; if (E.rising && (E.layout === 'table' || (q0 && q0.kind === 'essay'))) return '보고 있어요! 손 떼기';
   if (q0 && q0.kind === 'essay' && !G.hints.essay) return '서술형: 가운데를 꾹 눌러 한 줄 읽고(위험) 옮겨 쓰기(안전)';
+  if (E.T.mech.includes('gaze') && !G.hints.iv) return '가운데를 꾹: 대본 읽기 · 5초 넘게 보면 탈락';
   if (E.layout === 'table' && !G.hints.iv && !E.ai) return '화면 왼쪽을 꾹: 대본 읽기 · 면접관이 볼 땐 떼기 (←)';
   if (E.tier !== 0 || G.stats.exams > 0) return null;
   if (E.rising) return '누가 보고 있어요! 손 떼기';
@@ -851,8 +855,15 @@ function updateExam(dt) {
   if (speak && !E.fb) { // 면접: 대본을 읽어 둔 데까지만 말할 수 있다. 읽어 둔 게 떨어지면 말이 끊긴다
     if (!E.sp || E.sp.q !== q) E.sp = { q, read: 0, said: 0, stam: 0, t: 0, um: false };
     const sp = E.sp, N = q.lines.length; sp.t += dt;
-    if (hold && !blind && sp.read < N) { sp.read = Math.min(N, sp.read + dt / tune.speak_read); G.hints.iv = true; E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); } }
-    if (sp.t > tune.speak_wait) { if (sp.read - sp.said > 1e-6) { sp.said = Math.min(sp.read, sp.said + dt / tune.speak_say); sp.um = false; } else if (sp.said < N) { sp.stam += dt; sp.um = true; } }
+    const gz = T.mech.includes('gaze'), wait = gz ? tune.aiiv_present + tune.aiiv_think : tune.speak_wait, ready = !gz || sp.t >= tune.aiiv_present;
+    if (gz) { // 시선 규칙: 대본을 보는 동안 벗어난 시간이 쌓이고, 카메라를 다시 보면 풀린다
+      if (hold) { E.gaze = (E.gaze || 0) + dt; E.gazeBack = 0;
+        if (E.gaze >= tune.gaze_warn && !E.gazeWarned) { E.gazeWarned = true; E.sus = Math.min(0.99, E.sus + 0.08); flash('화면을 봐 주세요', PAL.bad); sfx.pulse(); }
+        if (E.gaze >= tune.gaze_limit + g.gazefix * 0.5) { if (g.deepcam > 0 && !E.gazeSaved) { E.gazeSaved = true; E.gaze = 0; E.gazeWarned = false; flash('딥페이크 웹캠이 한 번 막았다', PAL.good || PAL.white); } else { E.sus = 1; E.source = { how: 'gaze', by: E.staff[0] }; getCaught(); return; } } }
+      else if (E.gaze > 0) { E.gazeBack = (E.gazeBack || 0) + dt; if (E.gazeBack >= tune.gaze_reset) { E.gaze = 0; E.gazeWarned = false; } }
+    }
+    if (hold && !blind && ready && sp.read < N) { sp.read = Math.min(N, sp.read + dt / (gz ? tune.aiiv_read : tune.speak_read)); G.hints.iv = true; E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); } }
+    if (sp.t > wait) { if (sp.read - sp.said > 1e-6) { sp.said = Math.min(sp.read, sp.said + dt / tune.speak_say); sp.um = false; } else if (sp.said < N) { sp.stam += dt; sp.um = true; } }
     if (sp.said >= N - 1e-6) { E.wasHold = hold; markAnswer(sp.stam <= tune.speak_stam ? 0 : 2, 'speak'); }
     else if (sp.stam > tune.speak_stam + 4) { E.wasHold = hold; markAnswer(3, 'speak'); } // 너무 오래 말이 없으면 면접관이 다음 질문으로 넘어간다
   }

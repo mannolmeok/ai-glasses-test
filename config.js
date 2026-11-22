@@ -77,6 +77,12 @@ window.CONFIG = {
   long_scan: { value: 1.5, min: 1, max: 3, step: 0.05 },           // LEET 긴 지문: 스캔 시간 배율
   essay_read: { value: 0.9, min: 0.2, max: 3, step: 0.1 },         // 서술형: 모범 답안 한 줄을 읽는 시간(초). 이 동안이 위험하다
   essay_write: { value: 1.1, min: 0.2, max: 3, step: 0.1 },        // 서술형: 읽은 한 줄을 옮겨 쓰는 시간(초). 이 동안은 안전하다
+  aiiv_present: { value: 4, min: 0, max: 15, step: 0.5 },          // AI 면접: 상황을 읽어 주는 시간(초). 이 동안은 대본이 아직 없다
+  aiiv_think: { value: 8, min: 0, max: 30, step: 0.5 },            // AI 면접: 생각할 시간(초). 대본을 미리 읽어 둘 수 있다
+  aiiv_read: { value: 1.2, min: 0.2, max: 3, step: 0.1 },           // AI 면접: 대본 한 줄을 읽는 시간(초). 다섯 줄을 한 번에 읽으면 5초를 넘는다
+  gaze_limit: { value: 5, min: 2, max: 10, step: 0.5 },            // AI 면접: 시선이 이만큼(초) 연속으로 벗어나면 그 자리에서 탈락
+  gaze_warn: { value: 3, min: 1, max: 10, step: 0.5 },             // AI 면접: 이만큼(초) 벗어나면 경고와 함께 의심 +8%
+  gaze_reset: { value: 1, min: 0.2, max: 5, step: 0.1 },           // AI 면접: 카메라를 이만큼(초) 다시 보면 벗어난 시간이 0으로
   speak_read: { value: 0.9, min: 0.2, max: 3, step: 0.1 },         // 면접: 대본 한 줄을 읽는 시간(초). 면접관이 볼 때는 읽을 수 없다
   speak_say: { value: 2.2, min: 0.5, max: 5, step: 0.1 },          // 면접: 한 줄을 말하는 시간(초). 읽어 둔 데까지만 말할 수 있다
   speak_wait: { value: 1.6, min: 0, max: 5, step: 0.1 },           // 면접: 질문이 끝나고 입을 떼기까지(초)

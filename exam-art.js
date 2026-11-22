@@ -298,6 +298,22 @@ const SCREEN_ROW = i => 170 + i * 108;
 function screenRowAt(px, py) { if (px < 500) return -1; for (let i = 0; i < 4; i++) if (Math.abs(py - SCREEN_ROW(i)) < 52) return i; return -1; }
 function drawScreenTexture(g, E, now) {
   const F = FONT_BODY, q = E.qs[Math.min(E.qi, E.qs.length - 1)], cyan = '#2fd3dd';
+  if (q && q.kind === 'speak') { // AI 면접: 화면 속 면접관이 상황을 읽어 주고, 내 얼굴이 작은 창으로 보인다
+    const sp = E.sp && E.sp.q === q ? E.sp : { t: 0, said: 0 }, pr = tune.aiiv_present, th = pr + tune.aiiv_think, gz = E.gaze || 0, bad = gz >= tune.gaze_warn;
+    g.textBaseline = 'alphabetic'; g.fillStyle = '#111318'; g.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    g.fillStyle = '#1e2a44'; g.fillRect(0, 0, SCREEN_W, 74); g.fillStyle = '#e9ecf3'; g.font = `800 30px ${F}`; g.textAlign = 'left'; g.fillText('AI 역량검사  |  상황 면접', 28, 48);
+    g.textAlign = 'right'; g.fillText(`${E.qi + 1} / ${E.qs.length} 문항`, SCREEN_W - 28, 48);
+    g.fillStyle = '#1e2a44'; g.beginPath(); g.arc(120, 190, 78, 0, 7); g.fill(); g.lineWidth = 6; g.strokeStyle = '#5fb0ff'; g.stroke();
+    g.fillStyle = '#5fb0ff'; const blink = Math.floor(now * 0.7) % 5 === 0 ? 4 : 22; g.fillRect(84, 180 - blink / 2, 22, blink); g.fillRect(134, 180 - blink / 2, 22, blink);
+    g.fillStyle = '#e9ecf3'; g.textAlign = 'left'; let size = 40, lines; for (;;) { g.font = `800 ${size}px ${F}`; lines = wrapCanvas(g, q.q, 720); if (lines.length * (size + 12) <= 230 || size <= 26) break; size -= 4; }
+    lines.forEach((ln, i) => g.fillText(ln, 230, 150 + i * (size + 12)));
+    g.fillStyle = '#f0c53a'; g.font = `800 30px ${F}`; g.fillText(E.start > 0 ? '곧 시작합니다' : sp.t < pr ? '상황을 듣고 있습니다' : sp.t < th ? `생각할 시간 ${Math.ceil(th - sp.t)}초` : '답변을 말해 주세요', 230, 360);
+    g.fillStyle = '#3b332b'; g.fillRect(720, 300, 230, 140); g.lineWidth = 6; g.strokeStyle = bad ? '#e23b3b' : '#5fb0ff'; g.strokeRect(720, 300, 230, 140);
+    g.fillStyle = '#d9b08c'; g.fillRect(807, 316, 56, 62); g.fillStyle = '#3a4a6a'; g.fillRect(785, 378, 100, 62);
+    g.fillStyle = '#1b1d26'; const dy = E.holding ? 14 : 0; g.fillRect(817, 336 + dy, 12, 8); g.fillRect(841, 336 + dy, 12, 8); // 대본을 볼 때는 눈이 아래로 내려간다
+    g.fillStyle = bad ? '#e23b3b' : '#9aa6bd'; g.font = `800 24px ${F}`; g.fillText(bad ? '화면을 봐 주세요' : gz > 0 ? '시선 이탈 감지' : '시선 정상', 230, 420);
+    return;
+  }
   g.textBaseline = 'alphabetic'; g.fillStyle = '#f4f6fa'; g.fillRect(0, 0, SCREEN_W, SCREEN_H);
   g.fillStyle = '#1d3557'; g.fillRect(0, 0, SCREEN_W, 74);
   g.fillStyle = '#ffffff'; g.font = `800 30px ${F}`; g.textAlign = 'left'; g.fillText('TOEFL iBT  |  Reading', 28, 48);
@@ -323,7 +339,7 @@ function drawScreenTexture(g, E, now) {
 
 // ---- 마주 앉는 시험: 안경이 띄우는 AR 카드 (문제·보기 넷) ----
 function arCardRect(E, k) {
-  const q = E.qs[Math.min(E.qi, E.qs.length - 1)], lines = q ? wrapKit(k, q.q, 560, 12) : [''];
+  const q = E.qs[Math.min(E.qi, E.qs.length - 1)], lines = q ? (q.kind === 'speak' && E.T.mech.includes('gaze') ? ['내 AI의 대본'] : wrapKit(k, q.q, 560, 12)) : [''];
   const sp = q && q.kind === 'speak', h = 16 + lines.length * 16 + (sp ? q.lines.length * 15 + 8 : 40), w = 584, x = (640 - w) / 2, y = (sp ? 353 : 346) - h;
   return { x, y, w, h, lines };
 }
@@ -348,6 +364,12 @@ function drawArCard(k, L, E, now, H) {
       if (ns > 0) T(ln.slice(0, ns), x0, y, 12, '#5a8a74', 'left', 800);
       if (n > ns) T(ln.slice(ns, n), x0 + w1, y, 12, H.c, 'left', 800);
       if (n < ln.length) T('·'.repeat(ln.length - n), x0 + w1 + w2 + (n ? 3 : 0), y, 12, '#34504a', 'left', 800); });
+    if (E.T.mech.includes('gaze')) { // AI 면접: 시선 이탈 다섯 칸과 지금 단계
+      const lim = tune.gaze_limit + G.gear.gazefix * 0.5, gzv = E.gaze || 0, t0 = sp.t || 0, pr = tune.aiiv_present, th2 = pr + tune.aiiv_think;
+      T('시선 이탈', c.x + c.w - 250, c.y + 14, 10, gzv >= tune.gaze_warn ? C.bad : '#8fa0b8', 'left', 800);
+      for (let i = 0; i < 5; i++) R(c.x + c.w - 198 + i * 12, c.y + 10, 10, 8, gzv > i * lim / 5 ? (i >= 3 ? C.bad : i >= 2 ? '#f0c53a' : H.c) : '#2a3a40');
+      if (t0 < pr) { k.b.globalAlpha = 0.85; R(c.x + 10, y0 - 6, 300, q.lines.length * 15 + 4, '#06161a'); k.b.globalAlpha = 1; T('대본 작성 중…', x0, y0 + 8, 12, '#5a8a74', 'left', 800); }
+    }
     const left = Math.max(0, Math.min(1, 1 - sp.stam / tune.speak_stam)); T('유창함', c.x + c.w - 100, c.y + 14, 10, '#8fa0b8', 'left', 800);
     for (let i = 0; i < 6; i++) R(c.x + c.w - 62 + i * 8, c.y + 10, 6, 8, i < Math.ceil(left * 6 - 1e-6) ? (left < 0.34 ? C.bad : H.c) : '#2a3a40');
     const li = Math.min(q.lines.length - 1, Math.floor(sp.said + 1e-6)), said = q.lines[li].slice(0, Math.round(q.lines[li].length * cl(sp.said, li))), full = sp.said >= li + 1 - 1e-6 && li > 0 ? q.lines[li] : said;
@@ -594,7 +616,7 @@ function drawExamHud(k, L, E, now, H) {
     const base = Math.min(0.85, 0.12 + E.sus * 0.9), a = E.rising ? Math.min(1, base + 0.35 + 0.3 * Math.sin(now * 16)) : base;
     k.b.globalAlpha = Math.max(0, a); k.b.drawImage(lensGlow('A', C.bad), 0, 0); k.b.globalAlpha = 1;
   }
-  if (E.layout === 'table' && !E.result) drawArCard(k, L, E, now, H);
+  if ((E.layout === 'table' || (E.qs[Math.min(E.qi, E.qs.length - 1)] || {}).kind === 'speak') && !E.result) drawArCard(k, L, E, now, H);
   if (q && q.kind === 'essay' && live && E.view === 'paper' && !E.result) drawEssayPanel(k, L, E, now, q);
   if (E.finalQ) { // 마지막 문제: 렌즈가 깨진다
     const n = Math.round(6 + E.glitch * 26);
@@ -684,7 +706,7 @@ function drawExamOverlays(k, L, E, now, H) {
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', alert: '재난문자에 폰이 울림', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
-      webcam: '웹캠에 찍힘', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음' }[E.caughtHow] || `${who.name}에게 걸림`;
+      webcam: '웹캠에 찍힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음' }[E.caughtHow] || `${who.name}에게 걸림`;
     drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
     k.SUB(`${who.name}: ${E.caughtHow === 'alert' ? '"방금 울린 거, 수험생 폰이죠?"' : CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
     k.SUB(why, L.W / 2, L.H - 42, 9, '#e8e4da', 'center');
