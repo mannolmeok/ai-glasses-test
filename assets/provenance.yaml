@@ -16,3 +16,8 @@
   tool: "esbuild 0.28.2, one plain script for play from a file"
   date: 2026-11-18
   ships: true
+- path: assets/gear-icons.jpg
+  origin: generated
+  tool: "Higgsfield gpt_image_2_6, 두 장(아이콘 32개)에서 29개를 잘라 96px 격자로 묶음"
+  date: 2026-11-22
+  ships: true

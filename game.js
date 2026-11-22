@@ -33,7 +33,7 @@ const UA = navigator.userAgent || '';
 const STATE = { shown: 0, pops: [], wipeArm: 0, away: null, note: null, hv: null, shownIds: new Set(),
   ios: /iPhone|iPod|iPad/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1),
   standalone: !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches)) };
-function newHubView() { return { view: 'room', target: 'room', zoom: 0, app: 'desk', tab: 'new', page: 0, act: 0, bpage: null, ptab: 'news', npage: 0, order: [], hidden: {}, parcel: null, parcelT: 0 }; }
+function newHubView() { return { view: 'room', target: 'room', zoom: 0, app: 'desk', tab: 'glass', page: 0, act: 0, bpage: null, ptab: 'news', npage: 0, order: [], hidden: {}, parcel: null, parcelT: 0 }; }
 
 // ---- Numbers ---------------------------------------------------------------------------
 function won(n) { // 큰 숫자는 한국식 단위로 짧게
@@ -56,7 +56,7 @@ const between = (a, b) => a + rng() * (b - a);
 // ---- Economy ---------------------------------------------------------------------------
 const TIERS = CONFIG.tiers, LAST = TIERS.length - 1;
 // 시험해 보는 전형: AI 면접. 아직 진행 순서에는 넣지 않았고, 주소에 exam=aiiv 를 붙였을 때만 토플 자리에 들어간다
-{ const X = new URLSearchParams(location.search).get('exam'), Lb = CONFIG.lab && CONFIG.lab[X]; if (Lb) { const o = Object.assign({}, TIERS[Lb.slot], { id: X, news: null, swap: null, boss: false, essay: false, listen: 0, noAuto: false, check: null, pulse: null, parts: null, layout: null, device: null }, Lb); for (const k of ['parts', 'layout', 'device', 'pulse', 'check', 'news', 'swap']) if (o[k] == null) delete o[k]; TIERS[Lb.slot] = o; } } // 실험 중인 새 시험
+const TIER_Q = (() => { const q = new URLSearchParams(location.search), i = TIERS.findIndex(t => t.id === q.get('exam')); return i >= 0 ? String(i) : q.get('tier'); })(); // ?exam=<이름> 으로도 시험을 고른다
 function rewardAt(x) { // x번째 시험의 문제당 상금. 사이 값은 등비로 잇고, 범위 밖은 끝의 비율로 늘인다
   const r = i => TIERS[i].reward;
   if (x <= 0) return r(0) * Math.pow(r(1) / r(0), x);
@@ -65,19 +65,27 @@ function rewardAt(x) { // x번째 시험의 문제당 상금. 사이 값은 등�
 }
 function gearDef(id) { return CONFIG.gear.find(g => g.id === id); }
 function actIndex() { return TIERS[G.unlocked - 1].act - 1; }      // 지금 도달한 막 (0부터)
-function gearCap(d) { const c = d.caps[actIndex()]; return d.gate && !G.cleared[d.gate.tier] ? Math.min(c, d.gate.lv) : c; }                 // 이번 막에서 살 수 있는 최고 단계
-function gearMax(d) { return d.caps[d.caps.length - 1]; }
-function gearOpen(d) { return d.unlock < 0 || !!G.cleared[d.unlock]; }
+function gearCap(d) { if (d.at) return d.at.filter(t => G.unlocked - 1 >= t).length; const c = d.caps[actIndex()]; return d.gate && !G.cleared[d.gate.tier] ? Math.min(c, d.gate.lv) : c; }                 // 이번 막에서 살 수 있는 최고 단계
+function gearMax(d) { return d.at ? d.at.length : d.caps[d.caps.length - 1]; }
+function gearOpen(d) { return d.at ? G.unlocked - 1 >= d.at[0] : d.unlock < 0 || !!G.cleared[d.unlock]; }
+function syncGear() { // 세 줄의 사다리(안경·보조 장비·위장)에서 속 기능들의 단계를 계산한다
+  const g = G.gear, L = g.lens || 0, A = g.aux || 0, C = g.cover || 0;
+  Object.assign(g, { aux: A, cover: C, thirdeye: L >= 8 ? 2 : 0, clone: L >= 9 ? 3 : 0, eyedrop: L >= 6 ? 2 : 0,
+    watch: A >= 6 ? 2 : A >= 1 ? 1 : 0, predict: [0, 0, 1, 1, 3, 3, 4, 4, 4, 4, 5, 6][A], earbud: A >= 7 ? 4 : A >= 5 ? 3 : A >= 3 ? 1 : 0, candle: A >= 10 ? 2 : A >= 9 ? 1 : 0, floaty: A >= 8 ? 1 : 0,
+    stealth: [0, 1, 2, 2, 2, 3, 4, 6, 6, 6][C], autooff: C >= 2 ? 1 : 0, cctvjam: C >= 3 ? 2 : 0, jammer: C >= 4 ? 2 : 0, deepcam: C >= 5 ? 2 : 0, gazefix: C >= 5 ? 2 : 0, glasscase: C >= 6 ? 2 : 0, screenfilm: C >= 6 ? 2 : 0, calccover: C >= 6 ? 2 : 0, humanmod: C >= 8 ? 2 : 0, offbeat: C >= 9 ? 2 : 0,
+    bot: 0, coach: 0, wide: 0, autoscan: 0, taste: 0 });
+}
 function gearName(id, lv) { const d = gearDef(id); return d.ladder ? d.ladder[clamp(lv, 1, d.ladder.length) - 1] : d.name; }
 function botName(n) { let name = CONFIG.bot_names[0][1]; for (const [m, nm] of CONFIG.bot_names) if (n >= m) name = nm; return name; }
 function bestReward() { let r = 0; G.cleared.forEach((c, i) => { if (c) r = Math.max(r, TIERS[i].reward); }); return r * tune.reward_scale; }
 function gearCost(id, lv = G.gear[id]) {
   const d = gearDef(id);
+  if (d.at) return Math.ceil(d.mult * TIERS[Math.min(LAST, d.at[Math.min(lv, d.at.length - 1)])].base * tune.reward_scale * tune.cost_scale);
   if (d.kind === 'count') return Math.ceil(tune.bot_cost * TIERS[Math.max(0, d.unlock)].reward * tune.reward_scale * Math.pow(tune.bot_grow, lv) * tune.cost_scale); // 첫 가격은 가게에 처음 뜬 때로 고정, 살 때만 오른다
   return Math.ceil(d.mult * rewardAt(d.unlock + d.step * lv) * tune.cost_scale);
 }
 function modelOpen(i) { const m = CONFIG.models[i]; return !!m && (m.rel < 0 || !!G.cleared[m.rel]); }
-function modelCost(i) { return Math.ceil(tune.model_cost * TIERS[Math.min(LAST, CONFIG.models[i].rel + 1)].reward * tune.cost_scale); }
+function modelCost(i) { return Math.ceil(tune.model_cost * TIERS[Math.min(LAST, CONFIG.models[i].rel + 1)].base * tune.cost_scale); }
 function examFee(tier) { return Math.round((tier.fee != null ? tier.fee : tier.reward * tier.qn * (tier.parts ? tier.parts.length : 1) * tune.fee_ratio) * tune.fee_scale); }
 function scanSecondsAt(lv) { return tune.scan_time / (1 + tune.lens_bonus * lv); }
 function botMult(lv) { return Math.pow(2, CONFIG.bot_milestones.filter(m => lv >= m).length); }
@@ -104,8 +112,8 @@ function addMoney(v, tag, text, col) {
 // AI마켓 진열: 탭에 맞는 상품 목록
 function shopItems(tab) {
   if (tab === 'model') return CONFIG.models.map((m, i) => ({ m, i, fresh: !!G.fresh.model && i === G.gear.model + 1 })).filter(o => modelOpen(o.i)).reverse();
-  const open = CONFIG.gear.filter(d => gearOpen(d) && gearCap(d) > 0);
-  if (tab !== 'new') return open.filter(d => d.group === tab);
+  const open = CONFIG.gear.filter(d => !d.hidden && gearOpen(d) && gearCap(d) > 0);
+  if (tab !== 'new') { const d = open.find(x => x.group === tab); if (!d) return []; const lv = G.gear[d.id] || 0; return lv > 0 && lv < gearCap(d) ? [d, { cur: d, id: d.id + ':cur' }] : [d]; } // 살 제품 한 장 + 지금 장착한 것 한 장
   const nm = G.gear.model + 1; // 신상 탭: 새로 들어온 장비 + 새로 나온 AI 모델
   return (modelNew() ? [{ m: CONFIG.models[nm], i: nm, fresh: true }] : []).concat(open.filter(d => G.fresh[d.id]));
 }
@@ -540,6 +548,7 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
 function startExam(ti) {
   if (G.audit) { G.mail = null; goHub('mail'); return true; } // 재시험 통보가 와 있으면 다른 시험은 못 본다: 통보부터 읽게 한다
   ti = clamp(ti, 0, G.unlocked - 1); if (!CHECKED) netCountPlay(); if (!CHECKED && !STATE.titleBuild && netOn()) runPending(1); // 시험 한 번 = 한 판 (타이틀 뒤에 깔리는 시험장은 세지 않는다)
+  syncGear();
   const T = TIERS[ti], fee = examFee(T);
   { const nh = CONFIG.helper.find(h => h.need && ti >= h.tier && (h.id === 'visa' ? T.act === 2 : T.act === 3) && !tgHas(h.id)); if (nh && !STATE.titleBuild && !params.get('scene')) { sfx.no(); STATE.note = { text: nh.block, t: 0 }; return false; } } // 조력자의 길이 있어야 넘어가는 구간
   if (G.money < fee) { sfx.no(); STATE.note = { text: `응시료 ${won(fee)}원이 모자라요`, t: 0 }; return false; }
@@ -743,7 +752,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
     if (s.phase === 'check' && s.check.stage === 'at' && E.ai && !E.fb && g.autooff < 1) idle += base * tune.glow_rate;          // 렌즈에 뜬 AI 답이 보인다
     if (s.type === 'webcam' && s.phase === 'watch' && E.view !== 'paper') idle += base * tune.look_away_rate * gearCut(g.deepcam); // 웹캠 앞에서 딴 데 보기
   }
-  if (T.mech.includes('telepathy') && E.ai && !E.fb && E.staff.some(s => !s.out && s.phase === 'watch')) { idle += base * 0.9; E.mindRead = true; } else if (E) E.mindRead = false; // 독심: 답을 떠올리고 있는 동안 보면 읽힌다
+  if (T.mech.includes('telepathy') && E.ai && !E.fb && E.staff.some(s => !s.out && s.phase === 'watch')) { idle += base * 1.3; E.mindRead = true; } else if (E) E.mindRead = false; // 독심: 답을 떠올리고 있는 동안 보면 읽힌다
   if (E.cctv && E.cctv.on) add(base * tune.cctv_rate * (tgHas('cctvmap') ? 0.5 : 1) * jamFactor(g.cctvjam, 3), 'cctv', null);
   r *= Math.pow(1 - tune.stealth_cut, g.stealth); idle *= Math.pow(1 - tune.stealth_cut, g.stealth);
   if (E.pulse && E.pulse.active > 0) { const v = tune.pulse_rate * E.pulseCut; r += v; if (v > 0 && (!src || v > src.v)) src = { v, how: T.pulse || 'pulse', by: null }; }
@@ -873,8 +882,8 @@ function updateExam(dt) {
   if (E.gasp > 0) E.gasp -= dt;
   if (M_.includes('spin')) E.roll = Math.sin(E.clockT * 0.55) * 0.42 + Math.sin(E.clockT * 1.3) * 0.08; // 회전 장치: 화면이 기운다
   if (M_.includes('loop')) { if (E.loopPart !== E.part) { if (E.loopPart != null) { (E.loopLog || (E.loopLog = [])).push(E.loopNow || []); E.loopPrev = E.loopCur || []; if (E.loopQs) { E.qs = E.loopQs.map(q => Object.assign({}, q)); } } else E.loopQs = E.qs.map(q => Object.assign({}, q)); E.loopPart = E.part; E.partT = 0; E.loopNow = []; } E.partT += dt; E.loopCur = E.answers.slice(); }
-  if (M_.includes('dream') && !E.fb) { if (E.dreamT == null) E.dreamT = between(7, 10); E.dreamT -= dt;
-    if (E.dreamT <= 0) { E.dreamT = between(6, 9); const q0 = E.qs[E.qi]; if (q0 && q0.choices && q0.kind !== 'essay' && q0.kind !== 'speak' && !q0.final) { const pm = [1, 2, 3, 0].map(i => (i + Math.floor(rng() * 3)) % 4), perm = [0, 1, 2, 3].sort((a, b) => pm[a] - pm[b] || a - b); const sh = perm[0] === 0 && perm[1] === 1 && perm[2] === 2 ? [1, 2, 3, 0] : perm, inv = []; sh.forEach((from, to) => inv[from] = to);
+  if (M_.includes('dream') && !E.fb) { if (E.dreamT == null) E.dreamT = between(5, 8); E.dreamT -= dt;
+    if (E.dreamT <= 0) { E.dreamT = between(4.5, 7); const q0 = E.qs[E.qi]; if (q0 && q0.choices && q0.kind !== 'essay' && q0.kind !== 'speak' && !q0.final) { const pm = [1, 2, 3, 0].map(i => (i + Math.floor(rng() * 3)) % 4), perm = [0, 1, 2, 3].sort((a, b) => pm[a] - pm[b] || a - b); const sh = perm[0] === 0 && perm[1] === 1 && perm[2] === 2 ? [1, 2, 3, 0] : perm, inv = []; sh.forEach((from, to) => inv[from] = to);
         q0.choices = sh.map(i => q0.choices[i]); if (q0.answer >= 0) q0.answer = inv[q0.answer]; if (q0.aiPick != null) q0.aiPick = inv[q0.aiPick]; if (q0.elim) q0.elim = q0.elim.map(i => inv[i]); E.scan = 0; E.ai = false; E.earbudT = 0; E.labSay = { text: '(…보기 순서가 바뀌었다.)', t: 0 }; sfx.warp(); } } }
   if (M_.includes('omega') && !E.finalQ) { const down = E.part; if (down !== (E.omegaDown || 0)) { E.omegaDown = down; const order = ['brain', 'contact', 'mil', 'proto', 'used'], cur = order.indexOf(g.lens >= 7 ? 'brain' : g.lens >= 6 ? 'contact' : g.lens >= 5 ? 'mil' : g.lens >= 4 ? 'proto' : 'used'); E.stageForce = order[Math.min(order.length - 1, cur + down)]; E.labSay = { text: [`Ω: "그 장비는 이미 배웠습니다."`, `Ω: "당신의 버릇도 배웠습니다."`, `Ω: "이제 당신보다 먼저 압니다."`][Math.min(2, down - 1)] + ` (안경 ${down}단계 하락)`, t: -1.5 }; sfx.omega(); } }
   if (M_.includes('bolt')) { if (E.boltT == null) E.boltT = between(6, 9); E.boltT -= dt; if (E.boltFlash > 0) E.boltFlash -= dt; if (E.boltOff > 0) { E.boltOff -= dt; if (E.boltOff <= 0) E.dead = null; }
@@ -905,7 +914,7 @@ function updateExam(dt) {
   }
   const speak = q.kind === 'speak';
   if (speak && !E.fb && IVABC && table && !T.mech.includes('gaze')) { // 면접(새 방식): 면접관이 안 보는 틈에 A·B·C를 뜬 순서대로 전부 누른다
-    if (!E.sq || E.sq.q !== q) { const n = 8 + Math.min(8, Math.floor(E.tier / 3)); const seq = []; while (seq.length < n) { const v = Math.floor(rng() * 3), m = seq.length; if (m >= 2 && seq[m - 1] === v && seq[m - 2] === v) continue; seq.push(v); } E.sq = { q, seq, i: 0, t: 0, lim: 9 + n * 1.15, miss: 0, bad: 0, ok: 0 }; }
+    if (!E.sq || E.sq.q !== q) { const n = 8 + Math.min(6, Math.floor(E.tier / 6)); const seq = []; while (seq.length < n) { const v = Math.floor(rng() * 3), m = seq.length; if (m >= 2 && seq[m - 1] === v && seq[m - 2] === v) continue; seq.push(v); } E.sq = { q, seq, i: 0, t: 0, lim: 9 + n * 1.15, miss: 0, bad: 0, ok: 0 }; }
     const sq = E.sq; sq.t += dt; if (sq.bad > 0) sq.bad -= dt; if (sq.ok > 0) sq.ok -= dt;
     let key = -1; if (pressed('KeyA')) key = 0; else if (pressed('KeyS')) key = 1; else if (pressed('KeyD')) key = 2;
     for (const [x, y] of taps) { const r = (E.abcRects || []).find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); if (r) key = r.i; }
@@ -956,7 +965,7 @@ function updateExam(dt) {
     const before = Math.floor(E.scan * 3 + 1e-6);
     const labSlow = (M_.includes('spin') ? 1 + 2.2 * Math.abs(E.roll || 0) : 1) * (M_.includes('helmet') ? 1 + 2.5 * (E.fog || 0) : 1) * (M_.includes('mirror') ? 1.6 : 1);
     const secs = scanSecondsAt(Math.max(3, g.lens - (E.omegaDown || 0))) * labSlow * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
-    E.scan += dt / secs * (1 - tune.float_wobble * E.float);
+    E.scan += dt / secs * (1 - tune.float_wobble * (g.floaty ? 0.4 : 1) * E.float);
     E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); }
     if (E.scan >= 1) completeScan();
     else if (Math.floor(E.scan * 3 + 1e-6) > before) sfx.elim();
@@ -1038,17 +1047,13 @@ function unlockNews(ti) { // 처음 합격: 신상 입고, 새 AI 모델, 다음
   const T = TIERS[ti], out = [];
   addNews('exam', `${T.name} 합격! ${T.pay} 입금`);
   if (T.news) { addNews('reg', T.news); out.push('뉴스 속보'); }
-  const gear = CONFIG.gear.filter(d => d.unlock === ti && d.caps[T.act - 1] > 0);
-  for (const d of gear) { G.fresh[d.id] = true; addNews('shop', `신상 입고: ${d.name}${d.ladder ? ` "${d.ladder[0]}"` : ''} · ${GEAR_BLURB[d.id]}`); }
-  const gated = CONFIG.gear.filter(d => d.gate && d.gate.tier === ti && G.gear[d.id] === d.gate.lv); /* 묶여 있던 다음 단계가 들어온다 */
-  for (const d of gated) { G.fresh[d.id] = true; addNews('shop', `신상 입고: ${d.name} "${gearName(d.id, d.gate.lv + 1)}"`); }
-  if (gear.length + gated.length) out.push(`신상 입고 ${gear.length + gated.length}종`);
+  const gear = CONFIG.gear.filter(d => d.at && d.at.includes(ti + 1)); // 다음 시험이 열리면서 입고되는 제품
+  for (const d of gear) { G.fresh[d.id] = true; addNews('shop', `신상 입고: ${d.name} "${d.ladder[d.at.indexOf(ti + 1)]}"`); }
+  if (gear.length) out.push(`신상 입고 ${gear.length}종`);
   CONFIG.models.forEach((m, i) => { if (m.rel === ti) { G.fresh.model = true; addNews('model', `속보: ${m.name} 출시! ${m.note}. AI마켓에서 구독하세요`); out.push(`${m.name} 출시`); } });
   const nx = TIERS[ti + 1];
   if (nx && nx.act !== T.act) { // 새 막: 가진 장비의 다음 단계가 풀린다
-    const up = CONFIG.gear.filter(d => gearOpen(d) && d.caps[nx.act - 1] > d.caps[T.act - 1]);
-    for (const d of up) G.fresh[d.id] = true;
-    addNews('act', `${CONFIG.acts[nx.act - 1]} 시험 일정 공개! 장비 ${up.length}종의 신형이 AI마켓에 풀렸어요`); out.push(`${CONFIG.acts[nx.act - 1]} 시험 공개`);
+    addNews('act', `${CONFIG.acts[nx.act - 1]} 시험 일정 공개!`); out.push(`${CONFIG.acts[nx.act - 1]} 시험 공개`);
   }
   if (nx) addNews('exam', `다음 시험 접수 시작: ${nx.name}`);
   return out;
@@ -1116,7 +1121,7 @@ function leaveTitle(T0) { if (!CHECKED && netOn()) runPending(1); /* 첫 시험�
 }
 function goHub(view) { scene = 'hub'; const hv = STATE.hv; hv.view = 'room'; hv.target = 'room'; hv.zoom = 0; hv.bpage = null; if (view) enterView(view, true); }
 function tgHas(id) { return !!(G.tg && G.tg[id]); }
-function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].reward * tune.reward_scale * tune.cost_scale); }
+function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].base * tune.reward_scale * tune.cost_scale); }
 function helperOpen() { return CONFIG.helper.filter(h => G.unlocked - 1 >= h.tier); } // 그 시험이 일정표에 열리면 연락이 온다
 function helperPending() { return helperOpen().filter(h => !tgHas(h.id)).pop() || null; }
 function helperLast() { return helperOpen().pop() || null; }
@@ -1124,7 +1129,7 @@ function buyHelper(id) { const h = CONFIG.helper.find(x => x.id === id); if (!h 
 const deskOpen = () => !!(G.flags.sold || G.black || helperOpen().length); // 바탕화면으로 나갈 수 있는가
 function enterView(v, instant) {
   const hv = STATE.hv; hv.view = v; hv.target = v; hv.zoom = instant ? 1 : 0;
-  if (v === 'laptop') { hv.app = deskOpen() && !G.flags.deskSeen ? 'desk' : 'shop'; if (hv.app === 'desk') G.flags.deskSeen = true; hv.page = 0; hv.tab = shopItems('new').length ? 'new' : G.fresh.model ? 'model' : hv.tab === 'new' ? 'glass' : hv.tab; G.hints.shop = true; STATE.shownIds.clear(); }
+  if (v === 'laptop') { hv.app = deskOpen() && !G.flags.deskSeen ? 'desk' : 'shop'; if (hv.app === 'desk') G.flags.deskSeen = true; hv.page = 0; hv.tab = G.fresh.lens ? 'glass' : G.fresh.aux ? 'aux' : G.fresh.cover ? 'cover' : G.fresh.model ? 'model' : ['glass', 'aux', 'cover', 'model'].includes(hv.tab) ? hv.tab : 'glass'; G.hints.shop = true; STATE.shownIds.clear(); }
   if (v === 'board') { hv.act = 0; hv.bpage = null; }
   if (v === 'mail') { STATE.mailImg = null; }
   if (v === 'phone') { hv.ptab = phoneUnread() ? 'news' : hv.ptab; hv.npage = 0; }
@@ -1145,10 +1150,10 @@ function buyGear(id, viaBroker) {
   if (d && soldOut(d) && !viaBroker) { sfx.no(); if (!G.flags.sold) { G.flags.sold = true; addNews('reg', '초소형 카메라 전국 품절. 쇼핑몰들 판매 중단 · 텔레그램에 "구해 드림" 글이 돈다'); } STATE.note = { text: '품절되었습니다', t: 0 }; save(); return; }
   if (viaBroker) G.flags.cam = true;
   if (!d || !gearOpen(d) || lv >= gearCap(d) || G.money < cost) { sfx.no(); return; }
-  G.money -= cost; G.gear[id]++; delete G.fresh[id];
+  G.money -= cost; G.gear[id]++; delete G.fresh[id]; syncGear();
   const name = d.kind === 'count' ? `${botName(G.gear[id])} (대리 응시 ${G.gear[id]}명)` : gearName(id, G.gear[id]);
   hv.order.push({ id, name }); hv.hidden[id] = true;
-  sfx.buy(); STATE.note = { text: '주문이 완료되었습니다', sub: `${name} · ${won(cost)}원 · 곧 도착`, t: 0 }; // 노트북 화면 안의 창으로 알린다
+  sfx.buy(); STATE.note = { text: '구매했습니다', sub: `${name} · ${won(cost)}원 · 바로 장착됨`, t: 0 }; // 노트북 화면 안의 창으로 알린다
   if (d.kind === 'count' && CONFIG.bot_milestones.includes(G.gear[id])) addNews('bot', `대리 응시 ${G.gear[id]}명 돌파! 수입 x2 · 이제 "${botName(G.gear[id])}"`);
   events.push({ type: 'buy', id, lv: G.gear[id] }); save();
 }
@@ -1163,7 +1168,7 @@ function buyModel() {
 function hubKey(key) { // 다가간 화면에서 누른 칸
   const hv = STATE.hv, [a, b] = key.split(':');
   if (a === 'back') { if (hv.view === 'laptop' && hv.app !== 'desk' && deskOpen()) { hv.app = 'desk'; G.flags.deskSeen = true; sfx.flip(); } else { hv.target = 'room'; sfx.zoom(); } }
-  else if (a === 'app') { hv.app = b; hv.page = 0; sfx.flip(); if (b === 'shop') hv.tab = shopItems('new').length ? 'new' : G.fresh.model ? 'model' : hv.tab === 'new' ? 'glass' : hv.tab; }
+  else if (a === 'app') { hv.app = b; hv.page = 0; sfx.flip(); if (b === 'shop') hv.tab = G.fresh.lens ? 'glass' : G.fresh.aux ? 'aux' : G.fresh.cover ? 'cover' : G.fresh.model ? 'model' : ['glass', 'aux', 'cover', 'model'].includes(hv.tab) ? hv.tab : 'glass'; }
   else if (a === 'hush') { if (G.black && G.money >= G.black.amount) { G.money -= G.black.amount; G.black = null; sfx.buy(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: '입막음비 송금 완료', col: PAL.warn }); save(); } else sfx.no(); }
   else if (a === 'refuse') { if (G.black) reportByBroker('후회하실 텐데'); }
   else if (a.startsWith('tgbuy:')) buyHelper(a.slice(6));
@@ -1201,7 +1206,7 @@ function openParcels() { // 상자를 열지 않고 시험 보러 가도 장비�
   const hv = STATE.hv; hv.hidden = {}; hv.order = []; hv.parcel = null; hv.parcelT = 0;
 }
 function updateHub(dt) { soundHub(dt); { const hp = helperPending(); if (hp && !(G.tgTold || (G.tgTold = {}))[hp.id]) { G.tgTold[hp.id] = true; addNews('tg', `텔레그램 새 메시지: "${hp.lines[0][0]}"`); sfx.news(); } }
-  if (TESTSITE && params.get('real') !== '1' && G.money < 1e11) G.money = 1e11; // 테스트용 사이트: 방에 있을 때는 돈이 늘 1,000억원 (주소에 ?real=1 을 붙이면 끔)
+  if (TESTSITE && params.get('real') !== '1') { const want = Math.max(1e11, examFee(TIERS[Math.min(LAST, G.unlocked - 1)]) * 40); if (G.money < want) G.money = want; } // 테스트용 사이트: 방에 있을 때는 돈이 늘 1,000억원 (주소에 ?real=1 을 붙이면 끔)
   const hv = STATE.hv;
   STATE.wipeArm = Math.max(0, STATE.wipeArm - dt);
   if (hv.view !== 'room') {
@@ -1502,18 +1507,18 @@ window.game = {
 reset();
 G = (params.get('fresh') === '1' || params.get('scene')) ? newGame() : (load() || newGame());
 STATE.hv = newHubView();
-if (params.get('tier')) { G.unlocked = clamp(Number(params.get('tier')) + 1, 1, TIERS.length); for (let i = 0; i < G.unlocked - 1; i++) G.cleared[i] = true; }
-if (params.get('gear')) { const lv = Number(params.get('gear')); for (const d of CONFIG.gear) G.gear[d.id] = gearOpen(d) ? Math.min(gearCap(d), lv) : 0; let m = 0; while (modelOpen(m + 1)) m++; G.gear.model = m; }
+if (TIER_Q) { G.unlocked = clamp(Number(TIER_Q) + 1, 1, TIERS.length); for (let i = 0; i < G.unlocked - 1; i++) G.cleared[i] = true; }
+if (params.get('gear')) { const lv = Number(params.get('gear')); for (const d of CONFIG.gear) G.gear[d.id] = d.hidden ? 0 : gearOpen(d) ? Math.min(gearCap(d), lv >= 9 ? 99 : lv) : 0; syncGear(); let m = 0; while (modelOpen(m + 1)) m++; G.gear.model = m; }
 if (params.get('money')) G.money = Number(params.get('money'));
 if (params.get('auto') === '0') G.gear.autoscan = 0; // check only: 자동 스캔 없이 직접 해 본다
-if (params.get('lens')) G.gear.lens = Number(params.get('lens')); // check only: 촬영·표시 장비 단계를 정해서 본다
+if (params.get('lens')) { G.gear.lens = Number(params.get('lens')); syncGear(); } // check only: 촬영·표시 장비 단계를 정해서 본다
 state = makeState();
 awayEarnings();
 STATE.shown = G.money;
 scene = params.get('scene') || 'title';
 if (!scenes[scene]) scene = 'title';
 if (scene === 'play' || scene === 'pause' || scene === 'results') {
-  const ti = Number(params.get('tier')) || 0;
+  const ti = Number(TIER_Q) || 0;
   G.money = Math.max(G.money, examFee(TIERS[ti])); G.stats.exams = ti > 0 ? 1 : G.stats.exams;
   startExam(ti);
   if (params.get('t')) { const n = Math.round(Number(params.get('t')) / STEP); for (let i = 0; i < n && scene === 'play'; i++) step(); }
@@ -1529,8 +1534,8 @@ if (scene === 'play' || scene === 'pause' || scene === 'results') {
   if (params.get('scene') === 'results') { while (!E.over) { E.qs.forEach((q, i) => { E.answers[i] = (i + E.part) % 4 === 3 ? (q.answer + 1) % 4 : q.answer; E.via[i] = i % 2 ? 'ai' : 'self'; }); endPart(true); E.breakT = 0; } finishExam(); }
 }
 if (params.get('lamps')) G.lamps = clamp(Number(params.get('lamps')), 0, 3); // check only: 전수조사 장면들
-if (params.get('tvn')) { const T0 = TIERS[Number(params.get('tier')) || 6]; G.tv.push({ 1: { tag: '사회', h: `${T0.name} 사상 첫 만점자 나왔다`, s: '출제위원 "만점이 나올 수 없게 낸 시험인데…"', icon: 'room', cap: '자료 화면 · 시험장' }, 2: { tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T0.name}에서도 만점 · 같은 수험번호`, icon: 'paper', cap: '자료 화면 · 답안지' }, 3: { tag: '속보', h: '"AI 안경으로 시험 본다" 익명 제보', s: '제보자 "장비 판 사람이 나… 돈을 안 주더라"', icon: 'tip', cap: '제보 영상 · 모자이크' }, 4: { tag: '속보', h: '"AI 안경 부정 응시" 수험생 검거', s: `${T0.name} 합격 취소 · 벌금 1,200,000원`, icon: 'cuffs', cap: '현장 화면' }, 5: { tag: '사회', h: '재검증 결과 "이상 없음"', s: `${T0.name} 만점자, 조사관 앞에서 다시 풀어 통과`, icon: 'stamp', cap: '자료 화면 · 판정' } }[params.get('tvn')]); }
-if (params.get('audit') || scene === 'probe') { const ti = Number(params.get('tier')) || 6; G.audit = { tier: ti, tierName: TIERS[ti].name, reward: 1200000, mail: null }; G.unlocked = Math.max(G.unlocked, ti + 1); }
+if (params.get('tvn')) { const T0 = TIERS[Number(TIER_Q) || 6]; G.tv.push({ 1: { tag: '사회', h: `${T0.name} 사상 첫 만점자 나왔다`, s: '출제위원 "만점이 나올 수 없게 낸 시험인데…"', icon: 'room', cap: '자료 화면 · 시험장' }, 2: { tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T0.name}에서도 만점 · 같은 수험번호`, icon: 'paper', cap: '자료 화면 · 답안지' }, 3: { tag: '속보', h: '"AI 안경으로 시험 본다" 익명 제보', s: '제보자 "장비 판 사람이 나… 돈을 안 주더라"', icon: 'tip', cap: '제보 영상 · 모자이크' }, 4: { tag: '속보', h: '"AI 안경 부정 응시" 수험생 검거', s: `${T0.name} 합격 취소 · 벌금 1,200,000원`, icon: 'cuffs', cap: '현장 화면' }, 5: { tag: '사회', h: '재검증 결과 "이상 없음"', s: `${T0.name} 만점자, 조사관 앞에서 다시 풀어 통과`, icon: 'stamp', cap: '자료 화면 · 판정' } }[params.get('tvn')]); }
+if (params.get('audit') || scene === 'probe') { const ti = Number(TIER_Q) || 6; G.audit = { tier: ti, tierName: TIERS[ti].name, reward: 1200000, mail: null }; G.unlocked = Math.max(G.unlocked, ti + 1); }
 if (params.get('guide')) { const n = Number(params.get('guide')); if (n >= 2) { G.hints.scan = true; G.hints.pick = true; } if (n >= 3) G.hints.front = true; if (n >= 4) G.hints.look = true; } // check only: 조작 안내 단계
 if (scene === 'rankin') { G.run.t = 1107; G.stats.exams = 31; G.stats.caught = 2; addRecord(); startRankIn(); if (params.get('name')) { document.getElementById('nameIn').value = params.get('name'); } if (params.get('phase') === 'done') { STATE.rin.phase = 'done'; STATE.rin.msg = '등록되었습니다'; } }
 if (params.get('ranks') === '2') STATE.rank = { open: true, k: 1, page: 0 }; else if (params.get('ranks') === '3') STATE.rank = { open: true, k: 0.45, page: 0 };

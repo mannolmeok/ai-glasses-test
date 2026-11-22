@@ -14,7 +14,7 @@ window.CONFIG = {
   time_bonus: { value: 0.5, min: 0, max: 2, step: 0.05 },          // 남은 시간 비율 x 이 값만큼 보상 추가
   reward_scale: { value: 1, min: 0.1, max: 10, step: 0.1 },        // 모든 보상 배율
   fee_scale: { value: 1, min: 0, max: 3, step: 0.05 },             // 모든 응시료 배율 (0이면 무료)
-  fee_ratio: { value: 0.22, min: 0, max: 1, step: 0.01 },          // 응시료 = 만점 상금 x 이 비율
+  fee_ratio: { value: 0.18, min: 0, max: 1, step: 0.01 },          // 응시료 = 만점 상금 x 이 비율
   jackpot_mult: { value: 3, min: 1, max: 10, step: 0.5 },          // 만점(수석 합격) 보상 배율
 
   // ---- 스캔과 AI ----
@@ -306,7 +306,7 @@ window.CONFIG = {
       how: '칸막이 자리 · 머리 위 카메라 · 불시 손바닥 인증', beat: '카메라가 내 쪽을 볼 때와 직원이 책상 앞에 설 때는 멈춘다' },
     taxi: { slot: 19, act: 2, name: '런던 택시기사 시험', subject: 'The Knowledge · 구술', gen: 'taxi', qn: 5, time: 90, room: 'taxi', layout: 'table', device: 'ar', sec: [], mech: ['interview'], boss: false, staff: [{ type: 'prof', name: '시험관', fixed: true }], head: ['The Knowledge of London', 'Appearance'], lines: [],
       how: '출발지와 도착지를 주면 길을 말로 왼다', beat: '시험관이 지도를 볼 때 경로를 읽어 두고, 막힘없이 말한다' },
-    nasa: { slot: 17, act: 2, name: 'NASA 우주비행사 선발', subject: '회전 장치 필기', gen: 'eqhard', qn: 8, time: 120, room: 'nasa', sec: [], mech: ['spin'], check: null, staff: [{ type: 'agent', name: '선발관' }, { type: 'dean', name: '선발관' }], head: ['Astronaut Candidate Selection', 'Written Test'], lines: ['Astronaut Selection', '다축 회전 장치 가동 중'],
+    nasa: { slot: 17, act: 2, name: 'NASA 우주비행사 선발', subject: '회전 장치 필기', gen: 'eqhard', qn: 8, time: 145, room: 'nasa', sec: [], mech: ['spin'], check: null, staff: [{ type: 'agent', name: '선발관' }, { type: 'dean', name: '선발관' }], head: ['Astronaut Candidate Selection', 'Written Test'], lines: ['Astronaut Selection', '다축 회전 장치 가동 중'],
       how: '도는 장치 안에서 필기 · 화면이 기운다', beat: '화면이 많이 기울수록 스캔이 느리다. 수평에 가까울 때 읽는다' },
     mars: { slot: 20, act: 3, name: '화성 이주 자격시험', subject: '생존 수학', gen: 'eqhard', qn: 10, time: 120, room: 'mars', sec: [], mech: ['helmet'], staff: [{ type: 'suneung', name: '이주 관리관' }, { type: 'agent', name: '이주 관리관' }], head: ['Mars Settler Qualification', 'Survival Mathematics'], lines: ['화성 이주 자격시험', '헬멧을 벗지 마시오'],
       how: '우주복을 입고 본다 · 숨을 쉴수록 헬멧에 김이 서린다', beat: '스캔하는 동안 김이 서려 느려지고 앞이 안 보인다. 짧게 끊어 읽고, 김이 걷히길 기다린다' },
@@ -320,7 +320,7 @@ window.CONFIG = {
       how: '시험지 글자와 좌우가 뒤집혀 있다', beat: '왼쪽을 누르면 오른쪽을 본다. AI도 뒤집힌 글자를 읽느라 스캔이 느리다' },
     telepathy: { slot: 23, act: 3, name: '텔레파시 학교 입시', subject: '추리', gen: 'logic', qn: 8, time: 120, room: 'tele', sec: [], mech: ['telepathy'], staff: [{ type: 'alien', name: '독심 감독관' }, { type: 'alien', name: '독심 감독관' }], head: ['텔레파시 학교 입학시험', '추리'], lines: ['텔레파시 학교 입학시험', '생각은 조용히'],
       how: '감독관이 생각을 읽는다', beat: '답이 떠 있는 동안 감독관이 보면 의심이 오른다. 답이 뜨면 바로 마킹해서 머리를 비운다' },
-    aicourt: { slot: 23, act: 3, name: 'AI 재판소 배심 시험', subject: '판례', gen: 'law', qn: 10, time: 130, room: 'court', sec: ['cctv'], mech: ['human'], noAuto: true, staff: [{ type: 'robot', name: 'AI 판사' }, { type: 'robot', name: 'AI 서기' }, { type: 'robot', name: 'AI 집행관' }], head: ['AI 재판소 배심원 자격시험', '판례'], lines: ['AI 재판소', '모든 답안은 기록됩니다'],
+    aicourt: { slot: 23, act: 3, name: 'AI 재판소 배심 시험', subject: '판례', gen: 'law', qn: 10, time: 170, room: 'court', sec: ['cctv'], mech: ['human'], noAuto: true, staff: [{ type: 'robot', name: 'AI 판사' }, { type: 'robot', name: 'AI 서기' }], head: ['AI 재판소 배심원 자격시험', '판례'], lines: ['AI 재판소', '모든 답안은 기록됩니다'],
       how: '감독관이 전부 AI · 자동 장비가 막힌다', beat: 'AI가 준 답만 내면 AI 감지가 찬다. 가끔은 직접 골라 감지를 낮춘다' },
     hole: { slot: 23, act: 3, name: '블랙홀 가장자리 시험', subject: '상대론', gen: 'eqhard', qn: 10, time: 130, room: 'hole', sec: [], mech: ['warp'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }, { type: 'alien', name: '사건의 지평선 감독관' }], head: ['사건의 지평선 자격시험', '상대론'], lines: ['블랙홀 가장자리 시험', '시간은 사람마다 다르게 흐릅니다'],
       how: '시간이 빨라졌다 느려졌다 한다', beat: '시간이 빠를 때는 감독관도 시계도 빠르다. 느려졌을 때 몰아서 읽는다' },
@@ -355,39 +355,44 @@ window.CONFIG = {
   // ladder: 단계마다 바뀌는 제품명, price: 가격 = mult x (unlock + step x 지금 단계)번째 시험의 문제당 상금
   // kind: count(대리 응시: 사람 수만큼), group: glass(안경) · device(안경 밖 AI 기기)
   gear: [
-    { id: 'lens', name: '촬영·표시 장비', group: 'glass', unlock: -1, caps: [3, 5, 7], mult: 4, step: 1.5,
-      gate: { lv: 1, tier: 2 }, // 1단계까지만 팔다가, 2번 시험(편입)에 합격하면 2단계 초소형 카메라가 들어온다 (재고 1개 → 품절 → 텔레그램)
-      ladder: ['지우개 액정', '초소형 카메라', '중고 AI 안경', '실리콘밸리 시제품 안경', '군용 정찰 렌즈', '스마트 콘택트렌즈', '뉴럴링코'] },
-    { id: 'predict', name: '시선 예측', group: 'glass', unlock: 0, caps: [2, 4, 6], mult: 3, step: 2,
+    // 새 마켓: 세 줄의 사다리. at: 단계마다 그 제품이 입고되는 시험 번호(그 시험이 일정표에 열리면 살 수 있다), 값 = mult x 그 시험의 문제당 상금
+    // 사면 바로 장착되고 앞 제품의 기능은 새 제품에 들어 있다. 아래 hidden 줄들은 이 세 줄에서 계산되는 속 기능이다 (game.js syncGear)
+    { id: 'lens', name: '안경', group: 'glass', mult: 4, at: ['mock', 'toeic', 'cpa', 'mdeet', 'ielts', 'usmle', 'ibank', 'mars', 'multi'],
+      ladder: ['지우개 액정', '초소형 카메라', '중고 AI 안경', '실리콘밸리 시제품 안경', '군용 정찰 렌즈', '스마트 콘택트렌즈', '뉴럴링코', '제3의 눈 렌즈', '겹눈 고글'] },
+    { id: 'aux', name: '보조 장비', group: 'aux', mult: 3, at: ['suneung', 'transfer', 'toeic', 'civil7', 'leet', 'sat', 'oxford', 'galaxy', 'afterlife', 'dream', 'aicourt'],
+      ladder: ['전자 손목시계', '사이드미러 스티커', '유선 이어폰', '후방 카메라', '골전도 이어폰', '감독관 동선 AI', '어금니 스피커', '무중력 추', '촛불 감지기', '저승 풍향계', '1초 뒤 미래'] },
+    { id: 'cover', name: '위장', group: 'cover', mult: 3, at: ['suneung', 'toefl', 'customs', 'tax', 'aiiv', 'gaokao', 'mirror', 'aicourt', 'gods'],
+      ladder: ['무광 스프레이', '뿔테 위장', '반사 방지 코팅', '전파 위장 케이스', '딥페이크 세트', '광학 위장 필름', '존재감 지우개', '인간 흉내 가면', '엇박자 메트로놈'] },
+    { hidden: true, id: 'predict', name: '시선 예측', group: 'glass', unlock: 0, caps: [2, 4, 6], mult: 3, step: 2,
       ladder: ['눈치', '사이드미러 스티커', '후방 카메라', '감독관 동선 AI', '예지몽', '1초 뒤 미래 보기'] },
-    { id: 'stealth', name: '스텔스 코팅', group: 'glass', unlock: 1, caps: [2, 4, 6], mult: 3, step: 2,
+    { hidden: true, id: 'stealth', name: '스텔스 코팅', group: 'glass', unlock: 1, caps: [2, 4, 6], mult: 3, step: 2,
       ladder: ['무광 스프레이', '뿔테 위장', '반사 방지 나노 코팅', '광학 위장 필름', '투명 망토 원단', '존재감 지우개'] },
-    { id: 'bot', name: '대리 응시', group: 'device', unlock: 1, kind: 'count', caps: [200, 200, 200] },
-    { id: 'earbud', name: 'AI 이어폰', group: 'device', unlock: 2, caps: [2, 4, 5], mult: 3, step: 2.5,
+    { hidden: true, id: 'bot', name: '대리 응시', group: 'device', unlock: 1, kind: 'count', caps: [200, 200, 200] },
+    { hidden: true, id: 'earbud', name: 'AI 이어폰', group: 'device', unlock: 2, caps: [2, 4, 5], mult: 3, step: 2.5,
       ladder: ['줄 숨긴 유선 이어폰', '콩나물 무선 이어폰', '골전도 이어폰', '어금니 스피커', '텔레파시'] },
-    { id: 'deepcam', name: '딥페이크 웹캠', group: 'device', unlock: 3, caps: [2, 2, 2], mult: 3, step: 1, ladder: ['내 사진 붙이기', '무한 루프 영상'] },
-    { id: 'watch', name: '스마트워치', group: 'device', unlock: 3, caps: [2, 3, 4], mult: 2, step: 3,
+    { hidden: true, id: 'deepcam', name: '딥페이크 웹캠', group: 'device', unlock: 3, caps: [2, 2, 2], mult: 3, step: 1, ladder: ['내 사진 붙이기', '무한 루프 영상'] },
+    { hidden: true, id: 'watch', name: '스마트워치', group: 'device', unlock: 3, caps: [2, 3, 4], mult: 2, step: 3,
       ladder: ['전자시계', '수상한 스마트워치', '시간 왜곡 시계', '시간 정지 시계'] },
-    { id: 'wide', name: '광각 렌즈', group: 'glass', unlock: 4, caps: [0, 0, 0], // 지금은 팔지 않는다 (한 번에 여러 문제는 너무 셈)
+    { hidden: true, id: 'wide', name: '광각 렌즈', group: 'glass', unlock: 4, caps: [0, 0, 0], // 지금은 팔지 않는다 (한 번에 여러 문제는 너무 셈)
       mult: 8, step: 5, ladder: ['어안 렌즈', '파노라마 렌즈', '360도 겹눈'] },
-    { id: 'cctvjam', name: 'CCTV 재머', group: 'device', unlock: 5, caps: [2, 3, 3], mult: 4, step: 2, ladder: ['렌즈 스티커', '루프 영상', '위성 사각지대 지도'] },
-    { id: 'coach', name: '면접 코치', group: 'device', unlock: 6, caps: [2, 3, 4], mult: 4, step: 3, ladder: ['면접 유튜브', '취업 컨설턴트', '헤드헌터 AI', '인사팀장 분신'] },
-    { id: 'autooff', name: '자동 소등 칩', group: 'glass', unlock: 7, caps: [2, 2, 2], mult: 3, step: 1, ladder: ['자동 소등 칩', '자동 소등 칩 개량형'] },
-    { id: 'jammer', name: '전파 위장기', group: 'device', unlock: 9, caps: [1, 2, 3], mult: 4, step: 2.5, ladder: ['와이파이 위장', '드론 교란기', '전파 블랙홀'] },
-    { id: 'autoscan', name: '자동 스캔 칩', group: 'glass', unlock: 20, caps: [0, 0, 2], // 외계 구간에서만: 손이 필요 없어지는 건 맨 끝
+    { hidden: true, id: 'cctvjam', name: 'CCTV 재머', group: 'device', unlock: 5, caps: [2, 3, 3], mult: 4, step: 2, ladder: ['렌즈 스티커', '루프 영상', '위성 사각지대 지도'] },
+    { hidden: true, id: 'coach', name: '면접 코치', group: 'device', unlock: 6, caps: [2, 3, 4], mult: 4, step: 3, ladder: ['면접 유튜브', '취업 컨설턴트', '헤드헌터 AI', '인사팀장 분신'] },
+    { hidden: true, id: 'autooff', name: '자동 소등 칩', group: 'glass', unlock: 7, caps: [2, 2, 2], mult: 3, step: 1, ladder: ['자동 소등 칩', '자동 소등 칩 개량형'] },
+    { hidden: true, id: 'jammer', name: '전파 위장기', group: 'device', unlock: 9, caps: [1, 2, 3], mult: 4, step: 2.5, ladder: ['와이파이 위장', '드론 교란기', '전파 블랙홀'] },
+    { hidden: true, id: 'autoscan', name: '자동 스캔 칩', group: 'glass', unlock: 20, caps: [0, 0, 2], // 외계 구간에서만: 손이 필요 없어지는 건 맨 끝
       mult: 6, step: 4, ladder: ['매크로 칩', '습관 학습 칩', '무의식 스캔'] },
-    { id: 'glasscase', name: '안경 방수', group: 'glass', unlock: 13, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['생활 방수 코팅', '완전 방수 실링'] },
-    { id: 'gazefix', name: '시선 보정 렌즈', group: 'glass', unlock: 14, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['시선 보정 렌즈', '눈 맞춤 합성 렌즈'] },
-    { id: 'eyedrop', name: '인공눈물 칩', group: 'device', unlock: 15, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['인공눈물 칩', '안구 냉각 칩'] },
-    { id: 'calccover', name: '계산기 위장 커버', group: 'device', unlock: 16, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['계산기 스티커', '승인 계산기 껍데기'] },
-    { id: 'screenfilm', name: '화면 위장 필름', group: 'device', unlock: 17, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['정보 보호 필름', '감시 프로그램 미러 필름'] },
-    { id: 'taste', name: 'AI 미각 센서', group: 'device', unlock: 18, caps: [0, 0, 0], // 테이스팅 시험을 뺀 뒤로 팔지 않는다
+    { hidden: true, id: 'glasscase', name: '안경 방수', group: 'glass', unlock: 13, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['생활 방수 코팅', '완전 방수 실링'] },
+    { hidden: true, id: 'gazefix', name: '시선 보정 렌즈', group: 'glass', unlock: 14, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['시선 보정 렌즈', '눈 맞춤 합성 렌즈'] },
+    { hidden: true, id: 'eyedrop', name: '인공눈물 칩', group: 'device', unlock: 15, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['인공눈물 칩', '안구 냉각 칩'] },
+    { hidden: true, id: 'calccover', name: '계산기 위장 커버', group: 'device', unlock: 16, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['계산기 스티커', '승인 계산기 껍데기'] },
+    { hidden: true, id: 'screenfilm', name: '화면 위장 필름', group: 'device', unlock: 17, caps: [0, 2, 2], mult: 3, step: 1, ladder: ['정보 보호 필름', '감시 프로그램 미러 필름'] },
+    { hidden: true, id: 'taste', name: 'AI 미각 센서', group: 'device', unlock: 18, caps: [0, 0, 0], // 테이스팅 시험을 뺀 뒤로 팔지 않는다
       mult: 3, step: 0.5, ladder: ['혀끝 센서', '어금니 분광기', '와인 전문가 미각 이식'] },
-    { id: 'thirdeye', name: '제3의 눈 렌즈', group: 'glass', unlock: 19, caps: [0, 0, 2], mult: 3, step: 1, ladder: ['제3의 눈 렌즈', '외계 시야 렌즈'] },
-    { id: 'candle', name: '촛불 감지기', group: 'device', unlock: 20, caps: [0, 0, 2], mult: 3, step: 1, ladder: ['촛불 감지기', '저승 풍향계'] },
-    { id: 'clone', name: '평행우주 분신', group: 'device', unlock: 21, caps: [0, 0, 3], mult: 3, step: 0.7, ladder: ['분신 한 명', '분신 두 명', '분신 세 명'] },
-    { id: 'humanmod', name: '인간 흉내 모듈', group: 'glass', unlock: 22, caps: [0, 0, 2], mult: 3, step: 0.7, ladder: ['일부러 틀리기 모듈', '완벽한 인간 연기'] },
-    { id: 'offbeat', name: '엇박자 칩', group: 'glass', unlock: 23, caps: [0, 0, 2], mult: 3, step: 0.5, ladder: ['엇박자 칩', '무작위 신경 칩'] },
+    { hidden: true, id: 'thirdeye', name: '제3의 눈 렌즈', group: 'glass', unlock: 19, caps: [0, 0, 2], mult: 3, step: 1, ladder: ['제3의 눈 렌즈', '외계 시야 렌즈'] },
+    { hidden: true, id: 'candle', name: '촛불 감지기', group: 'device', unlock: 20, caps: [0, 0, 2], mult: 3, step: 1, ladder: ['촛불 감지기', '저승 풍향계'] },
+    { hidden: true, id: 'clone', name: '평행우주 분신', group: 'device', unlock: 21, caps: [0, 0, 3], mult: 3, step: 0.7, ladder: ['분신 한 명', '분신 두 명', '분신 세 명'] },
+    { hidden: true, id: 'humanmod', name: '인간 흉내 모듈', group: 'glass', unlock: 22, caps: [0, 0, 2], mult: 3, step: 0.7, ladder: ['일부러 틀리기 모듈', '완벽한 인간 연기'] },
+    { hidden: true, id: 'offbeat', name: '엇박자 칩', group: 'glass', unlock: 23, caps: [0, 0, 2], mult: 3, step: 0.5, ladder: ['엇박자 칩', '무작위 신경 칩'] },
   ],
   // 대리 응시는 사람 수에 따라 이름이 바뀐다: [몇 명부터, 이름]
   // 온라인 석차표(Supabase). 둘 다 비어 있으면 이 기기의 기록만 쓴다. key는 공개용(anon) 키만 넣는다
@@ -396,4 +401,24 @@ window.CONFIG = {
   eggs: { stairs: false, cat: false, choco: false }, // stairs: LEET 쉬는 시간의 계단 질주 · cat: 계단 끝의 고양이 · choco: 고시원 책상의 초콜릿
   bot_names: [[1, '대리 응시 챗봇'], [10, '로봇청소기 개조'], [25, '대리 응시 안드로이드'], [50, '내 클론'], [100, '평행우주의 나']],
   bot_milestones: [10, 25, 50, 100], // 대리 응시가 이 인원을 넘을 때마다 수입 x2
+  // 시험 42개의 정식 순서 (국내 14 · 해외 14 · 외계 14). 위 tiers의 25개와 lab의 새 시험을 이 순서로 엮는다
+  order: ['mock', 'suneung', 'transfer', 'toeic', 'toefl', 'civil7', 'customs', 'tax', 'cpa', 'appraiser', 'aiiv', 'leet', 'mdeet', 'bar',
+    'sat', 'ielts', 'todai', 'iit', 'gaokao', 'bac', 'oxford', 'gre', 'usmle', 'aiiv2', 'cfa', 'calbar', 'nasa', 'ibank',
+    'galaxy', 'mars', 'sea', 'afterlife', 'dream', 'loop', 'multi', 'mirror', 'telepathy', 'aicourt', 'human', 'hole', 'gods', 'hle'],
+  model_rel: [-1, 0, 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38], // AI 모델이 출시되는 시험 번호 (그 시험에 합격하면)
+  reward_first: 200, reward_last: 4500000000000000, // 문제당 상금: 첫 시험과 마지막 시험. 그 사이는 같은 배수로 오른다 (시험마다 약 2.1배)
+  hub_by_act: ['gosi', 'dorm', 'cabin'], // 구간별 거점: 고시원 → 유학생 기숙사 → 우주선 선실
+  ai_last: 14.5, // 마지막 시험의 AI 난도. 시험마다 고르게 오른다
+  helper_at: { cctvmap: 'customs', visa: 'sat', leak: 'ibank', trans: 'galaxy', coin: 'afterlife' },
 };
+(function () { // 정식 순서대로 시험을 엮고, 상금·난도·입고 시점을 번호로 바꾼다
+  const C = window.CONFIG, old = C.tiers, byId = {}; old.forEach(t => { byId[t.id] = t; });
+  const tiers = C.order.map(id => { if (byId[id]) return Object.assign({}, byId[id]);
+    const Lb = C.lab[id], o = Object.assign({}, old[Lb.slot], { id, news: null, swap: null, boss: false, essay: false, listen: 0, noAuto: false, check: null, pulse: null, parts: null, layout: null, device: null }, Lb);
+    for (const k of ['parts', 'layout', 'device', 'pulse', 'check', 'news', 'swap']) if (o[k] == null) delete o[k]; delete o.slot; return o; });
+  const n = tiers.length, r = Math.pow(C.reward_last / C.reward_first, 1 / (n - 1)), ix = id => tiers.findIndex(t => t.id === id);
+  tiers.forEach((t, i) => { const v = C.reward_first * Math.pow(r, i), m = Math.pow(10, Math.max(0, Math.floor(Math.log10(v)) - 1)); const rnd = x => { const mm = Math.pow(10, Math.max(0, Math.floor(Math.log10(x)) - 1)); return Math.round(x / mm) * mm; }; t.base = rnd(v); t.reward = i === 0 ? t.base : rnd(v * 8 / (t.qn * (t.parts ? t.parts.length : 1))); /* 만점 상금이 문제 수와 상관없이 고르게 오르도록 */ t.ai = i === 0 ? 0 : +(i * C.ai_last / (n - 1) + 0.6).toFixed(2); t.act = i < 14 ? 1 : i < 28 ? 2 : 3; });
+  C.tiers = tiers; C.models.forEach((m, i) => { m.rel = C.model_rel[i]; });
+  C.gear.forEach(d => { if (d.at) d.at = d.at.map(ix); else d.unlock = 9999; });
+  C.helper.forEach(h => { h.tier = ix(C.helper_at[h.id]); });
+})();

@@ -7,7 +7,9 @@
 'use strict';
 
 const HUBUI = (() => {
-  const SHOP_TABS = [['new', '신상'], ['glass', '안경'], ['device', 'AI 기기'], ['model', 'AI 모델 구독']];
+  const SHOP_TABS = [['glass', '안경'], ['aux', '보조 장비'], ['cover', '위장'], ['model', 'AI 모델']];
+  const GEAR_ICON = { lens: 0, aux: 9, cover: 20 }, ICON_IMG = new Image(); ICON_IMG.src = 'assets/gear-icons.jpg'; // 힉스필드로 뽑은 제품 그림 (96px 격자, 8칸씩)
+  function gearIcon(k, id, lv, x, y, s) { const n = GEAR_ICON[id] + Math.max(1, lv) - 1; if (GEAR_ICON[id] == null || !ICON_IMG.complete || !ICON_IMG.naturalWidth) return false; k.b.drawImage(ICON_IMG, (n % 8) * 96, Math.floor(n / 8) * 96, 96, 96, x, y, s, s); return true; }
   const PHONE_TABS = [['news', '알림'], ['log', '기록'], ['set', '설정']];
   let btns = [], hover = null;
   const inR = (b, p) => p && p[0] >= b.x && p[0] <= b.x + b.w && p[1] >= b.y && p[1] <= b.y + b.h;
@@ -95,7 +97,7 @@ const HUBUI = (() => {
     R(0, 0, LW, LH, '#f3f4f7'); lapHead(k, 'AI마켓', C.hud, '#0f1722');
     const fresh = shopNewCount(), tw = Math.floor((LW - 12) / 4);
     SHOP_TABS.forEach(([key, name], i) => {
-      const on = hv.tab === key, bx = 6 + i * tw, label = key === 'new' && fresh ? `신상 ${fresh}` : key === 'model' ? 'AI 모델' : name;
+      const on = hv.tab === key, bx = 6 + i * tw, label = name + (key !== 'model' && G.fresh[{ glass: 'lens', aux: 'aux', cover: 'cover' }[key]] || (key === 'model' && G.fresh.model) ? ' ●' : '');
       R(bx, 30, tw - 4, 22, on ? '#ffffff' : '#dfe3ea'); if (on) R(bx, 30, tw - 4, 3, '#e8453e');
       T(label, bx + (tw - 4) / 2, 42, 13, on ? '#1d2433' : '#5a6474', 'center', 800);
       btns.push({ x: bx, y: 30, w: tw - 4, h: 22, key: 'tab:' + key });
@@ -105,20 +107,21 @@ const HUBUI = (() => {
     if (!list.length) { T(hv.tab === 'new' ? '새로 들어온 상품이 없어요' : '아직 입고된 상품이 없어요', LW / 2, 120, 15, '#5a6474', 'center', 800); T('시험에 처음 합격하면 신상이 들어와요', LW / 2, 144, 11, '#8a94a4', 'center', 700); }
     items.forEach((it, i) => {
       const cx = 6 + i * (cw + 8), cy = top, isModel = !!it.m;
-      let id, name, sub, eff, isNew, label, key, off, state = '';
+      let id, name, sub, eff, isNew, label, key, off, state = '', iconLv = 0;
       if (isModel) {
         const m = it.m, cur = G.gear.model === it.i, owned = G.gear.model > it.i, next = G.gear.model + 1 === it.i, cost = modelCost(it.i), ok = G.money >= cost;
         id = 'model'; name = m.name; sub = `지능 ${it.i + 1}단계 · ${m.note}`; eff = `지금 시험 AI 정답률 ${Math.round(aiAccuracyAt(CONFIG.tiers[nextTierIndex()], it.i) * 100)}%`; isNew = it.fresh; if (isNew) markShown('model');
         if (cur) { label = '구독 중'; off = true; } else if (owned) { label = '이전 모델'; off = true; } else if (!next) { label = '앞 모델부터'; off = true; } else { label = ok ? `구독 · ${won(cost)}원` : `${won(cost - G.money)}원 모자람`; key = ok ? 'model' : null; off = !ok; }
       } else {
-        const d = it, lv = G.gear[d.id], cap = gearCap(d), count = d.kind === 'count', maxed = lv >= cap, cost = gearCost(d.id), ok = !maxed && G.money >= cost, so = soldOut(d), gone = so && G.flags.sold;
-        id = d.id; name = count ? botName(lv + 1) : maxed ? gearName(d.id, lv) : gearName(d.id, lv + 1); sub = count ? `${d.name} · 지금 ${lv}명` : `${d.name} · ${lv ? '지금 ' + gearName(d.id, lv) : '아직 없음'}`;
+        const d = it.cur || it, lv = G.gear[d.id], cap = gearCap(d), count = d.kind === 'count', maxed = lv >= cap, cost = gearCost(d.id), ok = !maxed && G.money >= cost, so = soldOut(d), gone = so && G.flags.sold;
+        if (it.cur) { id = d.id; name = gearName(d.id, lv); sub = `${d.name} · ${lv} / ${gearMax(d)}단계`; eff = GEAR_TEXT[d.id](lv); label = '장착 중'; off = true; iconLv = lv; } else {
+        id = d.id; iconLv = maxed ? lv : lv + 1; name = count ? botName(lv + 1) : maxed ? gearName(d.id, lv) : gearName(d.id, lv + 1); sub = count ? `${d.name} · 지금 ${lv}명` : `${d.name} · ${lv ? '지금 ' + gearName(d.id, lv) : '아직 없음'}`;
         eff = GEAR_TEXT[d.id](maxed ? lv : lv + 1); isNew = !!G.fresh[d.id]; if (isNew) markShown(d.id);
         if (so) state = gone ? '품절' : '남은 재고 1개';
-        if (gone) { label = '품절 · 재입고 미정'; off = true; } else if (maxed) { label = cap >= gearMax(d) ? '최고 사양 보유 중' : '상위 시험에서 신형 입고'; off = true; } else { label = ok ? `주문 · ${won(cost)}원` : `${won(cost - G.money)}원 모자람`; key = ok ? 'buy:' + d.id : null; off = !ok; }
+        if (gone) { label = '품절 · 재입고 미정'; off = true; } else if (maxed) { label = cap >= gearMax(d) ? '최고 사양 장착 중' : '다음 제품은 아직 입고 전'; off = true; } else { label = ok ? `구매 · ${won(cost)}원` : `${won(cost - G.money)}원 모자람`; key = ok ? 'buy:' + d.id : null; off = !ok; } }
       }
       R(cx, cy, cw, ch, '#ffffff'); k.frame(cx, cy, cw, ch, off ? '#d0d5de' : '#2a8f9a', 2);
-      R(cx + 8, cy + 8, 46, 46, '#eef1f6'); drawGear(k, id, cx + 31, cy + 31, 38, id === 'lens' ? Math.max(1, Math.min(G.gear.lens + 1, gearCap(gearDef('lens')))) : 3); /* 촬영·표시 장비는 카드에 적힌 단계의 그림 */
+      R(cx + 8, cy + 8, 46, 46, '#eef1f6'); if (!gearIcon(k, id, iconLv, cx + 8, cy + 8, 46)) drawGear(k, id, cx + 31, cy + 31, 38, id === 'lens' ? Math.max(1, Math.min(G.gear.lens + 1, gearCap(gearDef('lens')))) : 3); /* 촬영·표시 장비는 카드에 적힌 단계의 그림 */
       if (isNew) { R(cx + cw - 42, cy + 4, 38, 14, '#e8453e'); T('NEW', cx + cw - 23, cy + 11, 10, C.white, 'center', 800); }
       // 이름은 그림 오른쪽에 크게, 구분선 아래 효과는 검은 글씨로 또렷하게, 지금 가진 것은 맨 아래 작게
       const nl = wrap(k, name, cw - 70, 15).slice(0, 2); nl.forEach((ln, j) => T(ln, cx + 62, cy + (nl.length > 1 ? 24 : 32) + j * 18, 15, '#12161f', 'left', 800));

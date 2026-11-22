@@ -918,7 +918,7 @@ const WORLD = (() => {
   }
   function buildHub() {
     if (HUB.scene) return;
-    const sc = new THREE.Scene(), B = batch(), THN = new URLSearchParams(location.search).get('hub'), TH = HUB_THEMES[THN] || HUB_THEMES.gosi; HUB.themed = !!HUB_THEMES[THN] && THN !== 'gosi';
+    const sc = new THREE.Scene(), B = batch(), hubAct = CONFIG.tiers[typeof nextTierIndex === 'function' ? nextTierIndex(G) : 0].act, THN = new URLSearchParams(location.search).get('hub') || CONFIG.hub_by_act[hubAct - 1], TH = HUB_THEMES[THN] || HUB_THEMES.gosi; HUB.themed = TH !== HUB_THEMES.gosi; HUB.builtAct = hubAct;
     sc.background = new THREE.Color(TH.bg); sc.fog = new THREE.Fog(TH.bg, 3, 7);
     sc.add(new THREE.AmbientLight(TH.amb[0], TH.amb[1])); sc.add(new THREE.HemisphereLight(TH.hemi, 0x1c1620, 0.8));
     const lamp = new THREE.PointLight(TH.lamp, 1.1, 2.4, 2); lamp.position.set(-0.85, 0.98, -0.3); sc.add(lamp);
@@ -1091,6 +1091,7 @@ const WORLD = (() => {
     const shopSig = shopNewCount(); if (sigs.shop !== shopSig) { sigs.shop = shopSig; drawShop(G); }
     if (now - (sigs.phoneT || -9) > 0.25) { sigs.phoneT = now; drawPhone(G); }
     const act = CONFIG.tiers[nextTierIndex(G)].act;
+    if (HUB.builtAct !== act && !new URLSearchParams(location.search).get('hub')) { HUB.scene = null; buildHub(); return; } // 구간이 바뀌면 방을 새로 짓는다 (이사)
     if (HUB.act !== act && !HUB.themed) { HUB.act = act; HUB.winMat.map = windowTex(act); HUB.winMat.needsUpdate = true; HUB.wallM.color.setHex(act === 3 ? 0xb8a8d8 : act === 2 ? 0xc8d4e0 : 0xffffff); }
     const g = G.gear, hid = (hv && hv.hidden) || {};
     for (const id in HUB.gear) { const lv = id === 'model' ? g.model : g[id]; HUB.gear[id].visible = lv > 0 && !hid[id]; }
