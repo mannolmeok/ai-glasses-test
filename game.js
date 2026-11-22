@@ -56,7 +56,6 @@ const between = (a, b) => a + rng() * (b - a);
 // ---- Economy ---------------------------------------------------------------------------
 const TIERS = CONFIG.tiers, LAST = TIERS.length - 1;
 // 시험해 보는 전형: AI 면접. 아직 진행 순서에는 넣지 않았고, 주소에 exam=aiiv 를 붙였을 때만 토플 자리에 들어간다
-if (new URLSearchParams(location.search).get('exam') === 'aiiv') TIERS[4] = Object.assign({}, TIERS[4], { id: 'aiiv', name: '대기업 AI 역량검사', subject: '상황 면접', gen: 'aiiv', qn: 5, time: 170, mech: ['webcam', 'gaze'] });
 { const X = new URLSearchParams(location.search).get('exam'), Lb = CONFIG.lab && CONFIG.lab[X]; if (Lb) { const o = Object.assign({}, TIERS[Lb.slot], { id: X, news: null, swap: null, boss: false, essay: false, listen: 0, noAuto: false, check: null, pulse: null, parts: null, layout: null, device: null }, Lb); for (const k of ['parts', 'layout', 'device', 'pulse', 'check', 'news', 'swap']) if (o[k] == null) delete o[k]; TIERS[Lb.slot] = o; } } // 실험 중인 새 시험
 function rewardAt(x) { // x번째 시험의 문제당 상금. 사이 값은 등비로 잇고, 범위 밖은 끝의 비율로 늘인다
   const r = i => TIERS[i].reward;
@@ -435,6 +434,35 @@ function toneAt(freq, dur, type = 'square', vol = 0.3, delay = 0, pan = 0) {
   } catch (_) { }
 }
 function tone(freq, dur, type = 'square', vol = 0.3) { toneAt(freq, dur, type, vol, 0); }
+function noiseAt(dur, vol = 0.1, delay = 0, freq = 1200, q = 1, pan = 0) { // 걸러 낸 잡음 한 토막: 종이·기침·천둥
+  if (!audio || muted) return;
+  try { const ac = audio.ac, n = Math.max(1, Math.floor(ac.sampleRate * dur)), buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol; src.connect(f); f.connect(g); let tail = g;
+    if (pan && ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); tail = p; }
+    tail.connect(audio.out); src.start(ac.currentTime + delay); } catch (_) { }
+}
+const SND = { tick: 0, amb: 3, mt: 0, step: 0 };
+const HUB_SONG = { // 구간마다 다른 고시원 음악: [빠르기(BPM), 음색, 화음 네 개(낮은음 + 세 음)]
+  1: [72, 'triangle', [[130.8, 261.6, 329.6, 493.9], [110, 261.6, 329.6, 392], [87.3, 261.6, 349.2, 440], [98, 246.9, 293.7, 392]]],
+  2: [88, 'square', [[146.8, 293.7, 349.2, 523.3], [98, 293.7, 392, 493.9], [130.8, 329.6, 392, 493.9], [110, 277.2, 329.6, 392]]],
+  3: [60, 'sine', [[65.4, 261.6, 370, 466.2], [73.4, 293.7, 415.3, 523.3], [58.3, 233.1, 329.6, 415.3], [65.4, 277.2, 392, 493.9]]],
+};
+function soundHub(dt) { // 고시원: 느린 화음 아르페지오
+  if (!audio || muted || !CONFIG.sound.music) return;
+  const act = TIERS[Math.min(LAST, Math.max(0, G.unlocked - 1))].act, [bpm, wave, chords] = HUB_SONG[act] || HUB_SONG[1], stepLen = 60 / bpm / 2;
+  SND.mt += dt; if (SND.mt < stepLen) return; SND.mt -= stepLen; const i = SND.step++ % 32, ch = chords[Math.floor(i / 8)], k = i % 8, v = wave === 'square' ? 0.018 : 0.04;
+  if (k === 0) toneAt(ch[0], stepLen * 6, 'sine', 0.07); toneAt(ch[[1, 2, 3, 2, 1, 3, 2, 3][k]] * (act === 3 && k % 3 === 0 ? 2 : 1), stepLen * 2.2, wave, v);
+  if (act !== 3 && k % 4 === 2) noiseAt(0.04, 0.02, 0, 5000, 1);
+}
+function soundExam(dt) { // 시험장: 벽시계 초침, 가끔 들리는 연필·종이·기침. 마지막 시험은 단계마다 빨라지는 음악
+  if (!audio || muted) return; const S = CONFIG.sound;
+  if (S.amb && !E.T.mech.includes('omega')) { SND.tick += dt; if (SND.tick >= 1) { SND.tick -= 1; toneAt(2400, 0.012, 'square', 0.012); toneAt(1900, 0.012, 'square', 0.008, 0.5); }
+    SND.amb -= dt; if (SND.amb <= 0 && E.layout === 'room') { SND.amb = 2.5 + Math.random() * 5; const pan = Math.random() * 1.6 - 0.8, r = Math.random();
+      if (r < 0.5) for (let i = 0; i < 4; i++) noiseAt(0.05, 0.02, i * 0.07, 3200, 2, pan); else if (r < 0.8) noiseAt(0.25, 0.025, 0, 900, 0.8, pan); else { noiseAt(0.09, 0.05, 0, 500, 1.5, pan); noiseAt(0.08, 0.04, 0.16, 450, 1.5, pan); } } }
+  if (S.music && E.T.mech.includes('omega') && !E.finalQ && E.start <= 0) { const stepLen = 60 / (96 + E.part * 16) / 2; SND.mt += dt; if (SND.mt >= stepLen) { SND.mt -= stepLen; const k = SND.step++ % 16, bass = [55, 55, 65.4, 55, 73.4, 55, 65.4, 82.4][k % 8];
+      toneAt(bass, stepLen * 0.9, 'sawtooth', 0.045); if (k % 2) noiseAt(0.03, 0.02, 0, 6000, 1); if (E.part >= 1 && k % 4 === 0) toneAt(bass * 3, stepLen * 1.5, 'square', 0.02); if (E.part >= 2 && k % 8 === 6) toneAt(bass * 4.5, stepLen, 'square', 0.025); if (E.part >= 3) toneAt(bass * 6, 0.04, 'square', 0.012); } }
+}
 const sfx = {
   scan: () => tone(1500, 0.02, 'square', 0.02),
   elim: () => { toneAt(980, 0.03, 'square', 0.06); toneAt(740, 0.05, 'square', 0.05, 0.03); },
@@ -462,6 +490,10 @@ const sfx = {
   news: () => { toneAt(1175, 0.08, 'sine', 0.1); toneAt(1568, 0.14, 'sine', 0.1, 0.09); },
   hand: () => { toneAt(700, 0.05, 'triangle', 0.06, 0, -0.4); toneAt(840, 0.07, 'triangle', 0.06, 0.07, -0.4); },
   warp: () => { toneAt(900, 0.12, 'sine', 0.05); toneAt(300, 0.16, 'sine', 0.05, 0.05); },
+  thunder: () => { noiseAt(1.4, 0.35, 0, 160, 0.5); noiseAt(0.25, 0.3, 0, 2400, 0.7); toneAt(55, 0.9, 'sine', 0.2); },
+  rumble: () => { noiseAt(0.9, 0.12, 0, 110, 0.6); },
+  bubble: () => { for (let i = 0; i < 6; i++) toneAt(420 + i * 90, 0.06, 'sine', 0.07, i * 0.06); },
+  omega: () => { toneAt(110, 1.2, 'sawtooth', 0.1); toneAt(116.5, 1.2, 'sawtooth', 0.1); toneAt(55, 1.4, 'sine', 0.18, 0.05); },
   radio: () => { for (let i = 0; i < 4; i++) toneAt(440 + (i % 2) * 110, 0.07, 'triangle', 0.03, i * 0.1); },
 };
 
@@ -696,6 +728,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
   const add = (v, how, by) => { if (v > 0) { r += v; if (!src || v > src.v) src = { v, how, by }; } };
   for (const s of E.staff) {
     if (s.out || s.blink > 0 || s.blocked || s.asleep || s.phase === 'help' || s.phase === 'peek') continue;
+    if (s.fixed && T.mech.includes('bolt')) continue; // 제우스는 지켜보지 않는다: 번개만 던진다
     let k = 0;
     if (s.phase === 'watch') k = 1; else if (s.phase === 'tell') k = tune.tell_ratio;
     else if (s.phase === 'check') k = s.check.stage === 'at' ? tune.check_rate : s.check.stage === 'go' ? tune.tell_ratio : 0;
@@ -766,10 +799,10 @@ function getCaught() {
 }
 function examHint() { // 첫 시험(모의평가)에서만, 한 번에 하나
   E.guide = null;
-  if (E.dead) return E.dead === 'water' ? '안경이 물을 먹어 켜지지 않는다 · 직접 풀기' : E.dead === 'sticker' ? '단추 카메라가 가려졌다 · 직접 풀기' : 'EMP에 장비가 전부 꺼졌다 · 직접 풀기';
+  if (E.dead) return E.dead === 'water' ? '안경이 물을 먹어 켜지지 않는다 · 직접 풀기' : E.dead === 'sticker' ? '단추 카메라가 가려졌다 · 직접 풀기' : E.dead === 'bolt' ? '번개에 안경이 꺼졌다 · 다시 켜질 때까지 기다리기' : 'EMP에 장비가 전부 꺼졌다 · 직접 풀기';
   const q0 = E.qs[E.qi]; if (E.rising && (E.layout === 'table' || (q0 && q0.kind === 'essay'))) return '보고 있어요! 손 떼기';
   if (q0 && q0.kind === 'essay' && !G.hints.essay) return '서술형: 가운데를 꾹 눌러 한 줄 읽고(위험) 옮겨 쓰기(안전)';
-  if (E.T.mech.includes('gaze') && !G.hints.iv) return '가운데를 꾹: 대본 읽기 · 5초 넘게 보면 탈락';
+  if (E.T.mech.includes('gaze') && !G.hints.iv) return E.layout === 'table' ? '화면 왼쪽을 꾹: 대본 읽기 · 오래 보면 탈락' : '가운데를 꾹: 대본 읽기 · 5초 넘게 보면 탈락';
   if (E.layout === 'table' && !G.hints.iv && !E.ai) return '화면 왼쪽을 꾹: 대본 읽기 · 면접관이 볼 땐 떼기 (←)';
   if (E.tier !== 0 || G.stats.exams > 0) return null;
   if (E.rising) return '누가 보고 있어요! 손 떼기';
@@ -797,6 +830,7 @@ function updateExam(dt) {
   const T = E.T, g = G.gear;
   const taps = takeTaps();
   if (E.flash) E.flash.t += dt;
+  soundExam(dt);
   E.runShown = G.opts.timer ? G.run.t : 0;
   if (E.caught || E.over) { E.endT += dt; takeReleases(); if (E.endT > (E.caught ? 2.0 : 0.9)) finishExam(); return; }
   if (pressed('KeyP') || pressed('Escape')) { scene = 'pause'; return; }
@@ -838,7 +872,9 @@ function updateExam(dt) {
   if (M_.includes('dream') && !E.fb) { if (E.dreamT == null) E.dreamT = between(7, 10); E.dreamT -= dt;
     if (E.dreamT <= 0) { E.dreamT = between(6, 9); const q0 = E.qs[E.qi]; if (q0 && q0.choices && q0.kind !== 'essay' && q0.kind !== 'speak' && !q0.final) { const pm = [1, 2, 3, 0].map(i => (i + Math.floor(rng() * 3)) % 4), perm = [0, 1, 2, 3].sort((a, b) => pm[a] - pm[b] || a - b); const sh = perm[0] === 0 && perm[1] === 1 && perm[2] === 2 ? [1, 2, 3, 0] : perm, inv = []; sh.forEach((from, to) => inv[from] = to);
         q0.choices = sh.map(i => q0.choices[i]); if (q0.answer >= 0) q0.answer = inv[q0.answer]; if (q0.aiPick != null) q0.aiPick = inv[q0.aiPick]; if (q0.elim) q0.elim = q0.elim.map(i => inv[i]); E.scan = 0; E.ai = false; E.earbudT = 0; E.labSay = { text: '(…보기 순서가 바뀌었다.)', t: 0 }; sfx.warp(); } } }
-  if (M_.includes('omega') && !E.finalQ) { const down = Math.floor(E.qi / tune.omega_strip); if (down !== (E.omegaDown || 0)) { E.omegaDown = down; const order = ['brain', 'contact', 'mil', 'proto', 'used'], cur = order.indexOf(g.lens >= 7 ? 'brain' : g.lens >= 6 ? 'contact' : g.lens >= 5 ? 'mil' : g.lens >= 4 ? 'proto' : 'used'); E.stageForce = order[Math.min(order.length - 1, cur + down)]; E.labSay = { text: `Ω: "그 장비는 이미 배웠습니다." (안경 ${down}단계 하락)`, t: 0 }; sfx.pulse(); } }
+  if (M_.includes('omega') && !E.finalQ) { const down = E.part; if (down !== (E.omegaDown || 0)) { E.omegaDown = down; const order = ['brain', 'contact', 'mil', 'proto', 'used'], cur = order.indexOf(g.lens >= 7 ? 'brain' : g.lens >= 6 ? 'contact' : g.lens >= 5 ? 'mil' : g.lens >= 4 ? 'proto' : 'used'); E.stageForce = order[Math.min(order.length - 1, cur + down)]; E.labSay = { text: [`Ω: "그 장비는 이미 배웠습니다."`, `Ω: "당신의 버릇도 배웠습니다."`, `Ω: "이제 당신보다 먼저 압니다."`][Math.min(2, down - 1)] + ` (안경 ${down}단계 하락)`, t: -1.5 }; sfx.omega(); } }
+  if (M_.includes('bolt')) { if (E.boltT == null) E.boltT = between(6, 9); E.boltT -= dt; if (E.boltFlash > 0) E.boltFlash -= dt; if (E.boltOff > 0) { E.boltOff -= dt; if (E.boltOff <= 0) E.dead = null; }
+    if (E.boltT <= 0) { E.boltT = between(7, 11); E.boltOff = 2.4; E.boltFlash = 0.5; E.dead = 'bolt'; if (!E.ai) E.scan = 0; sfx.thunder(); } else if (E.boltT < 0.9 && !E.boltRumble) { E.boltRumble = true; sfx.rumble(); } if (E.boltT > 1) E.boltRumble = false; }
   if (E.cctv) stepCctv(E.cctv, dt);
   if (E.pulse) stepPulse(E.pulse, dt);
   stepEvents(T, dt);
@@ -867,11 +903,11 @@ function updateExam(dt) {
   if (speak && !E.fb) { // 면접: 대본을 읽어 둔 데까지만 말할 수 있다. 읽어 둔 게 떨어지면 말이 끊긴다
     if (!E.sp || E.sp.q !== q) E.sp = { q, read: 0, said: 0, stam: 0, t: 0, um: false };
     const sp = E.sp, N = q.lines.length; sp.t += dt;
-    const gz = T.mech.includes('gaze'), wait = gz ? tune.aiiv_present + tune.aiiv_think : tune.speak_wait, ready = !gz || sp.t >= tune.aiiv_present;
+    const gz = T.mech.includes('gaze'), wait = gz ? tune.aiiv_present + (T.think != null ? T.think : tune.aiiv_think) : tune.speak_wait, ready = !gz || sp.t >= tune.aiiv_present;
     if (gz) { // 시선 규칙: 대본을 보는 동안 벗어난 시간이 쌓이고, 카메라를 다시 보면 풀린다
       if (hold) { E.gaze = (E.gaze || 0) + dt; E.gazeBack = 0;
         if (E.gaze >= tune.gaze_warn && !E.gazeWarned) { E.gazeWarned = true; E.sus = Math.min(0.99, E.sus + 0.08); flash('화면을 봐 주세요', PAL.bad); sfx.pulse(); }
-        if (E.gaze >= tune.gaze_limit + g.gazefix * 0.5) { if (g.deepcam > 0 && !E.gazeSaved) { E.gazeSaved = true; E.gaze = 0; E.gazeWarned = false; flash('딥페이크 웹캠이 한 번 막았다', PAL.good || PAL.white); } else { E.sus = 1; E.source = { how: 'gaze', by: E.staff[0] }; getCaught(); return; } } }
+        if (E.gaze >= (T.gazeLimit || tune.gaze_limit) + g.gazefix * 0.5) { if (g.deepcam > 0 && !E.gazeSaved) { E.gazeSaved = true; E.gaze = 0; E.gazeWarned = false; flash('딥페이크 웹캠이 한 번 막았다', PAL.good || PAL.white); } else { E.sus = 1; E.source = { how: 'gaze', by: E.staff[0] }; getCaught(); return; } } }
       else if (E.gaze > 0) { E.gazeBack = (E.gazeBack || 0) + dt; if (E.gazeBack >= tune.gaze_reset) { E.gaze = 0; E.gazeWarned = false; } }
     }
     if (hold && !blind && ready && sp.read < N) { sp.read = Math.min(N, sp.read + dt / (gz ? tune.aiiv_read : tune.speak_read)); G.hints.iv = true; E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); } }
@@ -881,12 +917,12 @@ function updateExam(dt) {
   }
   const risky = hold && !(essay && E.es.mem > 0); // 서술형에서 쓰는 동안은 평범한 수험생으로 보인다
   if (hold && !E.wasHold && T.mech.includes('omega') && E.scan < 0.05) { // Ω는 스캔 박자를 읽는다: 지난번과 같은 간격이면 들킨다
-    const t = E.clockT, gap = E.lastScanT == null ? null : t - E.lastScanT, win = tune.omega_window * (1 + tune.omega_grow * E.qi) * Math.max(tune.omega_floor, gearCut(g.offbeat));
+    const t = E.clockT, gap = E.lastScanT == null ? null : t - E.lastScanT, win = tune.omega_window * (1 + 0.35 * E.part + tune.omega_grow * E.qi * 0.5) * Math.max(tune.omega_floor, gearCut(g.offbeat));
     if (gap != null && E.lastGap != null && Math.abs(gap - E.lastGap) < win) { E.sus = Math.min(1, E.sus + tune.omega_jump); E.source = { how: 'omega', by: E.staff[0] }; flash('Ω가 박자를 읽었다! 간격을 바꿔라', PAL.bad); sfx.pulse(); }
     E.lastGap = gap; E.lastScanT = t;
   }
   if (hold && !E.wasHold && M_.includes('loop')) { const t = E.partT || 0; E.loopNow.push(t); if ((E.loopLog || []).some(a => a.some(v => Math.abs(v - t) < 1.2))) { E.sus = Math.min(1, E.sus + 0.34); E.source = { how: 'loop', by: E.staff[0] }; E.labSay = { text: '담임 선생님: "지난번에도 딱 이때 숙였지."', t: 0 }; sfx.pulse(); } }
-  if (M_.includes('breath')) { E.breath = clamp((E.breath == null ? 1 : E.breath) + (hold ? -dt / 4.5 : dt / 3), 0, 1); if (E.breath <= 0 && hold) { E.breath = 0.25; E.gasp = 1.6; E.sus = Math.min(1, E.sus + 0.3); E.source = { how: 'breath', by: E.staff[0] }; E.labSay = { text: '(숨이 터졌다. 공기 방울이 솟는다!)', t: 0 }; sfx.pulse(); } }
+  if (M_.includes('breath')) { E.breath = clamp((E.breath == null ? 1 : E.breath) + (hold ? -dt / 4.5 : dt / 3), 0, 1); if (E.breath <= 0 && hold) { E.breath = 0.25; E.gasp = 1.6; E.sus = Math.min(1, E.sus + 0.3); E.source = { how: 'breath', by: E.staff[0] }; E.labSay = { text: '(숨이 터졌다. 공기 방울이 솟는다!)', t: 0 }; sfx.bubble(); } }
   if (M_.includes('helmet')) E.fog = clamp((E.fog || 0) + (hold ? dt / 3.2 : -dt / 2.2), 0, 1);
   const peeker = E.staff.find(s => s.phase === 'peek' && s.peek.stage === 'stare');
   if (peeker && risky) { E.sus = 1; E.source = { how: 'peek', by: peeker }; getCaught(); return; } // 올려다보는 눈과 마주친 채 스캔하면 끝
@@ -1141,7 +1177,7 @@ function hubAction(a) { // 방에서 누른 물건
 function openParcels() { // 상자를 열지 않고 시험 보러 가도 장비는 쓴다
   const hv = STATE.hv; hv.hidden = {}; hv.order = []; hv.parcel = null; hv.parcelT = 0;
 }
-function updateHub(dt) {
+function updateHub(dt) { soundHub(dt);
   if (TESTSITE && params.get('real') !== '1' && G.money < 1e11) G.money = 1e11; // 테스트용 사이트: 방에 있을 때는 돈이 늘 1,000억원 (주소에 ?real=1 을 붙이면 끔)
   const hv = STATE.hv;
   STATE.wipeArm = Math.max(0, STATE.wipeArm - dt);

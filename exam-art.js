@@ -484,53 +484,81 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
 // ---- 장비 단계별로 더 붙는 화면: 안경이 좋아질수록 보여 주는 것이 늘어난다 (전부 실제 값만 보여 준다) ----
 function staffWord(s) { return s.out ? '자리 비움' : s.phase === 'watch' ? '주시 중' : s.phase === 'tell' ? '돌아보는 중' : s.phase === 'check' ? '검사 중' : s.phase === 'help' ? '다른 자리' : s.phase === 'peek' ? '안 보임' : s.phase === 'walk' ? '이동 중' : '등 돌림'; }
 function staffCol(s) { return s.out || s.phase === 'help' ? '#9aa0aa' : s.phase === 'watch' ? '#ff5a5a' : s.phase === 'tell' || s.phase === 'check' || s.phase === 'peek' ? '#ffcf5a' : '#9dff8a'; }
+function hudDraw(k, fn) { const b = k.b; b.save(); fn(b); b.restore(); }
+function rrect(b, x, y, w, h, r) { b.beginPath(); b.moveTo(x + r, y); b.arcTo(x + w, y, x + w, y + h, r); b.arcTo(x + w, y + h, x, y + h, r); b.arcTo(x, y + h, x, y, r); b.arcTo(x, y, x + w, y, r); b.closePath(); }
+const NEURO = (() => { const out = []; let s = 7; const r = () => { s = (Math.imul(s, 1103515245) + 12345) >>> 0; return (s >>> 8) / 16777216; }; for (let i = 0; i < 11; i++) out.push([8 + r() * 96, 78 + i * 22 + r() * 10]); return out; })();
 function drawStageFx(k, L, E, now, ST, INK, live, q) {
-  if (!live || E.finalQ) return;
-  const { R } = k, M = k.M, W = L.W, HH = L.H, b = k.b, picked = E.ai && !E.fb && q && q.aiPick != null, scanning = E.scan > 0 && !E.ai && !E.fb, room = E.layout === 'room';
+  if (!live || E.finalQ || (q && q.kind === 'speak')) return;
+  const { R } = k, M = k.M, T = k.T, W = L.W, HH = L.H, b = k.b, picked = E.ai && !E.fb && q && q.aiPick != null, scanning = E.scan > 0 && !E.ai && !E.fb, room = E.layout === 'room';
   const mdl = CONFIG.models[E.gear.model] ? CONFIG.models[E.gear.model].name : 'AI', st = E.staff.filter(s => s.type !== 'webcam'), pct = Math.round(E.scan * 100);
-  const box = (x, y, w, h, col, a = 0.6) => { b.globalAlpha = a; R(x, y, w, h, '#061018'); b.globalAlpha = 1; k.frame(x, y, w, h, col, 1); };
+  const left = s => s.dur > 0 && (s.phase === 'stand' || s.phase === 'watch' || s.phase === 'tell') ? Math.max(0, s.dur - s.t) : null, frac = s => { const l = left(s); return l == null ? 0 : Math.min(1, l / s.dur); };
+  const nElim = picked ? 2 : scanning ? Math.min(2, Math.floor(E.scan * 3 + 1e-6)) : 0, elim = q && q.elim ? q.elim.slice(0, nElim) : [];
   if (ST === 'used') { // 중고: 왼쪽 아래에 한 줄. 느리고 투박하다
     M(scanning ? `READ ${'▮'.repeat(Math.round(E.scan * 6))}${'▯'.repeat(6 - Math.round(E.scan * 6))}` : picked ? 'READ OK' : 'READY', 62, HH - 44, 9, INK, 'left', 700);
     M(mdl, 62, HH - 31, 7.5, INK, 'left', 700);
-  } else if (ST === 'proto') { // 시제품: 분석 창과 감독관 레이더가 생긴다
-    const px = W - 176, py = 92, pw = 140, ph = 62; box(px, py, pw, ph, INK); R(px, py, pw, 12, INK); M('AI 분석', px + 6, py + 6.5, 7.5, '#06202a', 'left', 700); M(mdl, px + pw - 6, py + 6.5, 6.5, '#06202a', 'right', 700);
-    if (picked) { M(`정답 ${q.aiPick + 1}번`, px + 8, py + 26, 13, '#ffffff', 'left', 700); M(`확신 ${q.conf}%`, px + pw - 8, py + 27, 8, INK, 'right', 700); b.globalAlpha = 0.3; R(px + 8, py + 39, pw - 16, 3, '#ffffff'); b.globalAlpha = 1; R(px + 8, py + 39, Math.round((pw - 16) * q.conf / 100), 3, INK); if (q.elim && q.elim.length) M(`제외 ${q.elim.map(i => i + 1).join(' · ')}번`, px + 8, py + 52, 7.5, '#c8dce6', 'left', 500); }
-    else if (scanning) { M(`문제 읽는 중 ${pct}%`, px + 8, py + 26, 9, '#ffffff', 'left', 700); b.globalAlpha = 0.3; R(px + 8, py + 39, pw - 16, 3, '#ffffff'); b.globalAlpha = 1; R(px + 8, py + 39, Math.round((pw - 16) * E.scan), 3, INK); const n = Math.min(2, Math.floor(E.scan * 3 + 1e-6)); if (n > 0 && q.elim) M(`제외 ${q.elim.slice(0, n).map(i => i + 1).join(' · ')}번`, px + 8, py + 52, 7.5, '#c8dce6', 'left', 500); }
-    else M('대기 중', px + 8, py + 30, 9, '#c8dce6', 'left', 500);
-    if (room) { const cx = 74, cy = HH - 84, r = 30; b.globalAlpha = 0.55; k.disc(cx, cy, r, '#061018'); b.globalAlpha = 1; k.ring(cx, cy, r, INK); k.ring(cx, cy, 15, mix(INK, '#061018', 0.55)); b.globalAlpha = 0.5; k.line(cx, cy, cx + Math.cos(now * 2.2) * r, cy + Math.sin(now * 2.2) * r, INK, 1); b.globalAlpha = 1;
+  } else if (ST === 'proto') { // 시제품: 얇은 선의 분석 창과 감독관 레이더. 글자에 그림자를 쓰지 않아 번지지 않는다
+    const px = W - 174, py = 94, pw = 138, ph = 58;
+    hudDraw(k, c => { c.fillStyle = 'rgba(10,28,44,0.5)'; c.fillRect(px, py, pw, ph); c.strokeStyle = INK; c.lineWidth = 1; c.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1); c.fillStyle = INK; c.fillRect(px, py, 2, ph); });
+    T('AI 분석', px + 9, py + 9, 7.5, INK, 'left', 700); T(mdl, px + pw - 7, py + 9, 6.5, '#cfe9f2', 'right', 500);
+    if (picked) { T(`정답 ${q.aiPick + 1}번`, px + 9, py + 27, 13, '#ffffff', 'left', 700); T(`${q.conf}%`, px + pw - 7, py + 27, 11, INK, 'right', 700); }
+    else if (scanning) T(`읽는 중 ${pct}%`, px + 9, py + 27, 10, '#ffffff', 'left', 700); else T('대기 중', px + 9, py + 27, 10, '#cfe9f2', 'left', 500);
+    b.globalAlpha = 0.3; R(px + 9, py + 39, pw - 18, 2, '#ffffff'); b.globalAlpha = 1; R(px + 9, py + 39, Math.round((pw - 18) * (picked ? q.conf / 100 : E.scan)), 2, INK);
+    for (let i = 0; i < 4; i++) { const x = px + 9 + i * 16, y = py + 48, out = elim.includes(i), hit = picked && i === q.aiPick; hudDraw(k, c => { c.beginPath(); c.arc(x + 4, y, 4.5, 0, 7); if (hit) { c.fillStyle = INK; c.fill(); } else { c.strokeStyle = out ? 'rgba(255,255,255,0.3)' : '#ffffff'; c.lineWidth = 1; c.stroke(); if (out) { c.beginPath(); c.moveTo(x, y - 4); c.lineTo(x + 8, y + 4); c.stroke(); } } }); }
+    if (room) { const cx = 74, cy = HH - 84, r = 30; hudDraw(k, c => { c.fillStyle = 'rgba(10,28,44,0.5)'; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); c.strokeStyle = INK; c.lineWidth = 1; c.stroke(); c.globalAlpha = 0.4; c.beginPath(); c.arc(cx, cy, 15, 0, 7); c.stroke(); const a = now * 2.2; c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, r, a - 0.5, a); c.closePath(); c.fillStyle = INK; c.globalAlpha = 0.18; c.fill(); });
       k.poly([[cx, cy + 6], [cx - 4, cy + 13], [cx + 4, cy + 13]], '#ffffff');
-      for (const s of st) { if (s.out) continue; const x = cx + (s.fixed ? 0 : s.side === 'L' ? -13 : 13), y = cy + 10 - ((s.fixed ? 1 : s.u) - 0.37) * 48, c = staffCol(s); k.disc(x, Math.max(cy - r + 4, Math.min(cy + r - 4, y)), 3, c); if (s.phase === 'watch') k.ring(x, Math.max(cy - r + 4, Math.min(cy + r - 4, y)), 5, c); }
-      M('감독관 레이더', cx, cy + r + 9, 7, '#ffffff', 'center', 500); }
-  } else if (ST === 'mil') { // 군용: 격자, 스캔해도 되는 시간
+      for (const s of st) { if (s.out) continue; const x = cx + (s.fixed ? 0 : s.side === 'L' ? -13 : 13), y = Math.max(cy - r + 4, Math.min(cy + r - 4, cy + 10 - ((s.fixed ? 1 : s.u) - 0.37) * 48)), c = staffCol(s); k.disc(x, y, 3, c); if (s.phase === 'watch') k.ring(x, y, 5, c); }
+      T('감독관 레이더', cx, cy + r + 9, 7, '#ffffff', 'center', 500); }
+  } else if (ST === 'mil') { // 군용: 전술 지도(시야 부채꼴), 표적마다 남은 시간 막대, 스캔 가능 창
     b.globalAlpha = 0.06; for (let x = 80; x < W; x += 80) R(x, 0, 1, HH, INK); for (let y = 60; y < HH; y += 60) R(0, y, W, 1, INK); b.globalAlpha = 1;
-    if (room) { const busy = st.filter(s => !s.out && (s.phase === 'watch' || s.phase === 'tell' || s.phase === 'check' || s.phase === 'peek')), stand = st.filter(s => !s.out && s.phase === 'stand' && s.dur > 0), eta = stand.length ? Math.min(...stand.map(s => Math.max(0, s.dur - s.t))) : null;
-      const bw = 128, bx = W - 30 - bw, by = HH - 70, ok = !busy.length, c = ok ? '#9dff8a' : '#ff5a5a';
-      if (ok || Math.floor(now * 5) % 2) { box(bx, by, bw, 20, c, 0.7); M(ok ? (eta != null ? `SCAN OK  ${eta.toFixed(1)}s` : 'SCAN OK') : 'HOLD · 주시 중', bx + bw / 2, by + 10.5, 9, c, 'center', 700); } }
-    M(`AI ${mdl}`, 30, 86, 7, INK, 'left', 500);
-  } else if (ST === 'contact') { // 콘택트렌즈: 테가 없고, 허공에 뜬 창
-    const px = W - 172, py = 96, pw = 146, ph = 70; b.globalAlpha = 0.34; R(px, py, pw, ph, '#0a3038'); b.globalAlpha = 0.9; k.frame(px, py, pw, ph, INK, 1); b.globalAlpha = 1; R(px, py, 3, ph, INK);
-    M('풀이', px + 10, py + 10, 7.5, INK, 'left', 700); M(mdl, px + pw - 8, py + 10, 6.5, '#d6f4f8', 'right', 500);
-    if (picked) { if (q.elim && q.elim.length) M(`${q.elim.map(i => i + 1).join(', ')}번은 조건에 맞지 않음`, px + 10, py + 26, 7.5, '#d6f4f8', 'left', 500); M(`남은 것 중 ${q.aiPick + 1}번이 맞음`, px + 10, py + 39, 7.5, '#d6f4f8', 'left', 500); M(`정답 ${q.aiPick + 1}번`, px + 10, py + 56, 12, '#ffffff', 'left', 700); M(`${q.conf}%`, px + pw - 8, py + 56, 12, INK, 'right', 700); }
-    else if (scanning) { const n = Math.min(2, Math.floor(E.scan * 3 + 1e-6)); M('문제를 읽는 중', px + 10, py + 26, 7.5, '#d6f4f8', 'left', 500); if (n > 0 && q.elim) M(`${q.elim.slice(0, n).map(i => i + 1).join(', ')}번 제외`, px + 10, py + 39, 7.5, '#d6f4f8', 'left', 500); b.globalAlpha = 0.3; R(px + 10, py + 55, pw - 20, 2, '#ffffff'); b.globalAlpha = 1; R(px + 10, py + 55, Math.round((pw - 20) * E.scan), 2, INK); }
-    else M('문제를 보면 읽기 시작', px + 10, py + 30, 7.5, '#d6f4f8', 'left', 500);
-    if (room) { st.slice(0, 5).forEach((s, i) => { const y = 150 + i * 19, c = staffCol(s); b.globalAlpha = 0.34; R(12, y - 8, 112, 16, '#0a3038'); b.globalAlpha = 1; R(12, y - 8, 2, 16, c); k.disc(22, y, 2.5, c); M((s.name || '감독관').slice(-6), 29, y - 0.5, 7, '#ffffff', 'left', 500); M(staffWord(s) + (s.dur > 0 && (s.phase === 'stand' || s.phase === 'watch') ? ` ${Math.max(0, s.dur - s.t).toFixed(0)}초` : ''), 120, y - 0.5, 6.5, c, 'right', 500); });
-      if (WORLD.staffRects) WORLD.staffRects().forEach(r => { const s = E.staff[r.i]; if (!s || r.h < 24) return; const c = staffCol(s), x0 = Math.round(r.x), y0 = Math.round(r.y), w = Math.round(r.w), h = Math.round(Math.min(HH - 6 - r.y, r.h)); b.globalAlpha = 0.8; for (let x = x0; x < x0 + w; x += 6) { R(x, y0, 3, 1, c); R(x, y0 + h, 3, 1, c); } for (let y = y0; y < y0 + h; y += 6) { R(x0, y, 1, 3, c); R(x0 + w, y, 1, 3, c); } b.globalAlpha = 1; }); }
-  } else if (ST === 'brain') { // 뇌 임플란트: 시험 전체의 답이 머릿속에 줄지어 선다. 가장자리에 신경 박동
-    const G1 = '#ffd678', n = E.qs.length, bw = Math.min(24, Math.floor((W - 200) / n)), x0 = W / 2 - n * bw / 2, y0 = 38;
+    hudDraw(k, c => { c.strokeStyle = INK; c.lineWidth = 1.5; c.globalAlpha = 0.8; for (let i = 0; i < 4; i++) { const a = now * 0.8 + i * Math.PI / 2; c.beginPath(); c.arc(W / 2, HH / 2, 22, a, a + 0.7); c.stroke(); } });
+    if (room) { const mx = W - 148, my = 92, mw = 118, mh = 92; hudDraw(k, c => { c.fillStyle = 'rgba(24,12,0,0.55)'; c.fillRect(mx, my, mw, mh); c.strokeStyle = INK; c.lineWidth = 1; c.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
+        c.fillStyle = 'rgba(255,178,58,0.28)'; for (let r = 0; r < 5; r++) for (let cl = 0; cl < 4; cl++) c.fillRect(mx + 30 + cl * 17, my + 14 + r * 15, 9, 5);
+        const meX = mx + 30 + 17 + 4, meY = my + 14 + 3 * 15 + 2;
+        for (const s of st) { if (s.out) continue; const x = s.fixed ? mx + mw / 2 : s.side === 'L' ? mx + 16 : mx + mw - 16, y = s.fixed ? my + 8 : my + mh - 10 - Math.max(0, Math.min(1, s.u)) * (mh - 22), col = staffCol(s), hot = s.phase === 'watch' || s.phase === 'tell' || s.phase === 'check';
+          const a = hot ? Math.atan2(meY - y, meX - x) : (s.fixed ? Math.PI / 2 : s.dir > 0 ? -Math.PI / 2 : Math.PI / 2) + (s.away ? (s.side === 'L' ? -0.9 : 0.9) : 0), len = hot ? 46 : 22;
+          c.globalAlpha = hot ? 0.5 : 0.22; c.fillStyle = col; c.beginPath(); c.moveTo(x, y); c.arc(x, y, len, a - 0.38, a + 0.38); c.closePath(); c.fill(); c.globalAlpha = 1; c.beginPath(); c.arc(x, y, 3, 0, 7); c.fill(); }
+        c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(meX, meY - 4); c.lineTo(meX - 4, meY + 3); c.lineTo(meX + 4, meY + 3); c.closePath(); c.fill(); });
+      T('TAC MAP', mx + 5, my - 6, 7, INK, 'left', 700);
+      if (WORLD.staffRects) WORLD.staffRects().forEach(r => { const s = E.staff[r.i]; if (!s || r.h < 30 || left(s) == null) return; const col = s.phase === 'watch' ? '#ff5a5a' : INK, x1 = Math.round(r.x + r.w), x0 = Math.round(r.x), lx = x1 + 6 < W - 110 ? x1 + 6 : x0 - 66, y = Math.round(r.y) + 26; b.globalAlpha = 0.35; R(lx, y, 60, 3, '#ffffff'); b.globalAlpha = 1; R(lx, y, Math.round(60 * frac(s)), 3, col); });
+      const busy = st.filter(s => !s.out && (s.phase === 'watch' || s.phase === 'tell' || s.phase === 'check' || s.phase === 'peek')), stand = st.filter(s => !s.out && s.phase === 'stand' && s.dur > 0), eta = stand.length ? Math.min(...stand.map(s => Math.max(0, s.dur - s.t))) : null, etaF = stand.length ? Math.min(...stand.map(frac)) : 1;
+      const bw = 128, bx = W - 30 - bw, by = HH - 74, ok = !busy.length, c1 = ok ? '#9dff8a' : '#ff5a5a';
+      hudDraw(k, c => { c.fillStyle = 'rgba(8,16,8,0.6)'; c.fillRect(bx, by, bw, 24); c.strokeStyle = c1; c.lineWidth = 1; c.strokeRect(bx + 0.5, by + 0.5, bw - 1, 23); c.fillStyle = c1; c.globalAlpha = ok ? 0.85 : (Math.floor(now * 5) % 2 ? 0.85 : 0.3); c.fillRect(bx + 3, by + 18, Math.round((bw - 6) * (ok ? etaF : 1)), 3); });
+      T(ok ? (eta != null ? `SCAN OK  ${eta.toFixed(1)}s` : 'SCAN OK') : 'HOLD · 주시 중', bx + bw / 2, by + 9, 9, c1, 'center', 700); }
+    T(`AI ${mdl}`, 30, 86, 7, INK, 'left', 500);
+  } else if (ST === 'contact') { // 콘택트렌즈: 테가 없고, 둥근 창과 고리로 보여 준다
+    const px = W - 168, py = 92, pw = 140, ph = 84, gx = px + 36, gy = py + 46, conf = picked ? q.conf / 100 : E.scan;
+    hudDraw(k, c => { rrect(c, px, py, pw, ph, 16); c.fillStyle = 'rgba(8,44,52,0.42)'; c.fill(); c.strokeStyle = 'rgba(127,233,255,0.9)'; c.lineWidth = 1.2; c.stroke();
+      c.lineCap = 'round'; c.lineWidth = 5; c.strokeStyle = 'rgba(255,255,255,0.22)'; c.beginPath(); c.arc(gx, gy, 22, 0, 7); c.stroke(); c.strokeStyle = INK; c.beginPath(); c.arc(gx, gy, 22, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * conf); c.stroke();
+      for (let i = 0; i < 4; i++) { const x = px + 76 + i * 15, y = py + 62, out = elim.includes(i), hit = picked && i === q.aiPick; c.beginPath(); c.arc(x, y, 5.5, 0, 7); c.lineWidth = 1.2; if (hit) { c.fillStyle = INK; c.fill(); } else { c.strokeStyle = out ? 'rgba(255,255,255,0.25)' : '#ffffff'; c.stroke(); } } });
+    T(picked ? String(q.aiPick + 1) : scanning ? `${pct}` : '·', gx, gy, picked ? 20 : 11, '#ffffff', 'center', 700);
+    T('풀이', px + 72, py + 16, 7.5, INK, 'left', 700); T(picked ? `${q.conf}% 확신` : scanning ? '읽는 중' : '문제를 보면 시작', px + 72, py + 31, 8, '#ffffff', 'left', 700); T(elim.length ? `${elim.map(i => i + 1).join(', ')}번 제외` : mdl, px + 72, py + 45, 6.5, '#d6f4f8', 'left', 500);
+    if (room) { st.slice(0, 5).forEach((s, i) => { const x = 30, y = 138 + i * 40, c1 = staffCol(s), f = frac(s), l = left(s);
+        hudDraw(k, c => { c.fillStyle = 'rgba(8,44,52,0.45)'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.fill(); c.lineCap = 'round'; c.lineWidth = 3; c.strokeStyle = 'rgba(255,255,255,0.2)'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.stroke(); c.strokeStyle = c1; c.beginPath(); c.arc(x, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (l == null ? 1 : f)); c.stroke();
+          rrect(c, x + 19, y - 9, 74, 18, 9); c.fillStyle = 'rgba(8,44,52,0.42)'; c.fill(); });
+        T(l == null ? '–' : l.toFixed(0), x, y, 9, '#ffffff', 'center', 700); T(staffWord(s), x + 26, y, 7, c1, 'left', 700); });
+      if (WORLD.staffRects) WORLD.staffRects().forEach(r => { const s = E.staff[r.i]; if (!s || r.h < 24) return; const c1 = staffCol(s), h = Math.min(HH - 6 - r.y, r.h); hudDraw(k, c => { c.strokeStyle = c1; c.lineWidth = 1.2; c.setLineDash([4, 4]); c.globalAlpha = 0.85; c.beginPath(); c.ellipse(r.x + r.w / 2, r.y + h / 2, r.w / 2 + 4, h / 2 + 4, 0, 0, 7); c.stroke(); }); }); }
+  } else if (ST === 'brain') { // 뇌 임플란트: 양옆에 신경망이 켜지고, 생각이 줄지어 지나간다. 위에는 시험 전체의 답
+    const G1 = '#ffd678', V1 = '#c9a0ff', n = E.qs.length, bw = Math.min(24, Math.floor((W - 200) / n)), x0 = W / 2 - n * bw / 2, y0 = 38, ph = picked ? 1 : scanning ? E.scan : 0;
     for (let i = 0; i < n; i++) { const x = x0 + i * bw, a = E.answers[i], cur = i === E.qi;
-      if (a != null && i < E.qi) { b.globalAlpha = 0.9; R(x + 1, y0, bw - 2, 14, G1); b.globalAlpha = 1; k.T(String(a + 1), x + bw / 2, y0 + 7.5, 9, '#2a1c00', 'center', 800); }
-      else if (cur) { b.globalAlpha = 0.5; R(x + 1, y0, bw - 2, 14, '#1a1028'); b.globalAlpha = 1; k.frame(x + 1, y0, bw - 2, 14, Math.floor(now * 3) % 2 ? '#ffffff' : G1, 1); if (picked) k.T(String(q.aiPick + 1), x + bw / 2, y0 + 7.5, 9, '#ffffff', 'center', 800); }
+      if (a != null && i < E.qi) { b.globalAlpha = 0.9; R(x + 1, y0, bw - 2, 14, G1); b.globalAlpha = 1; T(String(a + 1), x + bw / 2, y0 + 7.5, 9, '#2a1c00', 'center', 800); }
+      else if (cur) { b.globalAlpha = 0.5; R(x + 1, y0, bw - 2, 14, '#1a1028'); b.globalAlpha = 1; k.frame(x + 1, y0, bw - 2, 14, Math.floor(now * 3) % 2 ? '#ffffff' : G1, 1); if (picked) T(String(q.aiPick + 1), x + bw / 2, y0 + 7.5, 9, '#ffffff', 'center', 800); }
       else { b.globalAlpha = 0.35; k.frame(x + 1, y0, bw - 2, 14, G1, 1); b.globalAlpha = 1; } }
     b.globalAlpha = 0.22 + 0.08 * Math.sin(now * 5); b.drawImage(lensGlow('A', '#b07aff'), 0, 0); b.globalAlpha = 1;
-    for (let i = 0; i < 12; i++) { const y = (now * (90 + (i % 4) * 40) + i * 53) % (HH + 30) - 20, c = i % 2 ? G1 : '#c9a0ff'; b.globalAlpha = 0.75; R(5 + (i % 3) * 5, y, 2, 12, c); R(W - 7 - (i % 3) * 5, HH - y, 2, 12, c); } b.globalAlpha = 1;
-    if (scanning) { const y = HH / 2; b.globalAlpha = 0.5; R(20, y, Math.round((W / 2 - 150) * E.scan), 1, G1); R(W - 20 - Math.round((W / 2 - 150) * E.scan), y, Math.round((W / 2 - 150) * E.scan), 1, G1); b.globalAlpha = 1; }
+    hudDraw(k, c => { for (const side of [0, 1]) { const P = NEURO.map(([x, y]) => [side ? W - x : x, y]), lit = i => (i + 1) / P.length <= ph + 0.001 || Math.sin(now * 2 + i * 1.7 + side) > 0.93;
+        c.lineWidth = 1; for (let i = 0; i < P.length; i++) for (const j of [i + 1, i + 2]) { if (j >= P.length) continue; const on = lit(i) && lit(j); c.strokeStyle = on ? G1 : V1; c.globalAlpha = on ? 0.85 : 0.28; c.beginPath(); c.moveTo(P[i][0], P[i][1]); c.lineTo(P[j][0], P[j][1]); c.stroke();
+          if (on || scanning) { const f = (now * 1.6 + i * 0.37 + j * 0.11) % 1; c.globalAlpha = 0.9; c.fillStyle = '#ffffff'; c.fillRect(P[i][0] + (P[j][0] - P[i][0]) * f - 1, P[i][1] + (P[j][1] - P[i][1]) * f - 1, 2, 2); } }
+        for (let i = 0; i < P.length; i++) { const on = lit(i); c.globalAlpha = on ? 1 : 0.5; c.fillStyle = on ? G1 : V1; c.beginPath(); c.arc(P[i][0], P[i][1], on ? 3.5 : 2.2, 0, 7); c.fill(); if (on) { c.globalAlpha = 0.25; c.beginPath(); c.arc(P[i][0], P[i][1], 7, 0, 7); c.fill(); } } }
+      if (picked) { const f = (now * 0.9) % 1; c.globalAlpha = 0.5 * (1 - f); c.strokeStyle = G1; c.lineWidth = 2; c.beginPath(); c.arc(W / 2, HH / 2, 40 + f * 150, 0, 7); c.stroke(); } });
+    const log = []; if (scanning || picked) { log.push(`문제 ${E.qi + 1} 인식`); if (ph > 0.2) log.push('조건 추출'); elim.forEach(i => log.push(`보기 ${i + 1}번 소거`)); if (picked) log.push(`결론 ${q.aiPick + 1}번 · ${q.conf}%`); }
+    log.forEach((ln, i) => { b.globalAlpha = i === log.length - 1 ? 1 : 0.6; M(ln, 120, HH - 118 + i * 12, 7.5, i === log.length - 1 ? G1 : '#ffffff', 'left', 700); }); b.globalAlpha = 1;
+    if (scanning) { const y = HH / 2, w = Math.round((W / 2 - 170) * E.scan); b.globalAlpha = 0.6; R(116, y, w, 1, G1); R(W - 116 - w, y, w, 1, G1); b.globalAlpha = 1; }
   }
 }
 // ---- 실험 중인 새 시험들의 화면 효과 ----
 function drawLabFx(k, L, E, now, live) {
   const Mm = E.T.mech, W = L.W, HH = L.H, b = k.b, R = k.R, M = k.M, S = k.S || HUD_SCALE;
   const meter = (label, v, col, x = 24, y = HH - 96, w = 110) => { M(label, x, y - 9, 8, '#ffffff', 'left', 700); b.globalAlpha = 0.35; R(x, y, w, 4, '#ffffff'); b.globalAlpha = 1; R(x, y, Math.round(w * Math.max(0, Math.min(1, v))), 4, col); };
-  if (Mm.includes('bolt')) { const z = E.staff[0], flashOn = z && z.phase === 'watch', tell = z && z.phase === 'tell';
+  if (Mm.includes('bolt')) { const z = { t: 0.5 - (E.boltFlash || 0) }, flashOn = E.boltFlash > 0, tell = !flashOn && E.boltT != null && E.boltT < 0.9;
     b.globalAlpha = flashOn ? 0 : tell ? 0.5 + 0.08 * Math.sin(now * 40) : 0.46; R(0, 0, W, HH, '#05060f'); b.globalAlpha = 1;
     if (flashOn) { b.globalAlpha = Math.max(0, 0.85 - z.t * 1.6); R(0, 0, W, HH, '#ffffff'); b.globalAlpha = 1; }
     if (live && tell) k.SUB('(우르릉…)', W / 2, HH - 70, 12, '#ffffff', 'center'); }
@@ -551,7 +579,7 @@ function drawLabFx(k, L, E, now, live) {
   if (Mm.includes('telepathy') && live) { const on = E.ai && !E.fb; if (on) { const rd = E.mindRead, c = rd ? '#ff6a6a' : '#e0c8ff'; b.globalAlpha = 0.6; R(W / 2 - 96, 50, 192, 20, '#1a1028'); b.globalAlpha = 1; k.frame(W / 2 - 96, 50, 192, 20, c, 1); M(rd ? '생각을 읽히는 중!' : '답을 떠올리는 중 · 보이면 읽힌다', W / 2, 60.5, 8, c, 'center', 700); } }
   if (Mm.includes('warp') && live) { const w = E.warp || 1, c = w > 1.4 ? '#ff6a6a' : w < 0.8 ? '#8fe6ff' : '#ffffff'; M(`시간 ×${w.toFixed(1)}`, W / 2, 30, 11, c, 'center', 700); if (w > 1.4) { b.globalAlpha = 0.1; R(0, 0, W, HH, '#ff5a3a'); b.globalAlpha = 1; } else if (w < 0.8) { b.globalAlpha = 0.12; R(0, 0, W, HH, '#3a8aff'); b.globalAlpha = 1; } }
   if (Mm.includes('spin') && live) { const r = E.roll || 0, cx = 70, cy = HH - 90; b.globalAlpha = 0.5; k.disc(cx, cy, 24, '#061018'); b.globalAlpha = 1; k.ring(cx, cy, 24, '#ffffff'); k.line(cx - Math.cos(r) * 20, cy - Math.sin(r) * 20, cx + Math.cos(r) * 20, cy + Math.sin(r) * 20, Math.abs(r) > 0.25 ? '#ff6a6a' : '#9dff8a', 2); M(`기울기 ${Math.round(Math.abs(r) * 57)}°`, cx, cy + 34, 7.5, '#ffffff', 'center', 700); }
-  if (E.labSay && !E.caught) k.SUB(E.labSay.text, W / 2, HH - 70, 12, '#ffffff', 'center');
+  if (E.labSay && !E.caught) k.SUB(E.labSay.text, W / 2, HH - 94, 12, '#ffffff', 'center');
 }
 // ---- 대응책에 당한 화면: 먹통이 된 안경, 재난문자·EMP·눈 피로의 화면 효과, 입실 검사 장면 ----
 function drawDeadHud(k, L, E, now, ST, sec) {
@@ -560,7 +588,7 @@ function drawDeadHud(k, L, E, now, ST, sec) {
   for (let i = 0; i < 5; i++) { const h = Math.abs(Math.sin(i * 12.9898 + Math.floor(now * 9) * 78.233) * 43758.5453) % 1; b.globalAlpha = 0.18; k.R(0, Math.floor(h * HH), W, 1, '#c9d4e0'); } b.globalAlpha = 1;
   k.SUB(E.finalQ ? '--:--' : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, W - 62, 44, 13, low ? '#ff6a6a' : '#ffffff', 'right'); k.SUB(`${Math.min(E.qi + 1, E.qs.length)} / ${E.qs.length}`, W - 62, 60, 9, '#e8e4da', 'right');
   if (ST === 'brain') { k.SUB('…머릿속이 조용하다.', W / 2, 60, 11, '#f0ece2', 'center'); return; }
-  if (Math.floor(now * 1.5) % 2 === 0) k.M(E.dead === 'water' ? '침수 감지 · 전원 차단' : '— NO SIGNAL —', W / 2, 44, 10, '#ff6a6a', 'center', 700);
+  if (Math.floor(now * 1.5) % 2 === 0) k.M(E.dead === 'water' ? '침수 감지 · 전원 차단' : E.dead === 'bolt' ? '낙뢰 · 재부팅 중' : '— NO SIGNAL —', W / 2, 44, 10, '#ff6a6a', 'center', 700);
 }
 function drawCounterFx(k, L, E, now, live) {
   const W = L.W, HH = L.H, b = k.b, T = E.T, p = E.pulse;

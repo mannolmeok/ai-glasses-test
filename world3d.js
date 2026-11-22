@@ -294,7 +294,7 @@ const WORLD = (() => {
     m.headYaw = angTo(m.headYaw, o.headYaw || 0, Math.min(1, dt * 8));
     m.headPitch = lerp(m.headPitch, o.headPitch || 0, Math.min(1, dt * 6));
     if (m.omega) {
-      m.root.position.set(o.x, (o.y || 0) + Math.sin(o.now * 0.8) * 0.12, o.z);
+      m.root.position.set(o.x, (o.y || 0) + Math.sin(o.now * 0.8) * 0.12, o.z); m.root.scale.setScalar(o.scale || 1);
       m.head.rotation.set(m.headPitch, m.yaw + m.headYaw, 0);
       m.rings.forEach((r, i) => { r.rotation.z = o.now * (0.3 + i * 0.2); });
       m.irisMat.color.setHex(o.asleep ? 0x0a0a12 : o.phase === 'watch' ? 0xff2e47 : o.phase === 'tell' ? 0xffa030 : 0x3a6aff);
@@ -302,7 +302,7 @@ const WORLD = (() => {
     } else {
       const sw = o.moving ? Math.sin(o.walk * 7) : 0;
       const y = m.robot ? 0.06 + Math.sin(o.now * 4) * 0.03 : (o.seated ? -0.4 : o.moving ? Math.abs(sw) * 0.02 : 0);
-      m.root.position.set(o.x, y + (o.y || 0), o.z);
+      m.root.position.set(o.x, y + (o.y || 0), o.z); m.root.scale.setScalar(o.scale || 1);
       m.root.rotation.y = m.yaw; m.head.rotation.set(m.headPitch, m.headYaw, 0);
       if (m.legs.length) { const lk = o.seated ? -1.4 : 0; m.legs[0].rotation.x = lk + sw * 0.45; m.legs[1].rotation.x = lk - sw * 0.45; }
       const crossArms = m.look && m.look.prop === 'cross' && !o.moving;
@@ -370,6 +370,7 @@ const WORLD = (() => {
     court: { wall: 0x2a2e3a, wain: 0x14161e, floor: 'darktile', board: 'screen', sky: 'night', hall: true, racks: true, redLight: true },
     hole: { wall: 0x1a1a2a, wain: 0x0a0a14, floor: 'metal', board: 'screen', sky: 'space', floaty: true, ceil: 0x0a0a14 },
     storm: { wall: 0xc8c8d0, wain: 0x8a8a96, floor: 'tile', board: 'none', sky: 'storm', hall: true, ceil: 0x3a3c4a },
+    aiface: { layout: 'table', wall: 0xdfe8f0, wain: 0x8aa0b8, floor: 'tile', sky: 'white' },
     ielts: { layout: 'table', wall: 0xdfe6ea, wain: 0x9aa8b4, floor: 'tile', sky: 'day' },
     taxi: { layout: 'table', wall: 0x5a6a4a, wain: 0x3a4630, floor: 'darkwood', sky: 'day', shelves: true },
     oxford: { layout: 'table', wall: 0x6a4a32, wain: 0x4a3222, floor: 'darkwood', sky: 'dusk', shelves: true },
@@ -724,7 +725,7 @@ const WORLD = (() => {
       const toMe = x => Math.atan2(EX.eye.x - x, EX.eye.z - (EX.layout === 'table' ? -0.95 : EX.frontZ - 1.55));
       const pitch = s.phase === 'stand' ? 0.55 : s.phase === 'tell' ? 0.22 : 0;
       if (EX.layout === 'table') { const fx = T.staff.map((d, j) => j).filter(j => T.staff[j].fixed), n = fx.length, k = fx.indexOf(i), x = (SEATS[n] || SEATS[3])[Math.max(0, k)];
-        return { x, z: -0.95, yaw: toMe(x) * (s.phase === 'stand' ? 0.3 : 1), moving: false, headPitch: pitch, seated: true }; }
+        const bigAI = s.type === 'robot'; return { x, z: bigAI ? -0.7 : -0.95, y: bigAI ? -1.15 : 0, scale: bigAI ? 2.2 : 1, yaw: toMe(x) * (s.phase === 'stand' ? 0.3 : 1), moving: false, headPitch: pitch, seated: !bigAI }; }
       if (s.type === 'omega') return { x: 0, y: 2.3, z: -5.5, yaw: s.asleep ? 0 : s.phase === 'stand' ? (s.away ? 0.7 : -0.7) : 0, headPitch: s.phase === 'stand' ? -0.2 : 0.18, moving: false };
       return { x: -1.8, z: EX.frontZ - 1.55, yaw: toMe(-1.8), moving: false, headPitch: pitch, seated: true };
     }
@@ -771,7 +772,7 @@ const WORLD = (() => {
       const frisk = i === 0 && E.intro && E.intro.kind === 'metal' && m.arms && m.arms.length > 1; // 입실 검사: 감독관이 내 앞 통로에 서서, 손에 든 탐지봉으로 나를 훑는다
       if (frisk) { const sw = ease(clamp((E.intro.t - 0.5) / 2.2, 0, 1)), fx = EX.eye.x - 0.62, fz = EX.eye.z - 1.5, face = Math.atan2(EX.eye.x - fx, EX.eye.z - fz), swing = lerp(0.34, -0.3, sw);
         p.x = fx; p.z = fz; p.yaw = face + swing; p.moving = false; p.headPitch = 0.14; p.hiddenNow = false; p.seated = false; }
-      poseModel(m, { x: p.x, y: p.y, z: p.z, yaw: p.yaw, moving: p.moving, walk: s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
+      poseModel(m, { x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
         predict: predict && !s.asleep, asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
       if (frisk) { const W2 = EX.gadget.wand, mt = E.intro.t; if (W2.parent !== m.arms[1]) { m.arms[1].add(W2); W2.position.set(0, -1.02, 0.1); W2.rotation.set(Math.PI / 2, 0, 0); W2.scale.setScalar(0.9); }
         m.arms[1].rotation.set(-1.17 + Math.sin(mt * 4.2) * 0.05, 0, 0); m.arms[0].rotation.set(0, 0, 0); W2.visible = true; }

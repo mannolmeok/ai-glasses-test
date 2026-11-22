@@ -140,6 +140,7 @@ window.CONFIG = {
   away_rate: { value: 0.5, min: 0, max: 1, step: 0.05 },           // 자리 비움 동안 대리 응시 효율
   count_speed: { value: 6, min: 1, max: 20, step: 0.5 },           // 숫자 카운트업 속도
 
+  sound: { amb: true, music: true }, // amb: 시험장 생활 소음(시계·연필·기침) · music: 고시원 배경 음악과 마지막 시험 음악
   hud_style: 'viewfinder', // 시험 화면 HUD: viewfinder(몰래카메라 뷰파인더) | classic
   sub_style: 'film', // 방송 자막: bar(검은 띠, 지금 사이트) | film(띠 없이 테두리 글자)
   hud_font: 'system', // HUD 글꼴: pretendard(차분한 고딕) | dohyeon(도현체) | system
@@ -271,7 +272,7 @@ window.CONFIG = {
       staff: [{ type: 'robot', name: 'AI 감독관' }],
       stand: [1.6, 2.6], walk: [0.9, 1.5], tell: 0.5, watch: 2.4, speed: 0.12, cross: 0.3, feint: 0.3, sus: 1.5, ai: 13.3, reward: 1200000000000000, pay: '인류 인증서',
       head: ['인간 인증 시험', '나는 로봇이 아닙니다'], lines: ['인간 인증 시험', 'AI 사용 감지 시스템 가동'] },
-    { id: 'hle', act: 3, name: '인류의 마지막 시험', subject: '모든 것', gen: 'hle', qn: 8, time: 150, room: 'void', sec: [], mech: ['omega'], boss: true, noAuto: true,
+    { id: 'hle', act: 3, name: '인류의 마지막 시험', subject: '모든 것', gen: 'hle', qn: 5, time: 85, parts: ['1단계 · 관찰', '2단계 · 학습', '3단계 · 예측', '최종 단계'], room: 'void', sec: [], mech: ['omega'], boss: true, noAuto: true,
       staff: [{ type: 'omega', name: '감독관 Ω', fixed: true }],
       stand: [1.2, 2.2], walk: [1, 1], tell: 0.5, watch: 2.0, speed: 0, cross: 0, feint: 0.35, sus: 1.4, ai: 14.5, reward: 4500000000000000, pay: '인류의 미래',
       head: ["Humanity's Last Exam", '모든 것'], lines: [] },
@@ -309,8 +310,12 @@ window.CONFIG = {
       how: '감독관이 전부 AI · 자동 장비가 막힌다', beat: 'AI가 준 답만 내면 AI 감지가 찬다. 가끔은 직접 골라 감지를 낮춘다' },
     hole: { slot: 23, act: 3, name: '블랙홀 가장자리 시험', subject: '상대론', gen: 'eqhard', qn: 10, time: 130, room: 'hole', sec: [], mech: ['warp'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }, { type: 'alien', name: '사건의 지평선 감독관' }], head: ['사건의 지평선 자격시험', '상대론'], lines: ['블랙홀 가장자리 시험', '시간은 사람마다 다르게 흐릅니다'],
       how: '시간이 빨라졌다 느려졌다 한다', beat: '시간이 빠를 때는 감독관도 시계도 빠르다. 느려졌을 때 몰아서 읽는다' },
-    gods: { slot: 23, act: 3, name: '신들의 수능', subject: '신화 추리', gen: 'logic', qn: 10, time: 130, room: 'storm', sec: [], mech: ['bolt'], staff: [{ type: 'yeomra', name: '제우스', fixed: true }], stand: [2.2, 5.0], tell: 0.7, watch: 0.5, feint: 0.3, sus: 3.6, head: ['올림포스 수학능력시험', '신화 추리'], lines: ['올림포스 수학능력시험', '번개가 칠 때 다 보입니다'],
-      how: '어두운 신전 · 번개가 치는 순간에만 감시', beat: '천둥이 우르릉 하면 0.7초 뒤 번개. 번쩍하는 순간에 숙이고 있으면 한 번에 크게 오른다' },
+    gods: { slot: 23, act: 3, name: '신들의 수능', subject: '신들의 사생활', gen: 'gods', qn: 10, time: 140, room: 'storm', sec: [], mech: ['bolt'], staff: [{ type: 'don', name: '아테나' }, { type: 'don2', name: '헤르메스' }, { type: 'yeomra', name: '제우스', fixed: true }], head: ['올림포스 수학능력시험', '신들의 사생활'], lines: ['올림포스 수학능력시험', '번개가 치면 쇠붙이는 쉽니다'],
+      how: '신들만 아는 문제 · 번개가 칠 때마다 장비가 꺼진다', beat: '천둥이 우르릉 하면 곧 번개. 번개가 치면 2.4초 동안 안경이 먹통이고 읽던 것도 날아간다. 그동안은 경고도 안 뜨니 고개를 들고 기다린다' },
+    aiiv: { slot: 10, act: 1, name: '대기업 AI 역량검사', subject: '상황 면접', gen: 'aiiv', qn: 5, time: 170, room: 'home', device: 'laptop', sec: [], mech: ['webcam', 'gaze'], think: 6, staff: [{ type: 'webcam', name: 'AI 면접 시스템', fixed: true }], head: ['AI 역량검사', '상황 면접'], lines: [],
+      how: '집에서 노트북으로 보는 AI 면접 · 감정평가사 다음 차례', beat: '시선이 5초 넘게 벗어나면 탈락. 대본을 두세 줄씩 끊어 읽고 카메라를 1초 이상 다시 본다. 생각할 시간이 6초로 줄었다' },
+    aiiv2: { slot: 17, act: 2, name: '글로벌 기업 AI 대면 면접', subject: 'AI 면접관', gen: 'aiiv', qn: 5, time: 160, room: 'aiface', layout: 'table', device: 'ar', sec: [], mech: ['interview', 'gaze'], think: 4, gazeLimit: 3.5, check: null, staff: [{ type: 'robot', name: 'AI 면접관', fixed: true }], head: ['AI Interview', 'Final Round'], lines: [],
+      how: '면접실에서 AI 면접관과 마주 앉는다 · 눈앞에 AI가 있다', beat: '시선 허용이 3.5초로 줄고 생각할 시간은 4초. AI 면접관이 나를 볼 때는 대본이 읽히지 않는다. 고개를 돌린 틈에 한두 줄씩 읽는다' },
   },
   // AI 모델 15단계: 2026년 10월 Artificial Analysis 지능 지수 v5 순서 + 3막은 회사마다 이름 규칙을 이어 지음.
   // rel: 처음 합격하면 이 모델이 출시되는 시험 번호(0부터), -1은 처음부터
