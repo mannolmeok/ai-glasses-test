@@ -554,6 +554,21 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
     if (scanning) { const y = HH / 2, w = Math.round((W / 2 - 170) * E.scan); b.globalAlpha = 0.6; R(116, y, w, 1, G1); R(W - 116 - w, y, w, 1, G1); b.globalAlpha = 1; }
   }
 }
+// ---- 면접(새 방식): A·B·C 순서 입력. 면접관이 안 볼 때만 누른다 ----
+function drawAbc(k, L, E, now, q) {
+  const sq = E.sq; if (!sq || sq.q !== q) return; const W = L.W, HH = L.H, b = k.b, R = k.R, M = k.M, T = k.T, n = sq.seq.length, blind = E.staff.some(s => s.fixed && s.phase === 'watch'), tell = E.staff.some(s => s.fixed && s.phase === 'tell');
+  const COL = ['#ff7a7a', '#ffd35a', '#6ad8ff'], NAME = ['A', 'B', 'C'], frame = blind ? '#ff5a5a' : tell ? '#ffcf5a' : '#7fe9ff';
+  const py = HH - 150, ph = 142; b.globalAlpha = 0.74; R(20, py, W - 40, ph, '#061018'); b.globalAlpha = 1; k.frame(20, py, W - 40, ph, frame, 1);
+  M(q.q, 32, py + 13, 9, '#ffffff', 'left', 700);
+  const left = Math.max(0, sq.lim - sq.t), tf = left / sq.lim; b.globalAlpha = 0.3; R(32, py + 25, W - 64, 3, '#ffffff'); b.globalAlpha = 1; R(32, py + 25, Math.round((W - 64) * tf), 3, tf < 0.25 ? '#ff6a6a' : '#ffffff'); M(`${left.toFixed(1)}초`, W - 32, py + 13, 9, tf < 0.25 ? '#ff6a6a' : '#ffffff', 'right', 700);
+  const cw = Math.min(34, Math.floor((W - 80) / n)), x0 = W / 2 - n * cw / 2, cy = py + 48; // 눌러야 할 순서
+  for (let i = 0; i < n; i++) { const v = sq.seq[i], x = x0 + i * cw, done = i < sq.i, cur = i === sq.i; b.globalAlpha = done ? 0.35 : 1; R(x + 2, cy - 12, cw - 4, 24, done ? '#2a3a44' : COL[v]); b.globalAlpha = 1; if (cur) k.frame(x, cy - 14, cw, 28, '#ffffff', 2); T(done ? '✓' : NAME[v], x + cw / 2, cy, done ? 9 : 13, done ? '#8dffa8' : '#10141c', 'center', 800); }
+  M(blind ? '면접관이 본다 · 누르지 마!' : tell ? '곧 본다…' : `지금! 순서대로 ${n - sq.i}개`, W / 2, cy + 24, 9, frame, 'center', 700);
+  const bw = 96, gap = 16, bx0 = W / 2 - (bw * 3 + gap * 2) / 2, byy = py + 88; E.abcRects = [];
+  for (let i = 0; i < 3; i++) { const x = bx0 + i * (bw + gap), next = sq.seq[sq.i] === i && !blind; b.globalAlpha = blind ? 0.35 : 1; R(x, byy + 3, bw, 40, '#0a0c10'); R(x, byy, bw, 40, COL[i]); if (next && Math.floor(now * 6) % 2) k.frame(x - 2, byy - 2, bw + 4, 44, '#ffffff', 2); b.globalAlpha = 1; T(NAME[i], x + bw / 2, byy + 20, 18, '#10141c', 'center', 800); M(['A 키', 'S 키', 'D 키'][i], x + bw / 2, byy + 48, 6.5, '#9fb0c0', 'center', 500); E.abcRects.push({ i, x, y: byy, w: bw, h: 44 }); }
+  if (sq.bad > 0) { b.globalAlpha = Math.min(0.35, sq.bad); R(0, 0, W, HH, '#ff2020'); b.globalAlpha = 1; }
+  const said = (q.lines || []).slice(0, Math.ceil(sq.i / n * (q.lines || []).length)).pop(); if (said) k.SUB(`"${said}"`, W / 2, py - 16, 11, '#ffffff', 'center'); else if (sq.t > 1.2) k.SUB('"… 어…"', W / 2, py - 16, 11, '#ffffff', 'center');
+}
 // ---- 면접 × 리듬 (B안 · 한 마디 호흡) 화면 시안. 주소에 ?rh=1|2|3 을 붙이면 박자 표시만 미리 본다 (조작은 아직 지금 방식) ----
 function drawRhythmPreview(k, L, E, now, v, q) {
   const W = L.W, HH = L.H, b = k.b, R = k.R, M = k.M, T = k.T, t = now * 1.6, beat = t % 4, bar = Math.floor(t / 4), look = bar % 3 === 2, nextLook = (bar + 1) % 3 === 2, C1 = '#7fe9ff', G1 = '#8dffa8', RD = '#ff6a6a';
@@ -743,7 +758,8 @@ function drawExamHud(k, L, E, now, H) {
     k.b.globalAlpha = Math.max(0, a); k.b.drawImage(lensGlow('A', C.bad), 0, 0); k.b.globalAlpha = 1;
   }
   const RHV = typeof params !== 'undefined' && params.get('rh');
-  if ((E.layout === 'table' || (E.qs[Math.min(E.qi, E.qs.length - 1)] || {}).kind === 'speak') && !E.result && RHV !== '3') drawArCard(k, L, E, now, H);
+  if ((E.layout === 'table' || (E.qs[Math.min(E.qi, E.qs.length - 1)] || {}).kind === 'speak') && !E.result && RHV !== '3' && !(typeof IVABC !== 'undefined' && IVABC && E.sq && q && E.sq.q === q)) drawArCard(k, L, E, now, H);
+  if (typeof IVABC !== 'undefined' && IVABC && live && q && q.kind === 'speak' && E.sq) drawAbc(k, L, E, now, q);
   if (RHV && live && q && q.kind === 'speak') drawRhythmPreview(k, L, E, now, RHV, q);
   if (q && q.kind === 'essay' && live && E.view === 'paper' && !E.result) drawEssayPanel(k, L, E, now, q);
   if (E.finalQ) { // 마지막 문제: 렌즈가 깨진다

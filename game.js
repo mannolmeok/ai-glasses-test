@@ -388,7 +388,8 @@ addEventListener('blur', () => { down.clear(); ptrs.clear(); });
 function takeTaps() { const t = ptr.taps; ptr.taps = []; return t; }
 function takeReleases() { const r = releases; releases = []; return r; }
 function hitBtn(btns, x, y) { return (btns || []).find(b => x >= b.x && x <= b.x + b.w && y >= b.y - 2 && y <= b.y + b.h + 2); }
-function scanHeld() { return down.has('Space') || (E && E.layout === 'table' && (down.has('ArrowLeft') || down.has('KeyA'))) || scanPointer(); }
+const IVABC = params.get('iv') === 'abc'; // 면접을 버튼 순서 입력으로 (시험 중인 새 방식)
+function scanHeld() { return down.has('Space') || (E && E.layout === 'table' && !IVABC && (down.has('ArrowLeft') || down.has('KeyA'))) || scanPointer(); }
 function setView(v) { // 고개를 그쪽으로 돌려 둔다 (다시 바꿀 때까지 그대로)
   if (!E || v === E.view) return;
   const side = x => x === 'left' || x === 'right';
@@ -406,6 +407,7 @@ function viewInput(taps) { // 화면 왼쪽·오른쪽·위를 누르고 있는 
   setView((mir ? wantR : wantL) ? 'left' : (mir ? wantL : wantR) ? 'right' : z === 'T' || down.has('ArrowUp') || down.has('KeyW') ? front : 'paper');
 }
 function scanPointer() { // 시험장: 가운데를 꾹. 면접: 화면 왼쪽(AI 답변이 뜨는 쪽)을 꾹
+  if (IVABC && E && E.layout === 'table') return false;
   for (const p of ptrs.values()) if (E && E.layout === 'table' ? p.x < EXAM_LAYOUT.W * 0.45 && p.y < 270 : p.zone === 'C') return true; return false; }
 
 // ---- Audio: started on first input, mute on M --------------------------------------------
@@ -902,6 +904,18 @@ function updateExam(dt) {
     else { es.r = 0; if (es.mem > 0) { es.mem -= dt; if (es.mem <= 0) { es.mem = 0; es.w = 0; } } }
   }
   const speak = q.kind === 'speak';
+  if (speak && !E.fb && IVABC && table && !T.mech.includes('gaze')) { // 면접(새 방식): 면접관이 안 보는 틈에 A·B·C를 뜬 순서대로 전부 누른다
+    if (!E.sq || E.sq.q !== q) { const n = 8 + Math.min(8, Math.floor(E.tier / 3)); const seq = []; while (seq.length < n) { const v = Math.floor(rng() * 3), m = seq.length; if (m >= 2 && seq[m - 1] === v && seq[m - 2] === v) continue; seq.push(v); } E.sq = { q, seq, i: 0, t: 0, lim: 9 + n * 1.15, miss: 0, bad: 0, ok: 0 }; }
+    const sq = E.sq; sq.t += dt; if (sq.bad > 0) sq.bad -= dt; if (sq.ok > 0) sq.ok -= dt;
+    let key = -1; if (pressed('KeyA')) key = 0; else if (pressed('KeyS')) key = 1; else if (pressed('KeyD')) key = 2;
+    for (const [x, y] of taps) { const r = (E.abcRects || []).find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); if (r) key = r.i; }
+    if (key >= 0 && sq.t > 1.2) {
+      if (blind) { const w = E.staff.find(s => s.fixed && s.phase === 'watch'); E.sus = Math.min(1, E.sus + 0.34); E.source = { how: 'watch', by: w }; sq.bad = 0.5; sfx.no(); } // 보는 중에 누르면 크게 걸린다
+      else if (key === sq.seq[sq.i]) { sq.i++; sq.ok = 0.15; sfx.scan(); G.hints.iv = true; if (sq.i >= sq.seq.length) { E.wasHold = false; markAnswer(sq.miss <= 2 ? 0 : 2, 'speak'); } }
+      else { sq.miss++; sq.bad = 0.35; sq.i = Math.max(0, sq.i - 1); sfx.no(); } // 틀리면 한 칸 뒤로
+    }
+    if (!E.fb && sq.t > sq.lim) { E.wasHold = false; markAnswer(3, 'speak'); } // 시간 안에 다 못 누르면 대답하지 못한 것
+  } else
   if (speak && !E.fb) { // 면접: 대본을 읽어 둔 데까지만 말할 수 있다. 읽어 둔 게 떨어지면 말이 끊긴다
     if (!E.sp || E.sp.q !== q) E.sp = { q, read: T.id === 'ibank' && tgHas('leak') ? 2 : 0, said: 0, stam: 0, t: 0, um: false };
     const sp = E.sp, N = q.lines.length; sp.t += dt;
