@@ -1115,6 +1115,7 @@ function openParcels() { // 상자를 열지 않고 시험 보러 가도 장비�
   const hv = STATE.hv; hv.hidden = {}; hv.order = []; hv.parcel = null; hv.parcelT = 0;
 }
 function updateHub(dt) {
+  if (TESTSITE && params.get('real') !== '1' && G.money < 1e11) G.money = 1e11; // 테스트용 사이트: 방에 있을 때는 돈이 늘 1,000억원 (주소에 ?real=1 을 붙이면 끔)
   const hv = STATE.hv;
   STATE.wipeArm = Math.max(0, STATE.wipeArm - dt);
   if (hv.view !== 'room') {
