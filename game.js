@@ -72,7 +72,7 @@ function syncGear() { // 세 줄의 사다리(안경·보조 장비·위장)에�
   const g = G.gear, L = g.lens || 0, A = g.aux || 0, C = g.cover || 0;
   Object.assign(g, { aux: A, cover: C, thirdeye: L >= 8 ? 2 : 0, clone: L >= 9 ? 3 : 0, eyedrop: L >= 6 ? 2 : 0,
     watch: A >= 6 ? 2 : A >= 1 ? 1 : 0, predict: [0, 0, 1, 1, 3, 3, 4, 4, 4, 4, 5, 6][A], earbud: A >= 7 ? 4 : A >= 5 ? 3 : A >= 3 ? 1 : 0, candle: A >= 10 ? 2 : A >= 9 ? 1 : 0, floaty: A >= 8 ? 1 : 0,
-    stealth: [0, 1, 2, 2, 2, 3, 4, 6, 6, 6][C], autooff: C >= 2 ? 1 : 0, cctvjam: C >= 3 ? 2 : 0, jammer: C >= 4 ? 2 : 0, deepcam: C >= 5 ? 2 : 0, gazefix: C >= 5 ? 2 : 0, glasscase: C >= 6 ? 2 : 0, screenfilm: C >= 6 ? 2 : 0, calccover: C >= 6 ? 2 : 0, humanmod: C >= 8 ? 2 : 0, offbeat: C >= 9 ? 2 : 0,
+    stealth: [0, 1, 2, 2, 2, 3, 4, 6, 6, 6][C], autooff: C >= 2 ? 1 : 0, cctvjam: C >= 3 ? 2 : 0, jammer: C >= 6 ? 3 : C >= 4 ? 2 : 0, deepcam: C >= 5 ? 2 : 0, gazefix: C >= 5 ? 2 : 0, glasscase: C >= 6 ? 2 : 0, screenfilm: C >= 6 ? 2 : 0, calccover: C >= 6 ? 2 : 0, humanmod: C >= 8 ? 2 : 0, offbeat: C >= 9 ? 2 : 0,
     bot: 0, coach: 0, wide: L >= 4 ? 1 : 0, autoscan: 0, taste: 0 });
 }
 function gearName(id, lv) { const d = gearDef(id); return d.ladder ? d.ladder[clamp(lv, 1, d.ladder.length) - 1] : d.name; }
@@ -917,7 +917,7 @@ function updateExam(dt) {
     if (!E.sq || E.sq.q !== q) { // 대답의 어절 하나가 블록 하나. 누를 때마다 한 어절씩 말이 나간다
       const cap = 10 + Math.min(8, Math.floor(E.tier / 5)), groups = []; let cnt = 0; for (const ln of q.lines) { const w = ln.split(' '); if (groups.length >= 2 && cnt + w.length > cap) break; groups.push(w); cnt += w.length; }
       const words = [].concat(...groups), n = words.length, seq = []; while (seq.length < n) { const v = Math.floor(rng() * 3), m = seq.length; if (m >= 2 && seq[m - 1] === v && seq[m - 2] === v) continue; seq.push(v); }
-      E.sq = { q, seq, words, groups, i: 0, t: 0, lim: 12 + n * 1.4, miss: 0, bad: 0, ok: 0, last: -9, rush: 0 }; }
+      E.sq = { q, seq, words, groups, i: 0, t: 0, lim: 14 + n * 1.6, miss: 0, bad: 0, ok: 0, last: -9, rush: 0 }; }
     const sq = E.sq; sq.t += dt; if (sq.bad > 0) sq.bad -= dt; if (sq.ok > 0) sq.ok -= dt; if (sq.rush > 0) sq.rush -= dt;
     let key = -1; if (pressed('KeyA')) key = 0; else if (pressed('KeyS')) key = 1; else if (pressed('KeyD')) key = 2;
     for (const [x, y] of taps) { const r = (E.abcRects || []).find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); if (r) key = r.i; }
