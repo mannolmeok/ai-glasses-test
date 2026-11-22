@@ -1510,6 +1510,13 @@ window.game = {
 
 reset();
 G = (params.get('fresh') === '1' || params.get('scene')) ? newGame() : (load() || newGame());
+{ // 테스트 사이트 전용: 주소에 ?go=<시험 번호> 를 붙이면 그 시험 바로 앞까지 깬 상태로 시작한다 (그때까지 나온 장비·모델·조력자 물건을 다 가진 채로). 저장도 된다
+  const J = Number(params.get('go')); if (J >= 1 && J <= TIERS.length && (TESTSITE || location.protocol === 'file:')) { const n = J - 1; G = newGame();
+    G.cleared = TIERS.map((_, i) => i < n); G.unlocked = J; if (n > 0) { G.flags.cam = true; G.flags.sold = true; G.hints = Object.assign(G.hints || {}, { scan: true, look: true }); }
+    for (const d of CONFIG.gear) if (d.at) G.gear[d.id] = Math.max(d.id === 'lens' ? 1 : 0, d.at.filter(t => t <= n - 1).length);
+    G.gear.model = Math.max(0, CONFIG.models.reduce((m, x, i) => x.rel <= n - 2 ? i : m, 0)); G.tg = {}; for (const h of CONFIG.helper) if (h.tier < n) G.tg[h.id] = true;
+    syncGear(); G.money = params.get('real') === '1' ? examFee(TIERS[n]) * 3 : G.money; save(); history.replaceState(null, '', location.pathname + (params.get('real') === '1' ? '?real=1' : '')); } // 주소에서 go를 지워 새로고침해도 다시 초기화되지 않게
+}
 STATE.hv = newHubView();
 if (TIER_Q) { G.unlocked = clamp(Number(TIER_Q) + 1, 1, TIERS.length); for (let i = 0; i < G.unlocked - 1; i++) G.cleared[i] = true; }
 if (params.get('gear')) { const lv = Number(params.get('gear')); for (const d of CONFIG.gear) G.gear[d.id] = d.hidden ? 0 : gearOpen(d) ? Math.min(gearCap(d), lv >= 9 ? 99 : lv) : 0; syncGear(); let m = 0; while (modelOpen(m + 1)) m++; G.gear.model = m; }
