@@ -491,6 +491,8 @@ const WORLD = (() => {
     const sArm = pivot(shirt, 0.6, 0.15, 0.05); bx(sArm, 0.6, 0.085, 0.07, 0xb03a30, 0.37, 0, 0); bx(sArm, 0.09, 0.06, 0.05, 0xd9a57c, 0.03, 0, 0);
     return { paper, paperTex, watch, pen, gadget: { pcase, lid, caseT, caseFace, eraser, lcdT, open: 0, bowl, dunk, bubbles, wand, wandLed, shirt, stickers, sArm } };
   }
+  let MOLE = null;
+  function seat() { return EX && EX.my && EX.X0 != null ? [(EX.my.x - (EX.X0 + 0.5)) / ((EX.X1 - 0.5) - (EX.X0 + 0.5)), (EX.my.z + 0.2 - EX.zFront) / (EX.zBack - EX.zFront)] : [0.5, 0.6]; }
   function secDevices(sc, tier, X1, HY, Z0, X0, MY) { // CCTV·탐지 전파 장치·드론
     let cctv = null, pulse = null, drone = null;
     if (tier.sec.includes('cctv')) {
@@ -507,13 +509,15 @@ const WORLD = (() => {
       const ring = new THREE.Mesh(new THREE.RingGeometry(0.96, 1.0, 48), new THREE.MeshBasicMaterial({ color: tier.pulse === 'screen' ? 0x45e5ee : 0xff3048, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false }));
       ring.rotation.x = -Math.PI / 2; ring.position.set(X1 - 1.4, 1.6, Z0 + 0.4); ring.visible = false; sc.add(ring);
       pulse = { led, ring };
-      if (tier.pulse === 'drone') { // 창밖을 지나가는 드론
-        drone = pivot(sc, X0 - 0.9, 2.2, 0); bx(drone, 0.34, 0.08, 0.34, 0x2a2c34, 0, 0, 0); bx(drone, 0.1, 0.06, 0.1, 0x111216, 0, -0.06, 0.1);
+    }
+    if (tier.mech.includes('drone')) { { // 교실 안을 돌아다니는 순찰 드론
+        drone = pivot(sc, 0, 2.0, 0); bx(drone, 0.34, 0.08, 0.34, 0x2a2c34, 0, 0, 0); bx(drone, 0.1, 0.06, 0.1, 0x111216, 0, -0.06, 0.1);
         for (const [dx, dz] of [[-0.24, -0.24], [0.24, -0.24], [-0.24, 0.24], [0.24, 0.24]]) { bx(drone, 0.03, 0.06, 0.03, 0x2a2c34, dx, 0.04, dz); bx(drone, 0.2, 0.008, 0.03, 0x8a8f99, dx, 0.08, dz); }
-        bx(drone, 0.04, 0.04, 0.04, 0, 0, 0.02, 0.18, glowMat(0xff3048)); drone.visible = false;
+        const dled = glowMat(0x6b2a2a); bx(drone, 0.05, 0.05, 0.05, 0, 0, -0.1, 0.1, dled); drone.userData.led = dled;
+        const beam = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.25, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xff3048, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false })); beam.position.y = -0.7; drone.add(beam); drone.userData.beam = beam;
       }
     }
-    return { cctv, pulse, drone };
+    return { cctv, pulse, drone, X0, X1 };
   }
   function buildClassroom(ti, tier, R) {
     const S = SKY[R.sky], big = !!R.hall, huge = !!R.huge, rnd = seeded(ti + 3), vd = !!R.void;
@@ -611,15 +615,22 @@ const WORLD = (() => {
       desks.push({ x, z });
       B.box(0.24, 0.004, 0.32, R.candles ? 0xe8d8b0 : 0xf4f1e6, x - 0.04, 0.743 + fy, dz + 0.02, 0, 0.1);
       const cl = CLOTH[Math.floor(rnd() * CLOTH.length)], hr = HAIRS[Math.floor(rnd() * HAIRS.length)], lean = 0.18 + rnd() * 0.12, sk = SKINS[Math.floor(rnd() * SKINS.length)];
-      if (GENR) { const sn = 'stu' + (1 + Math.floor(rnd() * 3)); put(sn, x + (rnd() - 0.5) * 0.04, 0, z + 0.47, 1.2, 1.2, 1.2, STU_YAW[sn] + (rnd() - 0.5) * 0.1); return; }
+      const front = x === MY.x && z === Math.max(...ROWS.filter(r => r < MY.z - 0.01), -99), mole = m => { if (!front || !m || !tier.mech.includes('mole')) return; const eyes = pivot(sc, x, 1.02, z + 0.56); bx(eyes, 0.035, 0.025, 0.01, 0, -0.045, 0, 0, glowMat(0xff3048)); bx(eyes, 0.035, 0.025, 0.01, 0, 0.045, 0, 0, glowMat(0xff3048)); eyes.visible = false; MOLE = { obj: m, eyes, y0: m.position.y, ry0: m.rotation.y, sx: m.scale.x, sprite: !!m.isSprite || !!(m.material && m.material.map && !m.children.length), sc }; };
+      if (GENR) { const sn = 'stu' + (1 + Math.floor(rnd() * 3)); mole(put(sn, x + (rnd() - 0.5) * 0.04, 0, z + 0.47, 1.2, 1.2, 1.2, STU_YAW[sn] + (rnd() - 0.5) * 0.1)); return; }
       if (PXS) { // 내 자리에서 보이는 방향에 맞춰 뒷모습이나 옆모습 그림을 세운다
         const ex = MY.x, ez = MY.z + 0.45, sx = x, sz = z + 0.42, dx = sx - ex, dz = sz - ez, sideOn = z >= MY.z - 0.1;
         const sp = pxSprite((sideOn ? 'ss' : 'sb') + Math.floor(rnd() * 3), sideOn ? 1.2 : 1.22);
         sp.position.set(sx, 0, sz); sp.rotation.y = Math.atan2(ex - sx, ez - sz); if (sideOn && dx < 0) sp.scale.x *= -1;
-        sc.add(sp); return;
+        sc.add(sp); mole(sp); return;
       }
       B.box(0.34, 0.14, 0.36, 0x2b2f3d, x, 0.52, z + 0.3);
       B.box(0.12, 0.42, 0.12, 0x2b2f3d, x - 0.08, 0.22, z + 0.12); B.box(0.12, 0.42, 0.12, 0x2b2f3d, x + 0.08, 0.22, z + 0.12);
+      if (front && tier.mech.includes('mole')) { // 앞자리 비밀 감독관: 윗몸을 따로 만들어 뒤돌아볼 수 있게 한다
+        const g = pivot(sc, x, 0, z + 0.4); bx(g, 0.36, 0.46, 0.2, cl, 0, 0.8, 0.04); bx(g, 0.09, 0.1, 0.3, cl, -0.17, 0.79, -0.2); bx(g, 0.09, 0.1, 0.3, cl, 0.17, 0.79, -0.2);
+        bx(g, 0.19, 0.22, 0.2, sk, 0, 1.08, -0.05); bx(g, 0.2, 0.09, 0.21, hr, 0, 1.19, -0.04); bx(g, 0.2, 0.17, 0.06, hr, 0, 1.11, 0.06);
+        bx(g, 0.16, 0.035, 0.012, 0x15161c, 0, 1.1, -0.156); bx(g, 0.07, 0.012, 0.012, 0x5a2a22, 0, 1.02, -0.156); // 선글라스 같은 검은 안경과 굳게 다문 입
+        const eyes = pivot(g, 0, 1.1, -0.165); bx(eyes, 0.035, 0.022, 0.01, 0, -0.045, 0, 0, glowMat(0xff3048)); bx(eyes, 0.035, 0.022, 0.01, 0, 0.045, 0, 0, glowMat(0xff3048)); eyes.visible = false;
+        MOLE = { obj: g, eyes, y0: 0, ry0: 0, sx: 1, sprite: false, sc }; return; }
       B.box(0.36, 0.46, 0.2, cl, x, 0.8, z + 0.44, -lean);
       B.box(0.09, 0.1, 0.34, cl, x - 0.17, 0.79, z + 0.16); B.box(0.09, 0.1, 0.34, cl, x + 0.17, 0.79, z + 0.16);
       B.box(0.19, 0.22, 0.2, sk, x, 1.08, z + 0.33, -lean * 0.6);
@@ -798,6 +809,14 @@ const WORLD = (() => {
       EX.raise.visible = !!helping;
       if (helping) { const tx = (helping.side === 'L' ? EX.AL : EX.AR) + (helping.side === 'L' ? -0.6 : 0.6); EX.raise.position.set(tx, 1.05 + Math.sin(now * 5) * 0.02, zOf(helping.help.u) + 0.3); }
     }
+    if (EX.drone && E.drone) { const d = E.drone, x0 = EX.X0 + 0.5, x1 = EX.X1 - 0.5; // 순찰 드론: 머리 위에 오면 불빛이 붉어지고 빛기둥이 짙어진다
+      EX.drone.visible = true; EX.drone.position.set(lerp(x0, x1, d.u), 1.95 + Math.sin(now * 5) * 0.04, lerp(EX.zFront, EX.zBack, d.v)); EX.drone.rotation.y = now * 0.6;
+      EX.drone.userData.led.color.setHex(d.near ? (Math.floor(now * 6) % 2 ? 0xff3048 : 0xffb0b0) : d.close ? 0xffa030 : 0x6b2a2a); EX.drone.userData.beam.material.opacity = d.near ? 0.3 : d.close ? 0.16 : 0.07; }
+    if (MOLE && MOLE.obj && MOLE.sc === EX.scene) { const m = E.mole, o = MOLE.obj, caughtM = E.caught && E.caughtHow === 'mole', ph = caughtM ? 'look' : m ? m.phase : 'idle'; // 앞자리 비밀 감독관: 들썩 → 뒤돌아봄
+      const turn = ph === 'look' ? clamp((caughtM ? 1 : m.k / 0.25), 0, 1) : 0;
+      o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0) + (caughtM ? 0.22 : 0);
+      if (MOLE.sprite) o.scale.x = MOLE.sx * (1 - 2 * turn) || 0.001; else o.rotation.y = MOLE.ry0 + Math.PI * turn;
+      MOLE.eyes.visible = turn > 0.6; }
     if (EX.cctv) {
       const c = EX.cctv, on = E.cctv && E.cctv.on, jammed = E.gear.cctvjam >= 3;
       c.body.rotation.y = c.base + (E.cctv ? E.cctv.a : 0) * 0.9;
@@ -809,7 +828,7 @@ const WORLD = (() => {
       p.led.color.setHex(warn || E.pulse.active > 0 ? 0xff3048 : 0x5a2a2a);
       p.ring.visible = E.pulse.active > 0 && E.T.pulse !== 'drone';
       if (p.ring.visible) { const kk = 1 - E.pulse.active / 0.6; p.ring.scale.setScalar(0.3 + kk * 16); p.ring.material.opacity = 0.6 * (1 - kk) + 0.1; }
-      if (EX.drone) { const on = E.pulse.warn > 0 || E.pulse.active > 0; EX.drone.visible = on; if (on) { const kk = E.pulse.active > 0 ? 1 - E.pulse.active / 0.6 * 0.3 : 1 - E.pulse.warn / 1.6; EX.drone.position.set(EX.X0 - 0.9, 2.2 + Math.sin(now * 6) * 0.05, lerp(EX.zBack, EX.zFront, clamp(kk, 0, 1))); } }
+      if (EX.drone && E.T.pulse === 'drone') { const on = E.pulse.warn > 0 || E.pulse.active > 0; EX.drone.visible = on; if (on) { const kk = E.pulse.active > 0 ? 1 - E.pulse.active / 0.6 * 0.3 : 1 - E.pulse.warn / 1.6; EX.drone.position.set(EX.X0 - 0.9, 2.2 + Math.sin(now * 6) * 0.05, lerp(EX.zBack, EX.zFront, clamp(kk, 0, 1))); } }
     }
     if (EX.candle) { // 저승사자가 낌새를 보이거나 가까우면 촛불이 흔들린다
       const near = E.staff.some(s => s.type === 'reaper' && (s.phase === 'tell' || s.phase === 'watch' || Math.abs(zOf(s.u) - EX.my.z) < 1.2 && !s.blink));
@@ -1443,5 +1462,5 @@ const WORLD = (() => {
     return FIG.ms.map(f => { _p.set(f.x, f.top ? 2.3 : -0.15, f.z).project(FIG.cam); return { text: f.label, x: (_p.x + 1) / 2 * RW, y: (1 - _p.y) / 2 * RH, pose: f.pose }; });
   }
 
-  return Object.assign(W, { init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
+  return Object.assign(W, { init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
 })();

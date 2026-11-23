@@ -114,7 +114,7 @@ const HUBUI = (() => {
         if (cur) { label = '구독 중'; off = true; } else if (owned) { label = '이전 모델'; off = true; } else if (!next) { label = '앞 모델부터'; off = true; } else { label = ok ? `구독 · ${won(cost)}원` : `${won(cost - G.money)}원 모자람`; key = ok ? 'model' : null; off = !ok; }
       } else {
         const d = it.cur || it, lv = G.gear[d.id], cap = gearCap(d), count = d.kind === 'count', maxed = lv >= cap, cost = gearCost(d.id), ok = !maxed && G.money >= cost, so = soldOut(d), gone = so && G.flags.sold;
-        if (it.cur) { id = d.id; name = gearName(d.id, lv); sub = `${d.name} · ${lv} / ${gearMax(d)}단계`; eff = GEAR_TEXT[d.id](lv); label = '장착 중'; off = true; iconLv = lv; } else {
+        if (it.cur) { const sl = it.lv || lv; id = d.id; name = gearName(d.id, sl); sub = `${d.name} · ${sl} / ${gearMax(d)}단계`; eff = GEAR_TEXT[d.id](sl); label = sl === lv ? '장착 중' : '보유 · 지난 제품'; off = true; iconLv = sl; } else {
         id = d.id; iconLv = maxed ? lv : lv + 1; name = count ? botName(lv + 1) : maxed ? gearName(d.id, lv) : gearName(d.id, lv + 1); sub = count ? `${d.name} · 지금 ${lv}명` : `${d.name} · ${lv ? '지금 ' + gearName(d.id, lv) : '아직 없음'}`;
         eff = GEAR_TEXT[d.id](maxed ? lv : lv + 1); isNew = !!G.fresh[d.id]; if (isNew) markShown(d.id);
         if (so) state = gone ? '품절' : '남은 재고 1개';

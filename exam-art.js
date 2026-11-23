@@ -59,6 +59,16 @@ function drawPaperTexture0(g, E, now) {
   g.font = `700 24px ${F}`; g.textAlign = 'right'; g.fillStyle = tablet ? '#c8d4f0' : '#6c6a80'; g.fillText(`${E.qi + 1} / ${E.qs.length}`, PAPER_W - 44, 123);
   g.fillStyle = ink; if (!tablet) { g.fillRect(40, 164, PAPER_W - 80, 4); g.fillRect(40, 172, PAPER_W - 80, 1); }
   if (E.breakT > 0) { g.textAlign = 'center'; g.fillStyle = '#6c6a80'; g.font = `800 44px ${F}`; g.fillText('쉬는 시간', PAPER_W / 2, 420); return; }
+  if (q.passage && E.holding && !E.ai && E.scan > 0.001 && E.scan < 1) { // 긴 지문: 스캔하는 동안은 지문 쪽을 훑는다. 절반에서 쪽을 넘긴다
+    const pg = E.scan < 0.5 ? 0 : 1, loc = pg ? (E.scan - 0.5) * 2 : E.scan * 2, lh = 46; g.textAlign = 'left'; g.font = `700 29px ${F}`;
+    const ls = wrapCanvas(g, q.passage[pg], PAPER_W - 150), upto = loc * ls.length, notes = pg ? ['반론', '쟁점', '→ 결론'] : ['전제', '근거', '구별'];
+    ls.forEach((ln, i) => { const y = 226 + i * lh, w = g.measureText(ln).width; if (i < Math.floor(upto)) { g.fillStyle = 'rgba(47,211,221,0.2)'; g.fillRect(52, y - 30, w + 8, 38); g.fillStyle = cyan; g.fillRect(52, y + 9, w + 8, 2); }
+      else if (i === Math.floor(upto)) { const f = upto - i; g.fillStyle = 'rgba(47,211,221,0.34)'; g.fillRect(52, y - 30, (w + 8) * f, 38); g.fillStyle = cyan; g.fillRect(52 + (w + 8) * f, y - 32, 3, 42); }
+      g.fillStyle = ink; g.fillText(ln, 56, y); });
+    g.font = `800 24px ${F}`; g.fillStyle = cyan; notes.forEach((nt, j) => { const at = Math.floor((j + 0.6) * ls.length / 3); if (at < upto) { const y = 226 + at * lh; g.fillText(nt, PAPER_W - 96, y); g.fillRect(PAPER_W - 104, y - 26, 2, 32); } });
+    g.textAlign = 'center'; g.fillStyle = '#6c6a80'; g.font = `700 24px ${F}`; g.fillText(`지문 ${pg + 1} / 2`, PAPER_W / 2, PAPER_H - 36);
+    if (pg === 1 && loc < 0.14) { const f = loc / 0.14, x = PAPER_W * (1 - f), gr = g.createLinearGradient(x - 90, 0, x + 30, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.22)'); gr.addColorStop(1, 'rgba(255,255,255,0.9)'); g.fillStyle = gr; g.fillRect(x - 90, 150, 120, PAPER_H - 150); g.fillStyle = bg; g.fillRect(x + 30, 150, PAPER_W, PAPER_H - 150); } // 쪽 넘김: 오른쪽에서 왼쪽으로 종이가 넘어온다
+    return; }
   // 문제: 길면 글자를 줄여서
   g.textAlign = 'left'; g.fillStyle = ink;
   const room = q.kind === 'captcha' ? 70 : q.kind === 'alien' ? 150 : q.kind === 'listen' ? 120 : 260;
@@ -635,6 +645,12 @@ function drawCounterFx(k, L, E, now, live) {
   const W = L.W, HH = L.H, b = k.b, T = E.T, p = E.pulse;
   if (E.wetT > 0 && E.ar) { const a = Math.min(1, E.wetT / 2); for (let i = 0; i < 9; i++) { const x = 60 + ((i * 197) % (W - 120)), y = 50 + ((i * 131) % (HH - 110)) + (8 - E.wetT) * (3 + i % 4); b.globalAlpha = 0.28 * a; k.disc(x, y, 5 + i % 4, '#cfeaff'); b.globalAlpha = 0.5 * a; k.disc(x - 1.5, y - 1.5, 1.5, '#ffffff'); } b.globalAlpha = 1; } // 렌즈의 물방울
   if (live && p && T.pulse === 'alert' && p.warn > 0) { const on = Math.floor(now * 7) % 2; b.globalAlpha = on ? 0.3 : 0.12; k.R(0, 0, 46, HH, '#ffcf5a'); k.R(W - 46, 0, 46, HH, '#ffcf5a'); b.globalAlpha = 1; k.SUB('(교실 여기저기서 재난문자 경보음이 울린다)', W / 2, HH - 48, 11, '#ffffff', 'center'); }
+  if (live && E.cover) { const L0 = E.cover === 'L', x0 = L0 ? 0 : W - 92; b.globalAlpha = 0.5; k.R(L0 ? 0 : W - 130, 0, 130, HH, '#000000'); b.globalAlpha = 1; // 귀 가리기: 그쪽 화면 가장자리에 손이 올라온다
+    k.R(x0, 70, 92, 190, '#d98a55'); k.R(x0 + (L0 ? 92 : -14), 96, 14, 150, '#d98a55'); for (let i = 0; i < 4; i++) k.R(x0 + (L0 ? 20 : 8), 92 + i * 42, 64, 3, '#b56f3f'); k.SUB('귀 가리는 중 · 받아 적기 멈춤', W / 2, HH - 48, 11, '#ffffff', 'center'); }
+  else if (live && typeof earCheck === 'function' && earCheck()) { const s0 = earCheck(), L0 = s0.side === 'L', on = Math.floor(now * 6) % 2; b.globalAlpha = on ? 0.45 : 0.2; k.R(L0 ? 0 : W - 40, 0, 40, HH, '#ff5a5a'); b.globalAlpha = 1; k.SUB(`${L0 ? '◀ 왼쪽' : '오른쪽 ▶'}에서 귀 확인`, W / 2, HH - 48, 12, '#ffd0d0', 'center'); }
+  if (live && E.family && E.family.phase !== 'idle') { const f = E.family, inn = f.phase === 'in'; // 가족 난입: 왼쪽에 방문이 열리고 사람이 서 있다
+    k.R(0, 40, inn ? 96 : 26, HH - 80, '#ffe2a8'); if (inn) { k.R(30, 96, 40, 40, '#3a2a22'); k.R(34, 104, 32, 30, '#f0c7a0'); k.R(22, 136, 56, 110, '#c85a6a'); k.R(28, 150, 44, 70, '#f4efe6'); k.R(8, 176, 30, 8, '#e9e2d0'); k.R(12, 168, 8, 8, '#e8453e'); k.R(22, 168, 8, 8, '#f0a030'); k.R(38, 246, 12, 34, '#2b2f3d'); k.R(52, 246, 12, 34, '#2b2f3d');
+      b.globalAlpha = 0.9; k.R(W / 2 - 150, 52, 300, 22, '#b3261e'); b.globalAlpha = 1; k.T('웹캠에 다른 사람이 잡혔다', W / 2, 63, 11, '#ffffff', 'center', 800); if (f.shoo > 0) { k.R(W / 2 - 60, 80, 120, 4, '#3a3548'); k.R(W / 2 - 60, 80, Math.round(120 * Math.min(1, f.shoo / 0.7)), 4, '#8dffa8'); } } }
   if (live && p && T.pulse === 'emp') {
     if (p.warn > 0) k.SUB('(천장 장치가 윙— 하고 충전된다)', W / 2, HH - 48, 11, '#ffffff', 'center');
     if (p.active > 0) { const f = 1 - p.active / 0.6, S = k.S || HUD_SCALE; b.save(); b.setTransform(S, 0, 0, S, 0, 0); b.globalAlpha = 0.25 * (1 - f); b.fillStyle = '#9fd0ff'; b.fillRect(0, 0, W, HH); b.globalAlpha = 0.9 * (1 - f); b.strokeStyle = '#cfe6ff'; b.lineWidth = 5; b.beginPath(); b.arc(W / 2, HH * 0.3, 20 + f * W * 0.75, 0, 7); b.stroke(); b.lineWidth = 1.5; b.beginPath(); b.arc(W / 2, HH * 0.3, 60 + f * W * 0.85, 0, 7); b.stroke(); b.restore(); b.globalAlpha = 1 - f; k.R(0, HH * 0.42, W, 4, '#ffffff'); k.R(0, HH * 0.66, W, 2, '#ffffff'); b.globalAlpha = 1; }
@@ -677,7 +693,8 @@ function drawEssayPanel(k, L, E, now, q) {
     else if (i === es.done && es.mem > 0) k.T(ln, x + 10, yy, 9.5, '#ffffff', 'left', 800);
     else { redact(k, x + 10, yy, Math.min(w - 24, k.TW(ln, 9, 700) + 10), i === es.done ? 0.55 : 0.28); if (i === es.done && es.r > 0) k.R(x + 10, yy + 6, Math.round((w - 24) * es.r), 1.5, C1); } });
   const my = y + h - 10; k.M('기억', x + 10, my, 7, '#ffffff', 'left', 500); k.b.globalAlpha = 0.3; k.R(x + 34, my - 1.5, w - 46, 3, '#ffffff'); k.b.globalAlpha = 1; k.R(x + 34, my - 1.5, Math.round((w - 46) * Math.max(0, es.mem) / tune.essay_mem), 3, es.mem < 1.5 ? '#ff6a6a' : '#ffcf5a');
-  if (E.holding) k.SUB(es.mem > 0 ? '옮겨 쓰는 중' : '읽는 중…', L.W / 2, L.H - 26, 10, es.mem > 0 ? '#8dffa8' : '#ffcf7a', 'center');
+  if (E.holding) k.SUB(es.mem > 0 ? '옮겨 쓰는 중' : '읽는 중…', L.W / 2, L.H - 26, 10, es.mem > 0 ? '#8dffa8' : '#ffcf7a', 'center'); else if (es.erase > 0) k.SUB('급히 지우는 중…', L.W / 2, L.H - 26, 10, '#ff9a9a', 'center');
+  { const tot = Math.round(clamp((es.done + es.w) / n, 0, 1) * 100), bx = L.W / 2 - 80; k.b.globalAlpha = 0.35; k.R(bx, 62, 160, 3, '#ffffff'); k.b.globalAlpha = 1; k.R(bx, 62, Math.round(160 * tot / 100), 3, tot >= 60 ? '#8dffa8' : '#ffcf5a'); k.M(`분량 ${tot}%`, bx + 164, 63.5, 7, '#ffffff', 'left', 500); } // 채운 분량이 곧 점수
 }
 // ---- LEET 쉬는 시간: 계단 질주 ----
 function drawStairsHud(k, L, E, now) {
@@ -800,6 +817,7 @@ function drawExamHud(k, L, E, now, H) {
   }
   if (live && E.staff.some(s => s.phase === 'peek' && s.peek.stage === 'sneak') && E.gear.predict >= 2) { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('발소리가 사라졌다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; } // 시선 예측 2단계부터 경고
   // 떠다니는 안내 글자는 쓰지 않는다: 소리와 화면 속 움직임으로 안다
+  if (E.say && !E.caught && !E.over) { const a = E.say.t < 2.4 ? 1 : Math.max(0, (3 - E.say.t) / 0.6); k.b.globalAlpha = a; const tw = k.TW(E.say.text, 11, 800) + 24; k.b.globalAlpha = a * 0.78; k.R(L.W / 2 - tw / 2, L.H - 96, tw, 20, '#0a0a0e'); k.b.globalAlpha = a; k.T(E.say.text, L.W / 2, L.H - 86, 11, E.say.col || '#ffffff', 'center', 800); k.b.globalAlpha = 1; } // 사건 알림: 검은 띠 위의 한 줄
   if (false && E.flash) { const a = E.flash.t < 1.2 ? 1 : (1.6 - E.flash.t) / 0.4; k.b.globalAlpha = a; TO(E.flash.text, L.W / 2, 96, 14, E.flash.col || C.warn); k.b.globalAlpha = 1; }
   const sec = Math.max(0, Math.ceil(E.timeLeft));
   if (deadHud) drawDeadHud(k, L, E, now, ST, sec); else if (ST !== 'none') { drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q); drawStageFx(k, L, E, now, ST, INK, live, q); }
@@ -852,9 +870,9 @@ function drawExamOverlays(k, L, E, now, H) {
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
-      webcam: '웹캠에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '공기 방울이 솟음', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음' }[E.caughtHow] || `${who.name}에게 걸림`;
-    drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
-    k.SUB(`${who.name}: ${E.caughtHow === 'alert' ? '"방금 울린 거, 수험생 폰이죠?"' : CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
+      webcam: '웹캠에 찍힘', family: '웹캠에 다른 사람이 계속 잡힘', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '공기 방울이 솟음', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음' }[E.caughtHow] || `${who.name}에게 걸림`;
+    drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: E.caughtHow === 'mole' ? '암행 적발' : '적발', lines: ['LENS-OS 0.9b', E.caughtHow === 'mole' ? '앞자리 수험생 .... 감독관이었음' : `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
+    k.SUB(E.caughtHow === 'mole' ? '앞자리 수험생: "시험관리위원회 암행 감독관입니다. 안경 벗으세요."' : `${who.name}: ${CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
     k.SUB(why, L.W / 2, L.H - 42, 9, '#e8e4da', 'center');
   }
 }
