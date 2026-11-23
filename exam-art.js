@@ -829,12 +829,17 @@ function drawExamHud(k, L, E, now, H) {
   }
   if (live && E.staff.some(s => s.phase === 'peek' && s.peek.stage === 'sneak') && E.gear.predict >= 2) { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('발소리가 사라졌다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; }
   if (live && E.mole && E.mole.phase === 'tell') { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('앞자리 의자가 들썩인다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; } // 비밀 감독관이 돌아보기 직전
-  if (live && E.mole && E.gear.predict >= 4 && WORLD.moleRect) { const r = WORLD.moleRect(); // 감독관 동선 AI: 앞자리 사람에게 분석 창이 붙어 언제 돌아볼지 예측한다
-    if (r && r.h > 30) { const m = E.mole, col = m.phase === 'look' ? '#ff5a5a' : m.phase === 'tell' ? '#ffcf5a' : '#7fe9ff', soon = m.phase === 'idle' && m.t < 6, lx = Math.max(8, r.x - 120), ly = r.y + 4, q0 = 9;
+  if (live && E.mole && E.gear.predict >= 4 && WORLD.moleRect) { const r0 = WORLD.moleRect(), r = r0 && r0.h > 30 && r0.y + r0.h > 20 && r0.y < L.H - 20 ? r0 : null, m = E.mole; // 감독관 동선 AI: 들썩인 뒤 언제 돌아볼지를 센다. 앞을 볼 때는 앞자리 사람에게 붙고, 시험지를 볼 때는 화면 위쪽에 붙는다
+    const col = m.phase === 'look' ? '#ff5a5a' : m.phase === 'tell' ? '#ffcf5a' : '#7fe9ff', txt = m.phase === 'look' ? '주시 중' : m.phase === 'tell' ? `돌아봄까지 ${Math.max(0, m.t).toFixed(1)}초` : '움직임 없음', f = m.phase === 'tell' ? clamp(1 - m.t / (m.tell || 2), 0, 1) : m.phase === 'look' ? 1 : 0;
+    if (r) { const lx = Math.max(8, r.x - 120), ly = r.y + 4, q0 = 9;
       hudDraw(k, c => { c.strokeStyle = col; c.lineWidth = 1.5; c.beginPath(); for (const [cx, cy, dx, dy] of [[r.x, r.y, 1, 1], [r.x + r.w, r.y, -1, 1], [r.x, r.y + r.h, 1, -1], [r.x + r.w, r.y + r.h, -1, -1]]) { c.moveTo(cx + dx * q0, cy); c.lineTo(cx, cy); c.lineTo(cx, cy + dy * q0); } c.stroke();
         c.globalAlpha = 0.6; c.beginPath(); c.moveTo(r.x, r.y + 12); c.lineTo(lx + 108, ly + 8); c.stroke(); c.globalAlpha = 1; c.fillStyle = 'rgba(6,20,26,0.82)'; c.fillRect(lx, ly, 108, 38); c.fillStyle = col; c.fillRect(lx, ly, 2, 38);
-        if (soon) { c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(lx + 8, ly + 30, 92, 3); c.globalAlpha = 1; c.fillStyle = col; c.fillRect(lx + 8, ly + 30, 92 * (1 - m.t / 6), 3); } });
-      k.M('앞자리 분석', lx + 8, ly + 9, 7.5, col, 'left', 700); k.M(m.phase === 'look' ? '주시 중' : m.phase === 'tell' ? '곧 돌아봄' : soon ? `돌아봄 예측 ${m.t.toFixed(1)}초` : '움직임 없음', lx + 8, ly + 21, 9, '#ffffff', 'left', 700); } }
+        if (f > 0) { c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(lx + 8, ly + 30, 92, 3); c.globalAlpha = 1; c.fillStyle = col; c.fillRect(lx + 8, ly + 30, 92 * f, 3); } });
+      k.M('앞자리 분석', lx + 8, ly + 9, 7.5, col, 'left', 700); k.M(txt, lx + 8, ly + 21, 9, '#ffffff', 'left', 700); }
+    else if (m.phase !== 'idle') { const lx = L.W / 2 - 90, ly = 112; // 시험지를 보는 중: 앞자리가 화면 밖(위)에 있으니 위를 가리키는 창으로
+      hudDraw(k, c => { c.fillStyle = 'rgba(6,20,26,0.86)'; c.fillRect(lx, ly, 180, 34); c.fillStyle = col; c.fillRect(lx, ly, 180, 2); c.beginPath(); c.moveTo(L.W / 2 - 6, ly); c.lineTo(L.W / 2, ly - 7); c.lineTo(L.W / 2 + 6, ly); c.fill();
+        c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(lx + 8, ly + 27, 164, 3); c.globalAlpha = 1; c.fillStyle = col; c.fillRect(lx + 8, ly + 27, 164 * f, 3); });
+      k.M('▲ 앞자리 분석', lx + 8, ly + 10, 7.5, col, 'left', 700); k.M(txt, lx + 172, ly + 10, 9, '#ffffff', 'right', 700); } }
   if (live && E.T.mech.includes('lookcount')) { const n = E.looks || 0, lim = E.T.lookLimit || 10, hot = n >= lim - 2, tw = 118; k.b.globalAlpha = 0.8; k.R(26, 64, tw, 18, hot ? '#5a1014' : '#0a0a0e'); k.b.globalAlpha = 1; k.M(`시선 이탈 ${n} / ${lim}`, 26 + tw / 2, 73.5, 9.5, hot ? '#ff8a8a' : '#ffffff', 'center', 700); } // 홈에디션: 감독 프로그램이 화면 밖을 본 횟수를 센다 // 시선 예측 2단계부터 경고
   // 떠다니는 안내 글자는 쓰지 않는다: 소리와 화면 속 움직임으로 안다
   if (E.say && !E.caught && !E.over) { const a = E.say.t < 2.4 ? 1 : Math.max(0, (3 - E.say.t) / 0.6); k.b.globalAlpha = a; const tw = k.TW(E.say.text, 11, 800) + 24; k.b.globalAlpha = a * 0.78; k.R(L.W / 2 - tw / 2, L.H - 96, tw, 20, '#0a0a0e'); k.b.globalAlpha = a; k.T(E.say.text, L.W / 2, L.H - 86, 11, E.say.col || '#ffffff', 'center', 800); k.b.globalAlpha = 1; } // 사건 알림: 검은 띠 위의 한 줄

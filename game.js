@@ -727,7 +727,7 @@ function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생
   if (T.mech.includes('mole')) { // 앞자리 비밀 감독관: 의자가 들썩이고, 잠시 뒤 뒤돌아본다
     const m = E.mole || (E.mole = { phase: 'idle', t: between(7, 12), k: 0 }); m.t -= dt; m.k += dt;
     if (m.t <= 0) { m.k = 0;
-      if (m.phase === 'idle') { m.phase = 'tell'; m.t = E.tier > 24 ? 0.8 : E.tier > 20 ? 1.0 : 1.2; sfx.hand(); }
+      if (m.phase === 'idle') { m.phase = 'tell'; m.t = m.tell = between(1.6, 3.4) * (E.tier > 24 ? 0.65 : E.tier > 20 ? 0.8 : 1); sfx.hand(); } // 들썩인 뒤 돌아보기까지는 매번 다르다: 장비가 없으면 언제인지 모른다
       else if (m.phase === 'tell') { m.phase = 'look'; m.t = 2.0; sfx.cctv(); }
       else { m.phase = 'idle'; m.t = between(8, 14); } }
   }
