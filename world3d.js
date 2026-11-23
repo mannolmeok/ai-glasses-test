@@ -202,7 +202,7 @@ const WORLD = (() => {
     m.visible = false; return m;
   }
   function makeHuman(o) {
-    const root = new THREE.Group(), body = pivot(root, 0, 0, 0), legs = [], arms = [], skin = o.skin || SKIN;
+    const root = new THREE.Group(), body = pivot(root, 0, 0, 0), legs = [], arms = [], props = [], skin = o.skin || SKIN;
     if (o.big) body.scale.setScalar(o.big);
     for (const s of [-1, 1]) {
       const p = pivot(body, s * 0.08, 0.84, 0);
@@ -225,7 +225,7 @@ const WORLD = (() => {
       if (s > 0 && o.prop === 'wand') { bx(p, 0.035, 0.32, 0.035, 0x1d1d22, 0, -0.68, 0.1); bx(p, 0.06, 0.08, 0.05, 0xe7c13a, 0, -0.84, 0.12); }
       if (s > 0 && o.prop === 'clipboard') { bx(p, 0.2, 0.26, 0.015, 0x8a5a32, 0, -0.62, 0.08); bx(p, 0.17, 0.2, 0.004, 0xf4f1e6, 0, -0.63, 0.09); }
       if (s > 0 && o.prop === 'mug') { bx(p, 0.07, 0.09, 0.07, 0xf4f4f0, 0, -0.66, 0.06); bx(p, 0.02, 0.05, 0.03, 0xf4f4f0, 0.045, -0.66, 0.06); }
-      if (s < 0 && o.prop === 'book') { bx(p, 0.16, 0.22, 0.03, 0xf4efe2, 0, -0.62, 0.08); bx(p, 0.02, 0.22, 0.035, 0xc45f54, 0, -0.62, 0.08); }
+      if (s < 0 && o.prop === 'book') props.push(bx(p, 0.16, 0.22, 0.03, 0xf4efe2, 0, -0.62, 0.08), bx(p, 0.02, 0.22, 0.035, 0xc45f54, 0, -0.62, 0.08));
       arms.push(p);
     }
     bx(body, 0.08, 0.06, 0.08, skin, 0, 1.45, 0);
@@ -252,7 +252,7 @@ const WORLD = (() => {
     if (o.beard) bx(head, 0.16, 0.12, 0.06, o.beard, 0, -0.14, 0.08);
     else bx(head, 0.05, 0.012, 0.01, 0x9a5a4a, 0, -0.07, 0.108);
     const cone = gazeCone(); cone.position.set(0, 0.02, 0.11); head.add(cone);
-    return { root, body, legs, arms, head, cone, look: o, yaw: Math.PI, headYaw: 0, headPitch: 0, last: 0 };
+    return { root, body, legs, arms, props, head, cone, look: o, yaw: Math.PI, headYaw: 0, headPitch: 0, last: 0 };
   }
   function makeRobot() {
     const root = new THREE.Group(), M = 0x9aa3b8, M2 = 0x6c7590;
@@ -310,6 +310,10 @@ const WORLD = (() => {
       else if (crossArms) { m.arms[0].rotation.set(-1.05, 0, 0.55); m.arms[1].rotation.set(-1.05, 0, -0.55); }
       else if (o.raise) { m.arms[0].rotation.set(-sw * 0.35, 0, 0); m.arms[1].rotation.set(-0.5, 0, 0); }
       else { m.arms[0].rotation.set(-sw * 0.35, 0, 0); m.arms[1].rotation.set(o.phase === 'watch' && !m.robot ? -0.35 : sw * 0.35, 0, 0); }
+      const H = o.hold, grab = H ? Math.max(H.reach, H.lift) : 0; // 바칼로레아: 몸을 숙여 답안지를 집고, 두 손으로 들어 읽는다
+      if (H && m.arms.length > 1) { const ax = lerp(lerp(m.arms[0].rotation.x, -0.62, H.reach), -0.86, H.lift); m.arms[0].rotation.set(ax, 0, 0.13 * grab); m.arms[1].rotation.set(ax, 0, -0.13 * grab); }
+      if (m.body && !m.robot) m.body.rotation.x = H ? 0.2 * H.reach * (1 - H.lift) : 0;
+      if (m.props) for (const pp of m.props) pp.visible = grab < 0.05;
       if (m.visorMat) m.visorMat.color.setHex(o.phase === 'watch' ? 0xff2e47 : o.phase === 'tell' ? 0xc03040 : 0x7a1f2c);
     }
     const c = m.cone;
@@ -444,6 +448,8 @@ const WORLD = (() => {
     const pw = tablet ? 0.27 : 0.31, ph = tablet ? 0.38 : 0.43;
     if (tablet) { const b = pivot(sc, MY.x, 0.744, MY.z - 0.02); bx(b, pw + 0.03, 0.012, ph + 0.03, 0x1a1c22, 0, 0, 0); }
     const paper = plane(sc, pw, ph, (PXD ? new THREE.MeshBasicMaterial({ map: paperTex.t, color: 0xf2ece0 }) : new THREE.MeshLambertMaterial({ map: paperTex.t })), MY.x, tablet ? 0.752 : 0.744, MY.z - 0.02, -Math.PI / 2);
+    if (!tablet) plane(paper, pw, ph, PXD ? new THREE.MeshBasicMaterial({ color: 0xe9e3d6 }) : new THREE.MeshLambertMaterial({ color: 0xeee8da, emissive: 0x4a4438 }), 0, 0, -0.0015, 0, Math.PI); // 뒷면: 누가 집어 들면 내 쪽에서는 빈 뒷면이 보인다
+    paper.userData.home = { p: paper.position.clone(), r: paper.rotation.clone() };
     const ticket = canvasTex(128, 80, false);
     { const g = ticket.g; g.fillStyle = '#eef4f8'; g.fillRect(0, 0, 128, 80); g.fillStyle = '#2b5f8a'; g.fillRect(0, 0, 128, 16); g.fillStyle = '#ffffff'; g.font = `800 11px ${FONT}`; g.fillText('수 험 표', 44, 12); g.fillStyle = '#2a2838'; g.font = `700 10px ${FONT}`; g.fillText('수험번호 ' + (31000000 + ti * 1234567), 8, 36); g.fillText('성명  김수험', 8, 54); g.fillStyle = '#c9b8a6'; g.fillRect(92, 26, 28, 36); ticket.t.needsUpdate = true; }
     plane(sc, 0.11, 0.07, psx(new THREE.MeshLambertMaterial({ map: ticket.t })), MY.x - 0.24, 0.743, MY.z - 0.16, -Math.PI / 2);
@@ -730,6 +736,7 @@ const WORLD = (() => {
     EX.clock.t.needsUpdate = true;
   }
   const SEATS = { 1: [0], 2: [-0.45, 0.45], 3: [-0.9, 0, 0.9] };
+  const sheetK = c => { const e = c.e || 0, d = c.dur || 4; return { reach: clamp(e / 0.3, 0, 1) * clamp((d - e) / 0.3, 0, 1), lift: ease(clamp((e - 0.3) / 0.5, 0, 1)) * (1 - ease(clamp((e - (d - 0.65)) / 0.4, 0, 1))) }; }; // 장학관 손: 뻗기·들어 올리기
   function staffPlace(s, i, E) { // 게임 규칙의 위치(왼쪽·오른쪽 통로, 앞뒤 u, 자리)를 방 좌표로
     const T = E.T;
     if (s.fixed) {
@@ -763,6 +770,8 @@ const WORLD = (() => {
   function renderExam(E, now) {
     if (!W.ok) return;
     buildExam(E.tier);
+    const shS = EX.my && EX.views && E.staff.find(s => s.check && s.check.kind === 'sheet');
+    if (shS) { const dx = EX.my.x + (shS.side === 'L' ? -0.3 : 0.3) - EX.eye.x, dz = EX.my.z - 0.62 - EX.eye.z; EX.views.sheet = { yaw: Math.atan2(-dx, -dz) * 0.85, pitch: Math.atan2(1.34 - EX.eye.y, Math.hypot(dx, dz)), fov: 60 }; } // 답안지를 든 장학관 쪽으로 고개를 든다
     const V = EX.views, a = V[E.prevView] || V.paper, b = V[E.view] || V.paper, k = ease(clamp(E.viewT, 0, 1)), cam = EX.cam;
     cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003;
     cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004;
@@ -770,7 +779,7 @@ const WORLD = (() => {
     const predict = E.gear.predict > 0 || (E.gear.thirdeye > 0 && E.T.mech.includes('threeeyes'));
     // 평행우주: 늘어난 감독관 모델을 만든다
     while (EX.staff.length < E.staff.length) { const s = E.staff[EX.staff.length], m = makeStaff(s.type); if (m) { m.root.traverse(o => { if (o.material && o.material.color && o.material !== m.cone.material) { o.material = o.material.clone(); o.material.color.offsetHSL(0.1 * EX.staff.length, 0, 0); } }); EX.scene.add(m.root); } EX.staff.push(m); }
-    let helping = null;
+    let helping = null, sheetAt = null;
     for (let i = E.staff.length; i < EX.staff.length; i++) if (EX.staff[i]) EX.staff[i].root.visible = false;
     E.staff.forEach((s, i) => {
       let m = EX.staff[i];
@@ -783,8 +792,9 @@ const WORLD = (() => {
       const frisk = i === 0 && E.intro && E.intro.kind === 'metal' && m.arms && m.arms.length > 1; // 입실 검사: 감독관이 내 앞 통로에 서서, 손에 든 탐지봉으로 나를 훑는다
       if (frisk) { const sw = ease(clamp((E.intro.t - 0.5) / 2.2, 0, 1)), fx = EX.eye.x - 0.62, fz = EX.eye.z - 1.5, face = Math.atan2(EX.eye.x - fx, EX.eye.z - fz), swing = lerp(0.34, -0.3, sw);
         p.x = fx; p.z = fz; p.yaw = face + swing; p.moving = false; p.headPitch = 0.14; p.hiddenNow = false; p.seated = false; }
-      poseModel(m, { x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
-        predict: predict && !s.asleep, asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
+      const hold = s.phase === 'check' && s.check && s.check.kind === 'sheet' && s.check.stage === 'at' ? sheetK(s.check) : null; if (hold) sheetAt = { p, hold };
+      poseModel(m, { hold, x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
+        predict: predict && !s.asleep && !hold, asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
       if (frisk) { const W2 = EX.gadget.wand, mt = E.intro.t; if (W2.parent !== m.arms[1]) { m.arms[1].add(W2); W2.position.set(0, -1.02, 0.1); W2.rotation.set(Math.PI / 2, 0, 0); W2.scale.setScalar(0.9); }
         m.arms[1].rotation.set(-1.17 + Math.sin(mt * 4.2) * 0.05, 0, 0); m.arms[0].rotation.set(0, 0, 0); W2.visible = true; }
       if (GEN_ROOM && !m.robot && m.type !== 'omega') { // 상자 몸 대신 걷는 동작이 들어간 생성 모델
@@ -805,6 +815,12 @@ const WORLD = (() => {
         }
       }
     });
+    if (EX.paper && EX.paper.userData.home && !EX.home) { const P0 = EX.paper, h0 = P0.userData.home; // 바칼로레아: 답안지가 책상에서 장학관 손으로 올라갔다 내려온다
+      if (sheetAt && sheetAt.hold.lift > 0) { const { p, hold } = sheetAt, k = hold.lift, yw = p.yaw || 0, hx = p.x + Math.sin(yw) * 0.42, hz = p.z + Math.cos(yw) * 0.42;
+        let yH = yw + Math.PI; yH = ((yH + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+        P0.rotation.order = 'YXZ'; P0.position.set(lerp(h0.p.x, hx, k), lerp(h0.p.y, 1.2, k) + Math.sin(k * Math.PI) * 0.08, lerp(h0.p.z, hz, k));
+        P0.rotation.set(lerp(h0.r.x, -0.5 + Math.sin(now * 0.9) * 0.04 * k, k), lerp(0, yH, k), Math.sin(now * 1.7) * 0.025 * k); P0.userData.moved = true; }
+      else if (P0.userData.moved) { P0.position.copy(h0.p); P0.rotation.order = 'XYZ'; P0.rotation.copy(h0.r); P0.userData.moved = false; } }
     if (EX.raise) { // 손 든 수험생
       EX.raise.visible = !!helping;
       if (helping) { const tx = (helping.side === 'L' ? EX.AL : EX.AR) + (helping.side === 'L' ? -0.6 : 0.6); EX.raise.position.set(tx, 1.05 + Math.sin(now * 5) * 0.02, zOf(helping.help.u) + 0.3); }

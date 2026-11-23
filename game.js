@@ -413,6 +413,7 @@ function viewInput(taps) { // 화면 왼쪽·오른쪽·위를 누르고 있는 
   if (E.layout === 'table') return;
   if (FORCE_VIEW) { setView(FORCE_VIEW); return; }
   if (E.evict && E.evict.t < 3.6) { setView('front'); return; } // 앞자리가 끌려 나가는 동안은 그쪽을 보게 된다
+  if (E.sheetLook) { setView('sheet'); return; } // 장학관이 답안지를 들어 읽는 동안은 고개가 그쪽으로 따라 올라간다
   { const q = E.qs && E.qs[E.qi]; if (q && q.kind === 'listen' && G.gear.earbud > 0 && G.gear.earbud < 4 && !E.ai) { setView('paper'); return; } } // 듣기 중에는 고개를 돌리지 않고 귀를 가린다
   const front = E.layout === 'room' ? 'front' : 'paper'; let z = null;
   for (const p of ptrs.values()) if (p.zone === 'L' || p.zone === 'R' || p.zone === 'T') z = p.zone;
@@ -624,10 +625,12 @@ function stepFixed(s, T, dt) { // 앞에 앉은 면접관·심사위원·염라�
 function stepStaff(s, T, dt) {
   if (s.blink > 0) { s.blink -= dt; return; }
   if (s.visit) { // 교수님은 불쑥 들어오고, 선생님은 커피 가지러 나간다
-    if (s.out) { s.outT -= dt; if (s.outT <= 0) { s.out = false; s.inT = between(tune.visit_in_min, tune.visit_in_max); s.u = 0.94; s.dir = -1; setPhase(s, 'walk', procDur(T.walk)); sfx.door(); flash(`${s.name} 들어옴`, PAL.bad); if (T.id === 'bac') { E.sheetT = 3.4; say(`${s.name}이 답안지를 집어 들어 읽는다 · 그동안 쓸 수 없다`, PAL.warn); } } return; }
+    if (s.out) { s.outT -= dt; if (s.outT <= 0) { s.out = false; s.inT = between(tune.visit_in_min, tune.visit_in_max); s.u = 0.94; s.dir = -1; setPhase(s, 'walk', procDur(T.walk)); sfx.door(); flash(`${s.name} 들어옴`, PAL.bad); if (T.id === 'bac') s.sheetIn = 1.0; } return; }
     s.inT -= dt;
     if (s.inT <= 0 && (s.phase === 'stand' || s.phase === 'walk')) { s.out = true; s.outT = between(tune.visit_out_min, tune.visit_out_max); sfx.door(); flash(`${s.name} 나감`, PAL.good); return; }
   }
+  if (s.sheetIn > 0 && s.phase !== 'check') { s.sheetIn -= dt; if (s.sheetIn <= 0) { // 바칼로레아: 장학관이 내 자리로 와서 답안지를 집어 든다
+    s.help = null; s.peek = null; s.from = null; s.check = { kind: 'sheet', stage: 'go', k: 0, t: 0, u0: s.u, go: clamp(Math.abs(s.u - 0.5) * 3, 1.2, 2.2) }; s.phase = 'check'; s.t = 0; say(`${s.name}이 내 자리로 온다`, PAL.warn); } }
   s.t += dt;
   if (s.type === 'webcam') return stepWebcam(s, T, dt);
   if (s.phase === 'help') { // 손 든 수험생에게 가 있는 동안은 나를 못 본다
@@ -644,9 +647,15 @@ function stepStaff(s, T, dt) {
   }
   if (s.phase === 'check') { // 내 책상 앞으로 와서 수험표·계산기를 본다
     const c = s.check;
-    if (c.stage === 'go') { c.k = Math.min(1, c.k + dt / 1.1); s.walk += dt; s.stepT += dt; if (s.stepT >= tune.footstep_gap) { s.stepT = 0; footstep(s, 1); } if (c.k >= 1) { c.stage = 'at'; c.t = tune.check_time; sfx.beep(); } }
+    if (c.stage === 'go') { c.k = Math.min(1, c.k + dt / (c.go || 1.1)); s.walk += dt; s.stepT += dt; if (s.stepT >= tune.footstep_gap) { s.stepT = 0; footstep(s, 1); } if (c.k >= 1) { c.stage = 'at'; c.t = tune.check_time; if (c.kind === 'sheet') { c.t = c.dur = between(3.8, 4.6); c.e = 0; } else sfx.beep(); } }
     else if (c.stage === 'at') {
       c.t -= dt;
+      if (c.kind === 'sheet') { // 손을 뻗어 집어 들고(0.3초~) 읽다가 내려놓는다. 들고 있는 동안은 쓸 수 없고, 고개도 그쪽으로 들게 된다
+        const e0 = c.e; c.e += dt; E.sheetUp = c.e > 0.3; E.sheetLook = c.e > 0.45 && c.e < c.dur - 0.35;
+        if (e0 <= 0.3 && c.e > 0.3) { sfx.flip(); say(`${s.name}이 답안지를 집어 들어 읽는다 · 그동안 쓸 수 없다`, PAL.warn); }
+        if (e0 <= c.dur - 0.65 && c.e > c.dur - 0.65) sfx.flip();
+        if (c.t <= 0) { E.sheetUp = false; E.sheetLook = false; }
+      }
       if (c.t <= 0) {
         if (T.check === 'calc') { const add = tune.calc_sus * gearCut(G.gear.calccover); if (add > 0.005) { E.sus = Math.min(1, E.sus + add); E.source = { how: 'check', by: s }; flash(`계산기가 수상하다! 의심도 +${Math.round(add * 100)}%`, PAL.bad); } else flash('계산기 검사 통과', PAL.good); }
         c.stage = 'back';
@@ -785,12 +794,12 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
     if (s.fixed && T.mech.includes('bolt')) continue; // 제우스는 지켜보지 않는다: 번개만 던진다
     let k = 0;
     if (s.phase === 'watch') k = 1; else if (s.phase === 'tell') k = tune.tell_ratio;
-    else if (s.phase === 'check') k = s.check.stage === 'at' ? tune.check_rate : s.check.stage === 'go' ? tune.tell_ratio : 0;
+    else if (s.phase === 'check') k = s.check.kind === 'sheet' ? 0 : s.check.stage === 'at' ? tune.check_rate : s.check.stage === 'go' ? tune.tell_ratio : 0;
     else if (T.mech.includes('threeeyes') && s.type === 'alien') k = tune.peripheral * gearCut(g.thirdeye); // 세 번째 눈은 등을 돌려도 본다
     if (s.type === 'webcam') k *= gearCut(g.deepcam);
     else if (table && s.fixed) k *= Math.max(0, 1 - g.gazefix * tune.gaze_cut);
     add(base * k, s.phase === 'check' ? 'check' : s.type === 'webcam' ? 'webcam' : 'watch', s);
-    if (s.phase === 'check' && s.check.stage === 'at' && E.ai && !E.fb && g.autooff < 1) idle += base * tune.glow_rate;          // 렌즈에 뜬 AI 답이 보인다
+    if (s.phase === 'check' && s.check.stage === 'at' && s.check.kind !== 'sheet' && E.ai && !E.fb && g.autooff < 1) idle += base * tune.glow_rate;          // 렌즈에 뜬 AI 답이 보인다
     if (s.type === 'webcam' && s.phase === 'watch' && E.view !== 'paper') idle += base * tune.look_away_rate * gearCut(g.deepcam); // 웹캠 앞에서 딴 데 보기
   }
   if (E.family && E.family.phase === 'in') { idle += base * 0.5; if (!src) src = { v: 0, how: 'family', by: E.staff[0] }; } // 웹캠에 제3자가 잡혀 있는 동안은 가만히 있어도 의심이 오른다
@@ -955,7 +964,7 @@ function updateExam(dt) {
   if (essay) { // 서술형: 한 줄 읽기(위험) → 그 줄 옮겨 쓰기(안전). 읽은 줄은 손을 떼고 있으면 잊는다
     if (!E.es || E.es.q !== q) E.es = { q, done: 0, r: 0, w: 0, mem: 0 };
     const es = E.es;
-    if (E.sheetT > 0) E.sheetT -= dt; // 장학관이 답안지를 들고 있는 동안은 쓰지도 지우지도 못한다
+    if (E.sheetUp) { } // 장학관이 답안지를 들고 있는 동안은 쓰지도 지우지도 못한다
     else if (hold) { if (es.mem <= 0) { es.r += dt / tune.essay_read; if (es.r >= 1) { es.r = 0; es.mem = tune.essay_mem; sfx.elim(); } }
       else { es.w += dt / tune.essay_write; E.tick += dt; if (E.tick > 0.14) { E.tick = 0; sfx.pencil(); } if (es.w >= 1) { es.w = 0; es.mem = 0; es.done++; G.hints.essay = true; if (es.done >= q.lines.length) { E.wasHold = hold; markAnswer(q.answer, 'essay'); } } } }
     else { es.r = 0; if (es.mem > 0) { es.mem -= dt; if (es.mem <= 0) es.mem = 0; }
@@ -999,7 +1008,7 @@ function updateExam(dt) {
     if (sp.said >= N - 1e-6) { E.wasHold = hold; if (gz) ivDone(clamp(1 - sp.stam * 0.22 - sp.live * 0.2 * (g.deepcam > 0 ? 0.5 : 1), 0, 1), { 유창함: +sp.stam.toFixed(1), 시선: +sp.live.toFixed(1) }); else markAnswer(sp.stam <= tune.speak_stam ? 0 : 2, 'speak'); }
     else if (sp.stam > tune.speak_stam + 4) { E.wasHold = hold; markAnswer(3, 'speak'); } // 너무 오래 말이 없으면 면접관이 다음 질문으로 넘어간다
   }
-  const risky = hold; // 서술형도 감독관이 볼 때 읽거나 쓰고 있으면 의심이 오른다
+  const risky = hold && !E.sheetUp; // 서술형도 감독관이 볼 때 읽거나 쓰고 있으면 의심이 오른다 (답안지를 뺏긴 동안은 쓸 게 없다)
   if (hold && !E.wasHold && T.mech.includes('omega') && E.scan < 0.05) { // Ω는 스캔 박자를 읽는다: 지난번과 같은 간격이면 들킨다
     const t = E.clockT, gap = E.lastScanT == null ? null : t - E.lastScanT, win = tune.omega_window * (1 + 0.35 * E.part + tune.omega_grow * E.qi * 0.5) * Math.max(tune.omega_floor, gearCut(g.offbeat));
     if (gap != null && E.lastGap != null && Math.abs(gap - E.lastGap) < win) { E.sus = Math.min(1, E.sus + tune.omega_jump); E.source = { how: 'omega', by: E.staff[0] }; flash('Ω가 박자를 읽었다! 간격을 바꿔라', PAL.bad); sfx.pulse(); }
