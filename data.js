@@ -934,6 +934,7 @@ const CAUGHT_LINE = {
   prof: '"자네, 학점은 포기한 건가?"', teacher: '"Excuse me. Glasses off, please."', cnproctor: '"안경 이리 주세요. 검사합니다."',
   don: '"흥미롭군요. 그 대답은 안경이 한 거죠?"', don2: '"논리적으로, 당신은 방금 걸렸습니다."', judge: '"향이 아니라 렌즈를 맡고 계셨군요."', banker: '"방금 그 답, 본인 생각입니까?"',
   alien: '"삐빅. 반칙 전파 감지."', reaper: '"명부에 커닝도 적혀 있구나."', yeomra: '"이승에서 하던 짓을 여기서도 하느냐!"',
+  ghost: '"…이제 같이 가자."', // [저승] 물을 떨어뜨리던 망자와 눈이 마주쳤을 때
   omega: '"이미 예측했습니다."', gaze: '"시선 이탈이 5초를 넘었습니다. 응시를 종료합니다."', webcam: '"응시자분, 화면에서 눈을 떼지 마세요."', loop: '"지난번에도 딱 이때 숙였지."', breath: '"거기, 공기 방울."', mind: '"방금 그 답, 네 생각이 아니구나."',
 };
 const PROCTOR_NAME = { homeroom: '담임', dean: '감독관', suneung: '수능 감독관', agent: '시험 관리관', robot: 'AI 감독관', ta: '조교', prof: '교수님',
@@ -945,6 +946,7 @@ const MECH_NAME = { peek: '책상 밑 감시', sticker: '단추 스티커', tuto
   crowd: '다른 수험생', idcheck: '신분 확인 순회', calc: '계산기 검사', long: '긴 지문', sessions: '3교시 연속', adaptive: '적응형 2모듈',
   glasscheck: '안경 물에 담그기', interview: '마주 보는 면접', fatigue: '눈 피로', swap: '블록마다 교대', tasting: '블라인드 테이스팅',
   threeeyes: '세 눈 감독관', float: '무중력', silent: '발소리 없음', teleport: '순간이동', clones: '늘어나는 감독관', human: 'AI 사용 감지', omega: '박자 예측', essayall: '전부 서술형', spin: '회전 장치', helmet: '헬멧 김 서림', breath: '숨 참기', dream: '바뀌는 문제', loop: '되풀이', mirror: '좌우 반전', telepathy: '독심', warp: '시간 왜곡', bolt: '낙뢰 (장비 먹통)', drone: '순찰 드론', mole: '암행 감독', lookcount: '시선 이탈 횟수 제한' };
+MECH_NAME.signal = '물속 신호'; // [용궁]
 
 // 장비 효과 문구: lv(그 단계를 가졌을 때)의 효과
 const pct = v => Math.round(v * 100) + '%';

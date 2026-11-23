@@ -33,6 +33,14 @@ function glyphCanvas(g, seed, x, y, s, col, lw) { // 외계 문자 한 자를 �
   }
 }
 function glyphRow(g, seed, n, x, y, s, col, lw) { alienWord(seed, n).forEach((gl, i) => glyphCanvas(g, gl, x + i * (s * 1.25), y, s, col, lw)); }
+function drawCallHud(k, L, E, now) { // [저승] 부른 횟수만큼 이름이 겹쳐 들린다. 감독관 동선 AI가 있으면 어느 쪽에서 부르는지도 (시험지 밖 가장자리에만)
+  const C = E.call; if (!C || C.phase !== 'call' || C.n < 1) return;
+  const since = C.k - C.at[C.n - 1], a = Math.min(1, since / 0.15) * (1 - Math.max(0, Math.min(1, (since - 1.1) / 0.6)) * 0.5), txt = Array(C.n).fill('김수험…').join(' ');
+  const dir = E.gear.predict >= 1 ? (C.ok.length === 1 && C.ok[0] === 'front' ? 'front' : C.yaw > 0 ? 'left' : 'right') : null;
+  k.b.globalAlpha = 0.3 + 0.45 * a; // 시험지를 가리지 않게 왼쪽 위 구석에만. 방향은 장비가 있을 때 화살표로
+  k.SUB((dir === 'left' ? '‹ ' : dir === 'front' ? '˄ ' : '') + txt + (dir === 'right' ? ' ›' : ''), 18, 50, 10, '#cfd8ff', 'left');
+  k.b.globalAlpha = 1;
+}
 function captchaIcon(g, id, cx, cy, s) { // 로봇 확인 그림 6종 (신호등·자동차·나무·버스·자전거·소화전)
   const u = s / 20, R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(cx + x * u, cy + y * u, w * u, h * u); };
   const C = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(cx + x * u, cy + y * u, r * u, 0, 7); g.fill(); };
@@ -633,6 +641,7 @@ function drawLabFx(k, L, E, now, live) {
   if (Mm.includes('breath')) { b.globalAlpha = 0.2; R(0, 0, W, HH, '#0a6a8a'); b.globalAlpha = 0.07; for (let i = 0; i < 6; i++) R(0, Math.round((now * 14 + i * 60) % HH), W, 10, '#bff4ff'); b.globalAlpha = 1;
     const n = E.holding ? 5 : E.gasp > 0 ? 26 : 2; for (let i = 0; i < n; i++) { const h = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1, x = (E.gasp > 0 ? W / 2 - 120 + h * 240 : 60 + h * (W - 120)), y = HH - ((now * (40 + h * 60) + h * 400) % (HH + 40)); b.globalAlpha = 0.55; k.ring(x, y, 3 + Math.round(h * 4), '#e8fbff'); } b.globalAlpha = 1;
     if (live) meter(E.gasp > 0 ? '숨 고르는 중' : `숨 ${Math.round((E.breath == null ? 1 : E.breath) * 100)}%`, E.breath == null ? 1 : E.breath, (E.breath || 1) < 0.3 ? '#ff6a6a' : '#8fe6ff'); }
+  if (Mm.includes('signal')) drawSeaSignal(k, L, E, now, live, meter); // [용궁] 물속 신호
   if (Mm.includes('dream')) { const t = E.dreamT == null ? 9 : E.dreamT, near = t < 1.4; b.globalAlpha = 0.14 + (near ? 0.16 : 0); R(0, 0, W, HH, '#b48aff'); b.globalAlpha = 1;
     if (near) for (let y = 0; y < HH; y += 6) { b.globalAlpha = 0.25; R(Math.round(Math.sin(now * 9 + y * 0.12) * 10), y, W, 2, '#ffffff'); } b.globalAlpha = 1;
     if (live && near) k.SUB('(화면이 일렁인다…)', W / 2, HH - 70, 12, '#ffffff', 'center'); }
@@ -831,6 +840,7 @@ function drawExamHud(k, L, E, now, H) {
     k.M(`AI 감지 ${Math.round(E.aiSus * 100)}%`, x, y - 9, 8, E.aiSus > 0.6 ? '#ff6a6a' : '#ffffff', 'left', 700);
     k.b.globalAlpha = 0.3; R(x, y, w, 2, '#ffffff'); k.b.globalAlpha = 1; R(x, y, Math.round(w * E.aiSus), 2, E.aiSus > 0.6 ? '#ff6a6a' : '#ffcf5a');
   }
+  if (live && E.call) drawCallHud(k, L, E, now); // [저승] 내 이름을 부르는 속삭임
   if (live && E.staff.some(s => s.phase === 'peek' && s.peek.stage === 'sneak') && E.gear.predict >= 2) { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('발소리가 사라졌다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; }
   if (live && E.mole && E.mole.phase === 'tell') { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('앞자리 의자가 들썩인다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; } // 비밀 감독관이 돌아보기 직전
   if (live && E.mole && E.gear.predict >= 4 && WORLD.moleRect) { const r0 = WORLD.moleRect(), r = r0 && r0.h > 30 && r0.y + r0.h > 20 && r0.y < L.H - 20 ? r0 : null, m = E.mole; // 감독관 동선 AI: 들썩인 뒤 언제 돌아볼지를 센다. 앞을 볼 때는 앞자리 사람에게 붙고, 시험지를 볼 때는 화면 위쪽에 붙는다
@@ -905,9 +915,66 @@ function drawExamOverlays(k, L, E, now, H) {
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
-      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '공기 방울이 솟음', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음' }[E.caughtHow] || `${who.name}에게 걸림`;
+      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '공기 방울이 솟음', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음', call: '세 번 부를 때까지 돌아보지 않음', ghost: '물이 떨어지는 쪽을 올려다봄' }[E.caughtHow] || `${who.name}에게 걸림`;
     drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
     k.SUB(`${who.name}: ${CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
     k.SUB(why, L.W / 2, L.H - 42, 9, '#e8e4da', 'center');
   }
+}
+
+// [블랙홀] 시공간 요동 연출 (시험지 텍스처 위에 덧그린다)
+// 떨림: 글자 줄이 미세하게 흔들린다 · 섞임: 가운데로 빨려 들듯 일그러지고(중력 렌즈) 검은 원과 빛 고리가 떴다가, 새 순서로 돌아온다
+// 낡은 표시: 섞이기 전 AI가 가리키던 번호 자리에 점선 고리 잔상이 잠깐 남았다가 사라진다 (지금 그 자리는 다른 보기)
+const BH_FX = {};
+function bhCanvas(key) { if (!BH_FX[key]) { const c = document.createElement('canvas'); c.width = PAPER_W; c.height = PAPER_H; BH_FX[key] = c; } return BH_FX[key]; }
+function bhPaperFx(g, E, now) {
+  const b = E.bh; if (!b || !g.canvas) return;
+  const top = 182, bot = PAPER_H - 52, cx = PAPER_W / 2, cy = (PAPER_ROW(0) + PAPER_ROW(3)) / 2 - 40, bg = E.T.device === 'tablet' ? '#fbfcfe' : '#f6f2e6';
+  if (b.phase === 'tell') { // 예고: 떨림 (이전 순서 모습을 남겨 둔다)
+    const old = bhCanvas('old'), oc = old.getContext('2d'); oc.clearRect(0, 0, PAPER_W, PAPER_H); oc.drawImage(g.canvas, 0, 0);
+    const amp = 1 + 4 * Math.min(1, b.k / Math.max(0.1, tune.reshuffle_tell));
+    g.fillStyle = bg; g.fillRect(0, top, PAPER_W, bot - top);
+    for (let y = top; y < bot; y += 16) { const dx = Math.sin(now * 53 + y * 0.17) * amp, dy = Math.sin(now * 37 + y * 0.09) * amp * 0.35; g.drawImage(old, 0, y, PAPER_W, 16, dx, y + dy, PAPER_W, 16); }
+  } else if (b.phase === 'warp') { // 섞임: 중력 렌즈처럼 일그러진다. 가장 일그러질 때 이전 순서 → 새 순서로 바뀐다
+    const p = Math.min(1, b.k / Math.max(0.1, tune.reshuffle_warp)), s = Math.sin(Math.PI * p), cur = bhCanvas('cur'), cc = cur.getContext('2d');
+    cc.clearRect(0, 0, PAPER_W, PAPER_H); cc.drawImage(g.canvas, 0, 0);
+    const src = p < 0.5 ? bhCanvas('old') : cur;
+    g.fillStyle = bg; g.fillRect(0, top, PAPER_W, bot - top);
+    for (let y = top; y < bot; y += 5) {
+      const d = (y - cy) / 240, pull = s * 0.62 * Math.exp(-d * d * 1.4), yy = cy + (y - cy) * (1 - pull * 0.55), w = PAPER_W * (1 - pull * 0.45), dx = Math.sin(y * 0.045 + now * 8) * 16 * s * (1 - pull);
+      g.drawImage(src, 0, y, PAPER_W, 5, cx - w / 2 + dx, yy, w, 5 * (1 - pull * 0.55) + 0.6);
+    }
+    const r = 30 + 150 * s; g.save();
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r); gr.addColorStop(0, `rgba(6,4,14,${0.9 * s})`); gr.addColorStop(0.55, `rgba(6,4,14,${0.6 * s})`); gr.addColorStop(1, 'rgba(6,4,14,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+    g.strokeStyle = `rgba(255,212,140,${0.85 * s})`; g.lineWidth = 4; g.beginPath(); g.ellipse(cx, cy, r * 0.8, r * 0.28, -0.18, 0, 7); g.stroke();
+    g.strokeStyle = `rgba(255,240,210,${0.5 * s})`; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, r * 0.52, 0, 7); g.stroke(); g.restore();
+  }
+  if (b.stale && b.staleT > 0 && b.phase !== 'warp' && E.ar && !E.ai && !E.fb && !E.dead) { // 낡은 AI 표시의 잔상
+    const a = Math.min(1, b.staleT / 0.6), y = PAPER_ROW(b.stale.row) - 18, jx = Math.sin(now * 41) * 3;
+    g.save(); g.globalAlpha = 0.7 * a; g.setLineDash([9, 7]); g.strokeStyle = '#6a4ab0'; g.lineWidth = 4; g.beginPath(); g.arc(92 + jx, y, 36, 0, 7); g.stroke(); g.setLineDash([]);
+    g.lineWidth = 5; g.beginPath(); g.moveTo(66 + jx, y + 26); g.lineTo(118 + jx, y - 26); g.stroke(); g.restore();
+  }
+}
+{ const draw0 = drawPaperTexture; drawPaperTexture = function (g, E, now) { draw0(g, E, now); if (E && E.bh && E.T && E.T.mech.includes('reshuffle')) bhPaperFx(g, E, now); }; } // [블랙홀] 원래 시험지 그리기 뒤에 덧그린다
+
+
+// [용궁] 물속 신호 표시: 렌즈 단계마다 그 화면의 말투와 자리로, 시험지 바깥에 작게. 끊기면 빨강, 약하면 노랑, 좋으면 하늘색
+function drawSeaSignal(k, L, E, now, live, meter) {
+  if (!live || E.sigV == null) return;
+  const st = hudStage(E), v = E.sigV, r = E.sigRate || 0, S = E.sig || {}, dead = r === 0, cur = S.left > 0, soon = !cur && S.next < 1.6, W0 = L.W;
+  const col = dead ? '#ff6a6a' : r < 1 ? '#ffcf5a' : '#7fe9ff', pct = Math.round(v * 100), n = Math.round(v * 5);
+  if (st === 'brain') { // 뉴럴링코: 창 없이 직감 한 줄
+    k.T(dead ? '신호가 닿지 않는다는 느낌' : cur ? '물살에 신호가 흩어진다는 느낌' : soon ? '곧 물살이 밀려온다는 느낌' : r >= 1 ? '신호가 또렷하게 닿는다는 느낌' : '신호가 흐릿하게 닿는다는 느낌', W0 - 11, 47, 9.5, dead ? '#ff8a8a' : cur || soon ? '#ffd678' : '#bfe8ff', 'right', 700); return; }
+  if (st === 'contact') { const x = 30, y = 96; // 콘택트렌즈: 감독관 고리와 같은 둥근 고리 + 알약
+    hudDraw(k, c => { c.fillStyle = 'rgba(8,44,52,0.45)'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.fill(); c.lineCap = 'round'; c.lineWidth = 3; c.strokeStyle = 'rgba(255,255,255,0.2)'; c.beginPath(); c.arc(x, y, 14, 0, 7); c.stroke(); c.strokeStyle = col; c.beginPath(); c.arc(x, y, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * v); c.stroke(); rrect(c, x + 19, y - 9, 84, 18, 9); c.fillStyle = 'rgba(8,44,52,0.42)'; c.fill(); });
+    k.T(dead ? '×' : String(pct), x, y, 9, '#ffffff', 'center', 700); k.T(dead ? '신호 끊김' : cur ? '물살 · 약함' : '부표 신호', x + 26, y, 7, col, 'left', 700); return; }
+  if (st === 'mil') { const x = W0 - 148, y = 190, w = 116, h = 30; // 군용 렌즈: 전술 지도 아래 통신 항목 하나 (해류 예보 포함)
+    hudDraw(k, c => { c.fillStyle = 'rgba(40,26,6,0.6)'; c.fillRect(x, y, w, h); c.strokeStyle = col; c.lineWidth = 1; c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); c.fillStyle = col; c.fillRect(x, y, w, 2); c.globalAlpha = 0.3; c.fillRect(x + 6, y + 23, w - 12, 3); c.globalAlpha = 1; c.fillRect(x + 6, y + 23, (w - 12) * v, 3); });
+    k.M(cur ? 'LINK · CURRENT' : soon ? `LINK · CUR T-${Math.max(0, S.next).toFixed(1)}` : 'LINK · BUOY', x + 6, y + 9, 7, col, 'left', 700); k.M(dead ? 'LOST' : pct + '%', x + w - 6, y + 9, 8.5, '#ffffff', 'right', 700); return; }
+  if (st === 'proto') { const x = W0 - 172, y = 158, w = 135; // 시제품: AI 분석 창 아래 같은 모양 창
+    panelBox(k, x, y, w, 40, col, '부표 신호'); k.T(dead ? '끊김 · 수신 대기' : `${pct}% · 스캔 ${Math.round(r * 100)}%`, x + 10, y + 27, 9.5, '#ffffff', 'left', 800);
+    hudDraw(k, c => { for (let i = 0; i < 5; i++) { c.globalAlpha = i < n ? 1 : 0.25; c.fillStyle = col; c.fillRect(x + w - 40 + i * 6, y + 30 - i * 3, 4, 6 + i * 3); } c.globalAlpha = 1; }); return; }
+  if (st === 'used') { k.M(`SIG ${'▮'.repeat(n)}${'▯'.repeat(5 - n)} ${dead ? 'LOST' : pct + '%'}`, 61, 66, 9, col, 'left', 700); return; } // 중고 안경: 배터리 줄 아래 같은 글씨로 한 줄
+  meter(dead ? '신호 끊김' : `신호 ${pct}%`, v, col, 24, L.H - 126); // 필통 폰·지우개 액정: 숨 막대 위에 막대 하나
 }

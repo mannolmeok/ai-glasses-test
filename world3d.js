@@ -500,6 +500,42 @@ const WORLD = (() => {
   }
   let MOLE = null, EVS = null, EX_DOOR = null; // EVS: 변호사시험 2교시에 끌려 나가는 앞자리 수험생
   function seat() { return EX && EX.my && EX.X0 != null ? [(EX.my.x - (EX.X0 + 0.5)) / ((EX.X1 - 0.5) - (EX.X0 + 0.5)), (EX.my.z + 0.2 - EX.zFront) / (EX.zBack - EX.zFront)] : [0.5, 0.6]; }
+  // [저승] 저승 입학시험: 떠도는 망자(물방울)와, 이름 부르는 사자의 고개·촛불 ---------------------------------------
+  W.uwYawTo = (side, u) => { if (!EX || !EX.my || EX.AL == null || !EX.eye) return null; const x = side === 'L' ? EX.AL : EX.AR, z = lerp(EX.zBack, EX.zFront, u); return Math.atan2(-(x - EX.eye.x), -(z - EX.eye.z)); }; // 고개를 이만큼(왼쪽 +) 돌리면 그 자리가 보인다
+  W.uwMyU = () => EX && EX.my && EX.zBack != null ? (EX.zBack - EX.my.z) / (EX.zBack - EX.zFront) : 0.45; // 내 줄의 u (0 뒤 · 1 앞)
+  let UW = null;
+  function uwBuild(sc, MY) {
+    const m = makeHuman({ top: 0xc9ced2, sleeve: 0xc9ced2, leg: 0xc9ced2, shirt: 0xc9ced2, robe: true, hair: 'none', skin: 0xc4d0d6, eyeC: 0x050506 }), H = 0x07080b; // 소복 입은 망자
+    bx(m.head, 0.22, 0.08, 0.23, H, 0, 0.125, -0.005); bx(m.head, 0.23, 0.52, 0.07, H, 0, -0.13, -0.1); bx(m.head, 0.035, 0.44, 0.19, H, -0.112, -0.09, 0); bx(m.head, 0.035, 0.44, 0.19, H, 0.112, -0.09, 0); bx(m.head, 0.085, 0.36, 0.02, H, -0.055, -0.07, 0.113); // 젖어서 늘어진 긴 머리 (얼굴 왼쪽 절반을 가리고 한쪽 눈만 보인다)
+    m.head.children.forEach(c => { if (c.isMesh && Math.abs(c.position.y + 0.07) < 0.001 && c.position.z > 0.1) c.material = mat(0x241818); }); // 입은 핏기 없이 어둡게
+    m.root.traverse(o => { if (o.isMesh && o.material && o !== m.cone) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.86; if (o.material.emissive && o.material.color && o.material.color.getHSL({}).l > 0.4) o.material.emissive.setHex(0x14202a); } }); m.cone.visible = false; sc.add(m.root); // 피부·소복만 촛불 아래에서도 차갑고 창백하게 (머리카락은 그대로 검게)
+    const dm = new THREE.MeshBasicMaterial({ color: 0xd8efff, transparent: true, opacity: 0.9, fog: false }), drops = [];
+    for (let i = 0; i < 6; i++) { const d = new THREE.Mesh(UNIT, dm); d.scale.set(0.006, 0.018, 0.006); d.visible = false; sc.add(d); drops.push(d); }
+    const wet = canvasTex(64, 64, true); { const g = wet.g, gr = g.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(70,84,104,0.30)'); gr.addColorStop(0.72, 'rgba(60,74,96,0.42)'); gr.addColorStop(0.86, 'rgba(40,50,70,0.55)'); gr.addColorStop(1, 'rgba(40,50,70,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(24, 22, 5, 3, -0.6, 0, Math.PI * 2); g.fill(); wet.t.needsUpdate = true; } // 시험지에 번진 물자국
+    const marks = []; for (let i = 0; i < 14; i++) { const p = plane(sc, 0.05, 0.05, new THREE.MeshBasicMaterial({ map: wet.t, transparent: true, depthWrite: false, opacity: 0, polygonOffset: true, polygonOffsetFactor: -2 }), 0, 0.7466, 0, -Math.PI / 2); p.visible = false; marks.push(p); }
+    const sh = canvasTex(64, 64, true); { const g = sh.g, gr = g.createRadialGradient(32, 32, 4, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,0.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); sh.t.needsUpdate = true; } // 머리 위에 무언가 있을 때 시험지에 드리우는 그림자
+    const shadow = plane(sc, 0.38, 0.32, new THREE.MeshBasicMaterial({ map: sh.t, transparent: true, depthWrite: false, opacity: 0, polygonOffset: true, polygonOffsetFactor: -1 }), MY.x, 0.7464, MY.z - 0.14, -Math.PI / 2); shadow.visible = false;
+    UW = { m, drops, marks, shadow, sc };
+  }
+  function uwRender(E, now) {
+    const U = UW, g = E.ghost, m = U.m, C = E.call;
+    if (C && C.by) { const sm = EX.staff[E.staff.indexOf(C.by)]; if (sm && sm.head) { if (C.phase === 'call') sm.head.rotation.z = 0.1 + Math.sin(now * 1.3) * 0.12; else if (C.phase === 'nod') sm.head.rotation.x = Math.sin(clamp(C.k / 0.8, 0, 1) * Math.PI * 2) * 0.35; } } // 부르는 동안 고개를 갸웃, 돌아봐 주면 끄덕인다
+    if (EX.candle) { const f = EX.candle.flame; if (C && C.phase === 'call') f.rotation.set(-(1 - Math.min(1, Math.abs(C.yaw))) * 0.5, 0, clamp(C.yaw, -1, 1) * 0.6); else f.rotation.set(0, 0, 0); } // 촛불이 부르는 사자 쪽으로 눕는다
+    if (!g) { m.root.visible = false; U.shadow.visible = false; return; }
+    const over = { x: EX.my.x, z: EX.my.z - 0.62 }, aisle = (side, u) => ({ x: (side === 'L' ? EX.AL : EX.AR) + (side === 'L' ? 0.22 : -0.22), z: lerp(EX.zBack, EX.zFront, u) });
+    let p, yaw, lean = 0, hp = 0.3;
+    if (g.phase === 'roam') { p = aisle(g.side, g.u); yaw = g.du > 0 ? Math.PI : 0; }
+    else if (g.phase === 'come') { const a = aisle(g.from.side, g.from.u), k = ease(clamp(g.k, 0, 1)); p = { x: lerp(a.x, over.x, k), z: lerp(a.z, over.z, k) }; yaw = Math.atan2(over.x - a.x, over.z - a.z); lean = 0.1 * k; }
+    else if (g.phase === 'over') { p = over; yaw = Math.atan2(EX.eye.x - over.x, EX.eye.z - over.z); lean = 0.15; hp = E.caught && E.caughtHow === 'ghost' ? 0.5 : 0.85; } // 내 책상 너머로 몸을 숙여 시험지를 내려다본다 (시험지를 보는 동안은 화면 밖)
+    else { const b = aisle(g.to.side, g.to.u), k = ease(clamp(g.k, 0, 1)); p = { x: lerp(over.x, b.x, k), z: lerp(over.z, b.z, k) }; yaw = Math.atan2(b.x - over.x, b.z - over.z); lean = 0.15 * (1 - k); }
+    poseModel(m, { x: p.x, y: 0.03 + Math.sin(now * 1.7) * 0.02, z: p.z, yaw, moving: false, walk: 0, phase: 'stand', now, headPitch: hp, hidden: false }); // 발이 닿지 않고 조금 떠서 미끄러진다
+    m.body.rotation.x = lean; m.arms[0].rotation.set(0.25, 0, 0.06); m.arms[1].rotation.set(0.25, 0, -0.06); // 팔은 등 뒤로 늘어뜨린다 (시험지를 보는 동안 화면에 손이 들어오지 않게)
+    if (EX.views && !EX.views.ghostlook) EX.views.ghostlook = { yaw: 0, pitch: 0.22, fov: 56 }; // 올려다본 순간: 내려다보는 망자의 얼굴
+    const P = EX.paper ? EX.paper.position : { x: EX.my.x, z: EX.my.z - 0.02 }, pw = 0.31, ph = 0.43;
+    U.drops.forEach((d, i) => { const dd = g.drops[i]; d.visible = !!dd; if (dd) { const k = clamp(dd.t / 0.32, 0, 1); d.position.set(P.x + (dd.u - 0.5) * pw, 1.3 - 0.55 * k * k, P.z + (dd.v - 0.5) * ph); } }); // 떨어지는 물방울
+    U.marks.forEach((mk, i) => { const M = g.marks[g.marks.length - 1 - i]; mk.visible = !!M; if (M) { const gr = M.s * (0.45 + 0.55 * Math.min(1, M.t / 0.5)); mk.scale.set(gr, gr, 1); mk.position.set(P.x + (M.u - 0.5) * pw, 0.7466 + i * 0.00002, P.z + (M.v - 0.5) * ph); mk.material.opacity = 0.85 * (1 - clamp((M.t - 9) / 5, 0, 1)); } });
+    const pres = g.phase === 'over' ? 1 : g.phase === 'come' ? g.k : g.phase === 'go' ? 1 - g.k : 0; U.shadow.visible = pres > 0.01; U.shadow.material.opacity = 0.5 * pres;
+  }
   function secDevices(sc, tier, X1, HY, Z0, X0, MY) { // CCTV·탐지 전파 장치·드론
     let cctv = null, pulse = null, drone = null;
     if (tier.sec.includes('cctv')) {
@@ -658,6 +694,7 @@ const WORLD = (() => {
       const light = new THREE.PointLight(0xffa040, 0.8, 1.6, 2); light.position.set(0, 0.14, 0); g.add(light);
       candle = { flame, light };
     }
+    if (tier.id === 'afterlife') uwBuild(sc, MY); // [저승] 떠도는 망자·물방울·물자국
     const dev = secDevices(sc, tier, X1, HY, Z0, X0, MY);
     const staff = tier.staff.map(d => { const m = makeStaff(d.type); if (m) sc.add(m.root); return m; });
     // 손 드는 수험생 (다른 수험생 이벤트)
@@ -903,6 +940,7 @@ const WORLD = (() => {
       const f = near ? 0.6 + Math.abs(Math.sin(now * 23)) * 0.8 : 1 + Math.sin(now * 3) * 0.08;
       EX.candle.flame.scale.set(0.02 * (near ? 1.3 : 1), 0.04 * f, 0.02); EX.candle.flame.position.x = near ? Math.sin(now * 31) * 0.008 : 0; EX.candle.light.intensity = near ? 0.4 + Math.abs(Math.sin(now * 37)) * 0.8 : 0.8;
     }
+    if (UW && UW.sc === EX.scene) uwRender(E, now); // [저승]
     if (EX.glasses) EX.glasses.forEach((gl, i) => {
       const q = E.qs[i], cur = i === E.qi && !E.over;
       if (q) gl.wine.material.color.setHex(q.color === 'white' ? 0xe8d070 : 0x6a0a1a);
@@ -921,6 +959,7 @@ const WORLD = (() => {
       const q = E.qs[Math.min(E.qi, E.qs.length - 1)];
       const sig = [E.qi, E.part, E.ar, E.clear, E.dead, !!E.intro, E.es && E.es.done + '/' + Math.floor(E.es.w * 14), E.finalQ && Math.floor(now * 12), Math.min(3, Math.floor(E.scan * 3 + 1e-6)), E.ai, E.answers[E.qi], !!E.fb, E.scan > 0, q && q.pre, E.start > 0, E.breakT > 0, Math.floor((E.listen || 0) * 10), E.pulse && E.pulse.active > 0, E.pulse && E.pulse.warn > 0].join();
       if (E.holding || sig !== EX.paperSig) { EX.paperSig = sig; (EX.home ? drawScreenTexture : drawPaperTexture)(EX.paperTex.g, E, now); EX.paperTex.t.needsUpdate = true; }
+      if (!EX.home && E.bh && (E.bh.phase !== 'idle' || E.bh.staleT > 0)) { drawPaperTexture(EX.paperTex.g, E, now); EX.paperTex.t.needsUpdate = true; EX.paperSig = ''; } // [블랙홀] 떨림·일그러짐·낡은 표시 잔상은 매 프레임 다시 그린다
     }
     if (EX.gadget && !EX.home) { // 책상 위 소품: 스캔하는 동안만 뚜껑이 열리고 화면이 켜진다
       const G2 = EX.gadget, st = hudStage(E), I = E.intro, ring = !E.caught && E.pulse && E.T.pulse === 'alert' && E.pulse.warn > 0 && E.gear.lens < 2, on = ring || (!I && E.start <= 0 && !E.over && !E.caught && (E.scan > 0 || (E.ai && !E.fb) || E.tryHold));

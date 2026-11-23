@@ -414,6 +414,7 @@ function viewInput(taps) { // 화면 왼쪽·오른쪽·위를 누르고 있는 
   if (E.layout === 'table') return;
   if (FORCE_VIEW) { setView(FORCE_VIEW); return; }
   if (E.evict && E.evict.end && E.evict.t < E.evict.end) { setView(EXV('evict') ? 'evict' : 'front'); return; } // 앞자리가 끌려 나가는 동안은 그쪽을 보게 된다
+  if (E.caught && E.caughtHow === 'ghost' && E.view === 'ghostlook') return; // [저승] 망자와 눈이 마주친 채로 멈춘다
   if (E.sheetLook) { setView('sheet'); return; } // 장학관이 답안지를 들어 읽는 동안은 고개가 그쪽으로 따라 올라간다
   { const q = E.qs && E.qs[E.qi]; if (q && q.kind === 'listen' && G.gear.earbud > 0 && G.gear.earbud < 4 && !E.ai) { setView('paper'); return; } } // 듣기 중에는 고개를 돌리지 않고 귀를 가린다
   const front = E.layout === 'room' ? 'front' : 'paper'; let z = null;
@@ -627,6 +628,7 @@ function stepFixed(s, T, dt) { // 앞에 앉은 면접관·심사위원·염라�
 function stepStaff(s, T, dt) {
   if (E.evict && E.evict.arrive && E.evict.t < E.evict.arrive[E.staff.indexOf(s)]) return; // 앞자리를 데리고 나갔다가 걸어 들어오는 중: 자리에 닿을 때까지는 아무것도 보지 않는다
   if (s.blink > 0) { s.blink -= dt; return; }
+  if (s.phase === 'call') { s.t += dt; return; } // [저승] 내 이름을 부르는 동안은 그 자리에 서서 나를 본다(주시로 치지 않는다)
   if (s.visit) { // 교수님은 불쑥 들어오고, 선생님은 커피 가지러 나간다
     if (s.out) { s.outT -= dt; if (s.outT <= 0) { s.out = false; s.inT = between(tune.visit_in_min, tune.visit_in_max); s.u = 0.94; s.dir = -1; setPhase(s, 'walk', procDur(T.walk)); sfx.door(); flash(`${s.name} 들어옴`, PAL.bad); if (T.id === 'bac') s.sheetIn = 1.0; } return; }
     s.inT -= dt;
@@ -699,6 +701,31 @@ function stepStaff(s, T, dt) {
     s.side = s.side === 'L' ? 'R' : 'L'; s.u = s.crossEnd === 'back' ? 0.06 : 0.94; s.dir = s.u > 0.5 ? -1 : 1; s.from = null;
     setPhase(s, 'stand', procDur(T.stand)); s.away = rng() < 0.5;
   }
+}
+// [블랙홀] 시공간 요동: 가끔 아직 답하지 않은 문제의 보기 순서가 섞인다 (정답 번호도 같이 바뀐다)
+// 순서: 대기 → 떨림(예고, 이때 마킹하면 안 섞인다) → 일그러지며 섞임. 섞이는 순간 렌즈의 AI 표시는 깨져 사라지고,
+// 다시 스캔해야 새 자리에 뜬다. 렌즈가 좋으면 섞인 뒤 3초 안에 다시 누를 때 중간부터 이어서 스캔한다 (뉴럴링코 이상 50% · 콘택트렌즈 25% · 그 아래는 처음부터)
+function reshuffleOk(q) { return !!(q && q.choices && q.choices.length === 4 && q.kind !== 'essay' && q.kind !== 'speak' && q.kind !== 'listen' && !q.final && !E.fb && E.answers[E.qi] == null && !(E.start > 0) && !(E.breakT > 0) && !E.caught && !E.over && !E.result); }
+function stepReshuffle(dt) {
+  const q = E.qs[E.qi], gap = () => between(tune.reshuffle_gap_min, tune.reshuffle_gap_max), b = E.bh || (E.bh = { phase: 'idle', t: gap(), k: 0, qi: E.qi, staleT: 0, stale: null });
+  if (b.staleT > 0) b.staleT -= dt;
+  if (b.keepT > 0) { b.keepT -= dt; if (E.holding && !E.ai && E.scan < b.keepV) { E.scan = b.keepV; b.keepT = 0; } } // 렌즈가 기억해 둔 만큼은 이어서
+  if (b.qi !== E.qi) { b.qi = E.qi; b.stale = null; b.staleT = 0; if (b.phase !== 'idle') { b.phase = 'idle'; b.t = gap(); } b.t = Math.max(b.t, tune.reshuffle_grace); } // 새 문제가 뜨면 잠깐은 그대로
+  if (b.phase === 'idle') { if (!reshuffleOk(q)) return; b.t -= dt; if (b.t <= 0) { b.phase = 'tell'; b.k = 0; sfx.rumble(); } return; }
+  b.k += dt;
+  if (b.phase === 'tell') {
+    if (!reshuffleOk(q)) { b.phase = 'idle'; b.t = gap(); return; } // 떨리는 동안 마킹했으면 그대로 넘어간다
+    if (b.k < tune.reshuffle_tell) return;
+    const der = [[1, 0, 3, 2], [1, 2, 3, 0], [1, 3, 0, 2], [2, 0, 3, 1], [2, 3, 0, 1], [2, 3, 1, 0], [3, 0, 1, 2], [3, 2, 0, 1], [3, 2, 1, 0]], sh = der[Math.floor(rng() * der.length)], inv = []; // 어느 보기도 제자리에 남지 않게 (sh[새 자리] = 옛 자리)
+    sh.forEach((from, to) => { inv[from] = to; });
+    const had = E.ai && q.aiPick != null ? q.aiPick : null;
+    q.choices = sh.map(i => q.choices[i]); if (q.answer >= 0) q.answer = inv[q.answer]; if (q.aiPick != null) q.aiPick = inv[q.aiPick]; if (q.elim) q.elim = q.elim.map(i => inv[i]);
+    const lens = G.gear.lens, keep = lens >= 7 ? tune.reshuffle_keep_brain : lens >= 6 ? tune.reshuffle_keep_contact : 0;
+    if (!q.pre) { E.scan = E.holding ? Math.min(E.scan, keep) : 0; E.ai = false; b.keepV = keep; b.keepT = keep > 0 ? 3 : 0; } E.earbudT = 0;
+    b.stale = had != null && E.ar && !q.pre ? { row: had } : null; b.staleT = b.stale ? 1.4 : 0;
+    b.phase = 'warp'; b.k = 0; sfx.warp(); return;
+  }
+  if (b.phase === 'warp' && b.k >= tune.reshuffle_warp) { b.phase = 'idle'; b.t = gap(); }
 }
 function stepCctv(c, dt) {
   const was = c.on;
@@ -859,6 +886,66 @@ function nextQuestion() {
   if (E.qs[E.qi].kind === 'listen') sfx.radio();
   if (E.qs[E.qi].final) { E.finalQ = true; E.sus = 0; for (const st of E.staff) { st.phase = 'stand'; st.asleep = true; st.away = true; } sfx.warp(); } // 감독관의 눈이 감기고 시계가 멈춘다
 }
+// [저승] 저승 입학시험 — 세 번 부르기 · 물방울 망자 ----------------------------------------------------
+// 저승사자 하나가 내 이름을 세 번 부른다. 셋째 부름이 끝나기 전에 그 사자 쪽(왼쪽·오른쪽·앞)으로 고개를 돌려 봐야 한다. 못 보면 적발.
+// 망자는 교실을 떠돌다가, 내가 시험지를 내려다볼 때 내 자리 위로 와서 물을 떨어뜨린다. 그때 앞을 올려다보면 적발.
+// 앞쪽 사자가 부르는 중에 물이 떨어지면: 물이 그칠 때까지 버티다 셋째 부름 전에 본다 (망자는 늘 1.4초 넘게 남기고 떠난다).
+const UW_GHOST = { name: '망자', type: 'ghost' };
+Object.assign(sfx, {
+  call: (pan, n) => { const v = 0.035 + n * 0.02; noiseAt(0.45, v, 0, 2300, 1.3, pan); noiseAt(0.32, v * 0.8, 0.2, 1500, 1.5, pan); toneAt(300 - n * 25, 0.55, 'sine', v * 0.9, 0.05, pan); toneAt(200 - n * 15, 0.65, 'sine', v * 0.7, 0.22, pan); }, // 그 사자 쪽에서 속삭이듯 부른다 (부를수록 크게)
+  nod: () => { toneAt(196, 0.25, 'sine', 0.05); toneAt(147, 0.32, 'sine', 0.04, 0.12); },
+  drip: () => { toneAt(1900, 0.03, 'sine', 0.05); toneAt(1250, 0.08, 'sine', 0.04, 0.02); noiseAt(0.05, 0.02, 0.01, 3600, 3); }, // 똑
+  ghost: () => { noiseAt(0.9, 0.03, 0, 420, 0.7); toneAt(98, 0.9, 'sine', 0.04); },
+});
+function uwViews(yaw) { // 이 방향의 사자를 '쳐다봤다'고 칠 고개 방향들: 화면 가운데 쪽에 들어와야 한다 (보기마다 좌우 0.45)
+  const out = []; if (Math.abs(yaw) < 0.45) out.push('front'); if (Math.abs(yaw - 0.8) < 0.45) out.push('left'); if (Math.abs(yaw + 0.8) < 0.45) out.push('right'); return out.length ? out : [yaw > 0 ? 'left' : 'right']; }
+function uwYaw(s) { const y = WORLD.uwYawTo ? WORLD.uwYawTo(s.side, s.u) : null; return y == null ? (s.side === 'L' ? 0.8 : -0.8) : y; }
+function uwMyU() { return WORLD.uwMyU ? WORLD.uwMyU() : 0.45; }
+function uwFrontCall() { const C = E.call; return !!(C && C.phase === 'call' && C.ok.length === 1 && C.ok[0] === 'front'); }
+function uwGo(g) { Object.assign(g, { phase: 'go', k: 0, to: { side: rng() < 0.5 ? 'L' : 'R', u: clamp(uwMyU() + (rng() < 0.5 ? 0.22 : -0.22), 0.1, 0.9) } }); }
+function uwStartCall(T) {
+  const C = E.call, cand = E.staff.filter(s => s.type === 'reaper' && !s.out && !(s.blink > 0) && !s.fixed && (s.phase === 'stand' || s.phase === 'walk' || s.phase === 'tell' || s.phase === 'watch'));
+  if (!cand.length) { C.t = 1.5; return; }
+  const s = cand[Math.floor(rng() * cand.length)]; let yaw = uwYaw(s);
+  if (Math.abs(yaw) > 1.35) { s.side = rng() < 0.5 ? 'L' : 'R'; s.u = clamp(uwMyU() + 0.1 + rng() * 0.4, 0.1, 0.92); s.blink = 0.5; sfx.warp(); yaw = uwYaw(s); } // 등 뒤에서는 부르지 않는다: 보이는 곳으로 스르륵 옮겨 와서 부른다
+  setPhase(s, 'call', 99); s.away = false;
+  const g1 = between(tune.call_step_min, tune.call_step_max), g2 = between(tune.call_step_min, tune.call_step_max), t0 = s.blink > 0 ? 0.6 : 0.2;
+  Object.assign(C, { phase: 'call', by: s, k: 0, n: 0, at: [t0, t0 + g1, t0 + g1 + g2], seen: 0, yaw, ok: uwViews(yaw), pan: clamp(-yaw / 1.2, -0.9, 0.9) }); C.end = C.at[2] + tune.call_tail;
+  const g = E.ghost; if (g && g.phase === 'over' && uwFrontCall()) g.stay = Math.min(g.stay, Math.max(0.3, g.k + C.end - 1.5)); // 앞에서 부르는데 물이 떨어지는 중이면: 망자가 마지막 여유를 남기고 떠난다
+}
+function stepUnderworld(T, dt) {
+  if (E.over || E.caught || E.start > 0 || E.breakT > 0 || E.finalQ || E.intro) return;
+  const C = E.call || (E.call = { phase: 'idle', t: tune.call_first + rng() * 3, n: 0, at: [], k: 0, by: null, ok: [], seen: 0 });
+  const g = E.ghost || (E.ghost = { phase: 'roam', t: between(tune.ghost_gap_min, tune.ghost_gap_max) * 0.7, side: rng() < 0.5 ? 'L' : 'R', u: 0.86, du: -1, k: 0, stay: 0, drip: 0, drops: [], marks: [] });
+  // 부름: 첫째 → 둘째 → 셋째. 그 사자 쪽을 call_look초 보고 있으면 끝난다
+  if (C.phase === 'idle') { C.t -= dt; if (C.t <= 0) uwStartCall(T); }
+  else if (C.phase === 'call') {
+    const s = C.by; C.k += dt;
+    if (!s || s.out || s.phase !== 'call') Object.assign(C, { phase: 'idle', t: 2.5, by: null });
+    else {
+      while (C.n < 3 && C.k >= C.at[C.n]) { C.n++; sfx.call(C.pan, C.n); }
+      C.seen = C.n >= 1 && C.ok.includes(E.view) && E.viewT >= 0.9 ? C.seen + dt : 0;
+      if (C.n >= 1 && C.seen >= tune.call_look) { C.phase = 'nod'; C.k = 0; sfx.nod(); } // 돌아봤다: 사자가 고개를 끄덕이고 돌아선다
+      else if (C.k >= C.end) { E.source = { how: 'call', by: s }; getCaught(); return; } // 세 번 불렀는데 끝내 돌아보지 않았다
+    }
+  } else if (C.phase === 'nod') { C.k += dt; if (C.k >= 0.8) { const s = C.by; if (s && s.phase === 'call') { setPhase(s, 'stand', procDur(T.stand)); s.away = true; } Object.assign(C, { phase: 'idle', by: null, n: 0, t: between(tune.call_gap_min, tune.call_gap_max) }); } }
+  // 망자: 떠돌기 → (시험지를 내려다볼 때) 다가오기 → 내 자리 위에서 물방울 → 물러나기
+  if (g.phase === 'roam') {
+    g.u += g.du * dt * 0.045; if (g.u < 0.08) { g.u = 0.08; g.du = 1; } else if (g.u > 0.92) { g.u = 0.92; g.du = -1; }
+    g.t -= dt;
+    if (g.t <= 0) { const late = uwFrontCall() && E.call.end - E.call.k < 4.2; // 앞에서 부르는 끝 무렵에는 오지 않는다 (살아날 틈을 남긴다)
+      if (E.view === 'paper' && E.viewT >= 1 && !late) { Object.assign(g, { phase: 'come', k: 0, from: { side: g.side, u: g.u } }); sfx.ghost(); } else g.t = 0.8; } // 시험지를 내려다볼 때만 다가온다
+  } else if (g.phase === 'come') { g.k += dt / 1.1;
+    if (g.k >= 1) { if (E.view !== 'paper') uwGo(g); // 쳐다보고 있으면 그냥 물러난다
+      else { Object.assign(g, { phase: 'over', k: 0, stay: between(tune.ghost_stay_min, tune.ghost_stay_max), drip: 0.2 }); if (uwFrontCall()) g.stay = Math.min(g.stay, Math.max(0.3, E.call.end - E.call.k - 1.5)); } }
+  } else if (g.phase === 'over') { g.k += dt; g.drip -= dt;
+    if (g.drip <= 0) { g.drip = tune.ghost_drip * (0.7 + rng() * 0.6); g.drops.push({ u: 0.24 + rng() * 0.52, v: 0.1 + rng() * 0.48, t: 0 }); } // 물방울은 숙인 머리 아래(시험지 위쪽 절반)로 떨어진다
+    if (E.view === 'front' && E.viewT >= 0.35) { E.source = { how: 'ghost', by: UW_GHOST }; getCaught(); if (WORLD.hasView && WORLD.hasView('ghostlook')) { E.prevView = E.view; E.view = 'ghostlook'; E.viewT = 0; } return; } // 올려다봤다: 고개가 더 들리며 망자와 눈이 마주친다
+    if (g.k >= g.stay) uwGo(g);
+  } else if (g.phase === 'go') { g.k += dt; if (g.k >= 1) Object.assign(g, { phase: 'roam', side: g.to.side, u: g.to.u, du: rng() < 0.5 ? 1 : -1, t: between(tune.ghost_gap_min, tune.ghost_gap_max) }); }
+  for (const d of g.drops) { d.t += dt; if (d.t >= 0.32 && !d.hit) { d.hit = true; g.marks.push({ u: d.u, v: d.v, t: 0, s: 0.8 + rng() * 0.7 }); sfx.drip(); } } // 떨어지던 물방울이 시험지에 닿으면 물자국
+  g.drops = g.drops.filter(d => !d.hit); g.marks.forEach(m => { m.t += dt; }); g.marks = g.marks.filter(m => m.t < 14).slice(-14);
+}
 function getCaught() {
   if (E.caught) return;
   E.caught = true; E.endT = 0; G.stats.caught++; ptrs.clear();
@@ -952,10 +1039,13 @@ function updateExam(dt) {
   if (M_.includes('omega') && !E.finalQ) { const down = E.part; if (down !== (E.omegaDown || 0)) { E.omegaDown = down; const order = ['brain', 'contact', 'mil', 'proto', 'used'], cur = order.indexOf(g.lens >= 7 ? 'brain' : g.lens >= 6 ? 'contact' : g.lens >= 5 ? 'mil' : g.lens >= 4 ? 'proto' : 'used'); E.stageForce = order[Math.min(order.length - 1, cur + down)]; E.labSay = { text: [`Ω: "그 장비는 이미 배웠습니다."`, `Ω: "당신의 버릇도 배웠습니다."`, `Ω: "이제 당신보다 먼저 압니다."`][Math.min(2, down - 1)] + ` (안경 ${down}단계 하락)`, t: -1.5 }; sfx.omega(); } }
   if (M_.includes('bolt')) { if (E.boltT == null) E.boltT = between(6, 9); E.boltT -= dt; if (E.boltFlash > 0) E.boltFlash -= dt; if (E.boltOff > 0) { E.boltOff -= dt; if (E.boltOff <= 0) E.dead = null; }
     if (E.boltT <= 0) { E.boltT = between(7, 11); E.boltOff = 2.4; E.boltFlash = 0.5; E.dead = 'bolt'; if (!E.ai) E.scan = 0; sfx.thunder(); } else if (E.boltT < 0.9 && !E.boltRumble) { E.boltRumble = true; sfx.rumble(); } if (E.boltT > 1) E.boltRumble = false; }
+  if (M_.includes('reshuffle')) stepReshuffle(dt); // [블랙홀] 시공간 요동: 보기 순서가 섞인다
   if (E.cctv) stepCctv(E.cctv, dt);
   if (E.pulse) stepPulse(E.pulse, dt);
   stepEvents(T, dt);
+  if (T.id === 'afterlife') { stepUnderworld(T, dt); if (E.caught) return; } // [저승] 세 번 부르기 · 물방울 망자
   E.float = T.mech.includes('float') ? 0.5 + 0.5 * Math.sin(E.clockT * 1.1) : 0;
+  if (T.mech.includes('signal')) seaSignal(dt); // [용궁] 물속 신호
   const q = E.qs[E.qi], th = threat(), listen = q.kind === 'listen';
   E.danger = th.r > 0.02;
   const atDesk = E.staff.some(s => s.phase === 'check' && s.check.stage === 'at');
@@ -1044,7 +1134,7 @@ function updateExam(dt) {
     const before = Math.floor(E.scan * 3 + 1e-6);
     const labSlow = (M_.includes('spin') ? 1 + 2.2 * Math.abs(E.roll || 0) : 1) * (M_.includes('helmet') ? 1 + 2.5 * (E.fog || 0) : 1) * (M_.includes('mirror') ? 1.6 : 1);
     const secs = scanSecondsAt(Math.max(3, g.lens - (E.omegaDown || 0))) * (E.jam || 1) * labSlow * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
-    E.scan += dt / secs * (1 - tune.float_wobble * (g.floaty ? 0.4 : 1) * E.float);
+    E.scan += dt / secs * (1 - tune.float_wobble * (g.floaty ? 0.4 : 1) * E.float) * (E.sigRate == null ? 1 : E.sigRate); // [용궁] 신호가 약하면 느리게
     E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); }
     if (E.scan >= 1) completeScan();
     else if (Math.floor(E.scan * 3 + 1e-6) > before) sfx.elim();
@@ -1649,3 +1739,19 @@ if (scene === 'hub' && params.get('scene')) {
 last = clock.now();
 if (params.get('manual') === '1') drawFrame();
 else { requestAnimationFrame(frame); setInterval(timer, 50); }
+
+// [용궁] 물속 신호: 수면 부표에서 내려오는 AI 신호가 물결(느린 너울)에 따라 세졌다 약해졌다 하고, 가끔 해류가 지나가며 크게 끊긴다.
+// 신호가 약하면 스캔이 느려지고(0.58 이상이면 제 속도, 0.18 아래면 멈춤), 끊긴 채 누르고 있으면 받던 진행이 조금씩 샌다.
+// 전파 위장기(위장 4단계 '전파 위장 케이스'부터)가 있으면 너울과 해류가 덜 흔든다. 감독관이 안 볼 때 + 신호가 좋을 때가 겹쳐야 한다.
+function seaSignal(dt) {
+  const S = E.sig || (E.sig = { t: rng() * 20, next: between(4, 7), left: 0, dur: 0, p1: rng() * 6.28, p2: rng() * 6.28 }), j = G.gear.jammer || 0;
+  const amp = j >= 3 ? 0.5 : j >= 2 ? 0.7 : 0.9, depth = j >= 3 ? 0.45 : j >= 2 ? 0.6 : 0.85; // 너울 폭 · 해류가 끊는 깊이
+  S.t += dt;
+  if (S.left > 0) { S.left -= dt; if (S.left <= 0) { S.left = 0; S.next = between(6.5, 10.5); } } // 해류가 지나간 뒤 다음 해류까지
+  else { S.next -= dt; if (S.next <= 0) { S.dur = S.left = between(1.6, 2.4); sfx.bubble(); } } // 해류가 밀려온다 (기포 소리)
+  const dip = S.left > 0 ? Math.sin(Math.PI * (1 - S.left / S.dur)) : 0;
+  const swell = 0.56 + amp * (0.34 * Math.sin(2 * Math.PI * S.t / 4.4 + S.p1) + 0.1 * Math.sin(2 * Math.PI * S.t / 1.45 + S.p2));
+  E.sigV = clamp(swell * (1 - depth * dip), 0, 1);
+  E.sigRate = E.sigV <= 0.18 ? 0 : E.sigV >= 0.58 ? 1 : (E.sigV - 0.18) / 0.4;
+  if (E.sigRate === 0 && E.holding && !E.ai && !E.fb && E.scan > 0) E.scan = Math.max(0, E.scan - 0.15 * dt); // 끊긴 동안 받던 진행이 샌다
+}

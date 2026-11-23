@@ -95,6 +95,14 @@ window.CONFIG = {
   fatigue_step: { value: 0.25, min: 0, max: 1, step: 0.05 },       // USMLE 블록마다 스캔 시간 +
   peripheral: { value: 0.3, min: 0, max: 1, step: 0.05 },          // 세 눈 외계인: 등을 돌려도 보는 비율
   float_wobble: { value: 0.35, min: 0, max: 0.9, step: 0.05 },     // 무중력 시험지: 스캔이 흔들려 느려지는 최대치
+  // [블랙홀] 시공간 요동: 아직 답하지 않은 문제의 보기 순서가 가끔 섞인다 (렌즈의 AI 표시는 다시 스캔해야 새 자리에 뜬다)
+  reshuffle_gap_min: { value: 7, min: 2, max: 30, step: 0.5 },       // [블랙홀] 섞이는 간격(초) 최소
+  reshuffle_gap_max: { value: 12, min: 2, max: 40, step: 0.5 },      // [블랙홀] 섞이는 간격(초) 최대
+  reshuffle_grace: { value: 3, min: 0, max: 10, step: 0.5 },         // [블랙홀] 새 문제가 뜬 뒤 이만큼은 섞지 않는다(초)
+  reshuffle_tell: { value: 0.8, min: 0.2, max: 2, step: 0.1 },       // [블랙홀] 섞이기 전 시험지가 떨리는 시간(초) — 이때 바로 마킹하면 안 섞인다
+  reshuffle_warp: { value: 0.7, min: 0.2, max: 2, step: 0.1 },       // [블랙홀] 시험지가 일그러지며 섞이는 시간(초)
+  reshuffle_keep_contact: { value: 0.25, min: 0, max: 1, step: 0.05 }, // [블랙홀] 섞인 뒤 3초 안에 다시 누르면 이어서 스캔하는 지점: 콘택트렌즈
+  reshuffle_keep_brain: { value: 0.5, min: 0, max: 1, step: 0.05 },  // [블랙홀] 같은 값: 뉴럴링코 이상 (그 아래 렌즈는 처음부터)
   clone_gap: { value: 11, min: 3, max: 40, step: 0.5 },            // 평행우주 감독관이 한 명 더 나오는 간격(초)
   clone_max: { value: 5, min: 1, max: 8, step: 1 },                // 평행우주 감독관 최대 인원
   ai_sus_gain: { value: 0.22, min: 0, max: 1, step: 0.01 },        // 인간 인증: AI 답을 고를 때마다 AI 의심도 +
@@ -122,6 +130,19 @@ window.CONFIG = {
   break_time: { value: 2.5, min: 0.5, max: 8, step: 0.5 },         // 교시·모듈·블록 사이 쉬는 시간(초)
   zoom_time: { value: 0.8, min: 0.1, max: 1.5, step: 0.05 },      // 고시원에서 노트북·일정표·폰으로 다가가는 시간(초)
   candle_bonus: { value: 0.4, min: 0, max: 1.5, step: 0.05 },      // 촛불 감지기 단계당 저승사자 낌새 +초
+  // [저승] 저승 입학시험: 세 번 부르기 · 물방울 망자
+  call_first: { value: 7, min: 2, max: 30, step: 0.5 },            // [저승] 시작 뒤 첫 부름까지(초)
+  call_gap_min: { value: 10, min: 3, max: 40, step: 0.5 },         // [저승] 부름 묶음 사이 최소 간격(초)
+  call_gap_max: { value: 16, min: 3, max: 40, step: 0.5 },         // [저승] 부름 묶음 사이 최대 간격(초)
+  call_step_min: { value: 1.7, min: 0.5, max: 5, step: 0.1 },      // [저승] 첫·둘·셋째 부름 사이 최소(초)
+  call_step_max: { value: 2.4, min: 0.5, max: 5, step: 0.1 },      // [저승] 첫·둘·셋째 부름 사이 최대(초)
+  call_tail: { value: 1.1, min: 0.3, max: 3, step: 0.1 },          // [저승] 셋째 부름 뒤 돌아볼 마지막 여유(초)
+  call_look: { value: 0.2, min: 0, max: 1, step: 0.05 },           // [저승] 그 사자 쪽을 이만큼 보고 있어야 부름이 끝난다(초)
+  ghost_gap_min: { value: 8, min: 3, max: 40, step: 0.5 },         // [저승] 망자가 다시 내 자리로 오기까지 최소(초)
+  ghost_gap_max: { value: 14, min: 3, max: 40, step: 0.5 },        // [저승] 망자가 다시 내 자리로 오기까지 최대(초)
+  ghost_stay_min: { value: 2.6, min: 0.5, max: 8, step: 0.1 },     // [저승] 내 자리 위에서 물을 떨어뜨리는 시간 최소(초)
+  ghost_stay_max: { value: 3.8, min: 0.5, max: 8, step: 0.1 },     // [저승] 내 자리 위에서 물을 떨어뜨리는 시간 최대(초)
+  ghost_drip: { value: 0.55, min: 0.15, max: 2, step: 0.05 },      // [저승] 물방울 사이 간격(초)
 
   sticker_slow: { value: 1.4, min: 1, max: 3, step: 0.05 },        // 단추 스티커: 단추 카메라(안경 전 단계)면 스캔 시간 배율
   emp_wipe: { value: 1, min: 0, max: 1, step: 0.1 },                // EMP가 터지면 진행 중인 스캔이 날아가는 비율
@@ -310,8 +331,8 @@ window.CONFIG = {
       how: '도는 장치 안에서 필기 · 화면이 기운다', beat: '화면이 많이 기울수록 스캔이 느리다. 수평에 가까울 때 읽는다' },
     mars: { slot: 20, act: 3, name: '화성 이주 자격시험', subject: '생존 수학', gen: 'mars', qn: 10, time: 120, room: 'mars', sec: [], mech: ['helmet'], staff: [{ type: 'suneung', name: '이주 관리관' }, { type: 'agent', name: '이주 관리관' }], head: ['Mars Settler Qualification', 'Survival Mathematics'], lines: ['화성 이주 자격시험', '헬멧을 벗지 마시오'],
       how: '우주복을 입고 본다 · 숨을 쉴수록 헬멧에 김이 서린다', beat: '스캔하는 동안 김이 서려 느려지고 앞이 안 보인다. 짧게 끊어 읽고, 김이 걷히길 기다린다' },
-    sea: { slot: 21, act: 3, name: '용궁 과거시험', subject: '시무책', gen: 'psat', qn: 10, time: 130, room: 'sea', sec: [], mech: ['float', 'breath'], staff: [{ type: 'don', name: '거북 감독관' }, { type: 'don2', name: '잉어 감독관' }], head: ['용궁 과거시험', '시무책'], lines: ['용궁 과거시험', '숨은 알아서 참으시오'],
-      how: '물속 · 시험지가 물결에 흔들린다', beat: '스캔하는 동안 숨을 쓴다. 숨이 바닥나면 공기 방울이 솟아 들킨다. 숨이 찰 때까지 쉰다' },
+    sea: { slot: 21, act: 3, name: '용궁 과거시험', subject: '시무책', gen: 'psat', qn: 10, time: 130, room: 'sea', sec: [], mech: ['breath', 'signal'] /* [용궁] 무중력 흔들림 대신 물속 신호 */, staff: [{ type: 'don', name: '거북 감독관' }, { type: 'don2', name: '잉어 감독관' }], head: ['용궁 과거시험', '시무책'], lines: ['용궁 과거시험', '숨은 알아서 참으시오'],
+      how: '물속 · 수면 부표의 AI 신호가 물결 따라 세졌다 약해진다', beat: '신호가 약하면 스캔이 느리고, 해류가 지나가면 끊긴다. 감독관이 안 볼 때와 신호가 좋을 때가 겹칠 때 읽는다. 스캔하는 동안 숨을 쓰니 숨이 바닥나기 전에 쉰다' }, // [용궁]
     dream: { slot: 21, act: 3, name: '꿈속 시험', subject: '기억나지 않는 과목', gen: 'dream', qn: 8, time: 110, room: 'dream', sec: [], mech: ['dream'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['꿈속 시험', '기억나지 않는 과목'], lines: ['꿈속 시험', '눈을 떼면 바뀐다'],
       how: '보는 사이에 보기 순서가 바뀐다', beat: '화면이 일렁이면 곧 바뀐다. 바뀌기 전에 읽고 바로 마킹한다. 바뀌면 처음부터 다시 읽는다' },
     loop: { slot: 22, act: 3, name: '타임루프 재시험', subject: '어제와 같은 시험', gen: 'psat', qn: 5, time: 60, parts: ['1회차', '2회차', '3회차'], room: 'hs', sec: [], pulse: null, mech: ['loop'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['2026학년도 6월 고3 전국연합학력평가', '국어 영역'], lines: ['6월 모의평가', '…또 6월이다'],
@@ -322,7 +343,7 @@ window.CONFIG = {
       how: '감독관이 생각을 읽는다', beat: '답이 떠 있는 동안 감독관이 보면 의심이 오른다. 답이 뜨면 바로 마킹해서 머리를 비운다' },
     aicourt: { slot: 23, act: 3, name: 'AI 재판소 배심 시험', subject: '판례', gen: 'law', qn: 10, time: 170, room: 'court', sec: ['cctv'], mech: ['peek'], noAuto: true, staff: [{ type: 'robot', name: 'AI 판사' }, { type: 'robot', name: 'AI 서기' }], head: ['AI 재판소 배심원 자격시험', '판례'], lines: ['AI 재판소', '모든 답안은 기록됩니다'],
       how: '감독관이 전부 AI · 자동 마킹이 막히고 CCTV가 돈다', beat: '뉴럴링코의 자동 마킹이 꺼지므로 답을 직접 고른다. CCTV가 내 쪽을 볼 때와 AI 판사가 볼 때는 멈춘다' },
-    hole: { slot: 23, act: 3, name: '블랙홀 가장자리 시험', subject: '상대론', gen: 'relativity', qn: 10, time: 130, room: 'hole', sec: [], mech: ['warp'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }, { type: 'alien', name: '사건의 지평선 감독관' }], head: ['사건의 지평선 자격시험', '상대론'], lines: ['블랙홀 가장자리 시험', '시간은 사람마다 다르게 흐릅니다'],
+    hole: { slot: 23, act: 3, name: '블랙홀 가장자리 시험', subject: '상대론', gen: 'relativity', qn: 10, time: 130, room: 'hole', sec: [], mech: ['warp', 'reshuffle'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }, { type: 'alien', name: '사건의 지평선 감독관' }], head: ['사건의 지평선 자격시험', '상대론'], lines: ['블랙홀 가장자리 시험', '시간은 사람마다 다르게 흐릅니다'],
       how: '시간이 빨라졌다 느려졌다 한다', beat: '시간이 빠를 때는 감독관도 시계도 빠르다. 느려졌을 때 몰아서 읽는다' },
     gods: { slot: 23, act: 3, name: '신들의 수능', subject: '신들의 사생활', gen: 'gods', qn: 10, time: 140, room: 'storm', sec: [], mech: ['bolt'], staff: [{ type: 'don', name: '아테나' }, { type: 'don2', name: '헤르메스' }, { type: 'yeomra', name: '제우스', fixed: true }], head: ['올림포스 수학능력시험', '신들의 사생활'], lines: ['올림포스 수학능력시험', '번개가 치면 쇠붙이는 쉽니다'],
       how: '신들만 아는 문제 · 번개가 칠 때마다 장비가 꺼진다', beat: '천둥이 우르릉 하면 곧 번개. 번개가 치면 2.4초 동안 안경이 먹통이고 읽던 것도 날아간다. 그동안은 경고도 안 뜨니 고개를 들고 기다린다' },
@@ -461,8 +482,7 @@ window.CONFIG = {
     to: { stand: [0.9, 1.6], walk: [0.6, 1.0], tell: 0.32, watch: 3.3, speed: 0.21, cross: 0.45, feint: 0.5, sus: 1.8 },
     add: {
       mars: { sec: ['cctv'] },                                                   // 기지 감시 카메라
-      sea: { sec: ['pulse'], staff: [{ type: 'don2', name: '자라 감독관' }] },     // 음파 탐지 · 감독관 하나 더
-      afterlife: { mech: ['mole'] },                                             // 앞자리 망자가 사실은 저승사자
+      sea: { staff: [{ type: 'don2', name: '자라 감독관' }] },                     // [용궁] 감독관 하나 더 (전파 장치는 물속 신호와 겹쳐서 뺌)
       dream: { mech: ['mole'], staff: [{ type: 'homeroom', name: '또 한 명의 담임' }] }, // 꿈속: 같은 선생님이 둘
       loop: { sec: ['cctv'], staff: [{ type: 'dean', name: '시험 관리관' }] },
       multi: { mech: ['drone'] },
