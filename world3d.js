@@ -307,7 +307,7 @@ const WORLD = (() => {
       m.root.rotation.y = m.yaw; m.head.rotation.set(m.headPitch, m.headYaw, 0);
       if (m.legs.length) { const lk = -1.4 * sit; m.legs[0].rotation.x = lk + sw * 0.45; m.legs[1].rotation.x = lk - sw * 0.45; }
       const crossArms = m.look && m.look.prop === 'cross' && !o.moving;
-      if (sit > 0.5) { m.arms[0].rotation.set(-0.9, 0, 0.15); m.arms[1].rotation.set(o.phase === 'stand' ? -1.1 : -0.9, 0, -0.15); }
+      if (sit > 0.5) { m.arms[0].rotation.set(-0.9, 0, 0.15); m.arms[1].rotation.set(o.raise ? -2.7 : o.phase === 'stand' ? -1.1 : -0.9, 0, o.raise ? -0.25 : -0.15); }
       else if (crossArms) { m.arms[0].rotation.set(-1.05, 0, 0.55); m.arms[1].rotation.set(-1.05, 0, -0.55); }
       else if (o.raise) { m.arms[0].rotation.set(-sw * 0.35, 0, 0); m.arms[1].rotation.set(-0.5, 0, 0); }
       else { m.arms[0].rotation.set(-sw * 0.35, 0, 0); m.arms[1].rotation.set(o.phase === 'watch' && !m.robot ? -0.35 : sw * 0.35, 0, 0); }
@@ -724,7 +724,7 @@ const WORLD = (() => {
     // 테이블
     B.box(2.6, 0.06, 0.95, R.cloth ? 0xf2f0ea : 0x5a3a24, 0, 0.74, -0.25); B.box(2.5, 0.7, 0.06, R.cloth ? 0xe8e6e0 : 0x4a3020, 0, 0.36, -0.68);
     if (R.cloth) B.box(2.62, 0.3, 0.02, 0xf2f0ea, 0, 0.6, 0.23);
-    for (const x of [-0.9, 0, 0.9]) B.box(0.42, 0.9, 0.08, 0x2a1a12, x, 0.9, -1.12);
+    const chairs = [-0.9, 0, 0.9].map(x => bx(sc, 0.42, 0.9, 0.08, 0x2a1a12, x, 0.9, -1.12)); // 면접관 의자 등받이 (해외 보스전 3페이즈에서 낮춘다)
     if (!R.glasses) { B.box(0.3, 0.02, 0.22, 0xf4f1e6, -0.55, 0.78, -0.4, 0, 0.2); B.box(0.08, 0.07, 0.08, 0xf4f4f0, 0.6, 0.8, -0.3); }
     else { B.box(0.2, 0.18, 0.2, 0x8a8f99, 1.05, 0.86, -0.4); B.box(0.24, 0.02, 0.16, 0xd8b884, -1.05, 0.78, -0.4); }
     sc.add(B.mesh());
@@ -745,7 +745,7 @@ const WORLD = (() => {
     const cam = new THREE.PerspectiveCamera(62, RW / RH, 0.03, 40); cam.rotation.order = 'YXZ';
     const eye = new THREE.Vector3(0, 1.17, 0.9); cam.position.copy(eye);
     Object.assign(EX, { scene: sc, tier: ti, paper: null, paperTex: null, paperSig: '', staff, cctv: null, pulse: null, drone: null, cam, eye, watch: null, pen: null, clock: null, clockSec: -1,
-      AL: -0.9, AR: 0.9, zFront: -1, zBack: 1, my: { x: 0, z: 0.6 }, desks: [], raise: null, candle: null, lamps: [], views: VIEWS_TABLE, layout: 'table', floaty: false, glasses, frontZ: -1 });
+      AL: -0.9, AR: 0.9, zFront: -1, zBack: 1, my: { x: 0, z: 0.6 }, desks: [], raise: null, candle: null, lamps: [], views: VIEWS_TABLE, layout: 'table', floaty: false, glasses, frontZ: -1, chairs });
   }
   function buildHomeExam(ti) { // 토플 홈에디션: 고시원 방 노트북 화면이 시험지
     buildHub();
@@ -808,7 +808,7 @@ const WORLD = (() => {
     const B = V.back[i]; if (t < B.e) return { x: B.f.x, z: B.f.z, yaw: 0, moving: false, hiddenNow: true };
     if (t >= B.a) return null; const q = evAt(B.R, EV_BACK * (t - B.e)); return { x: q.x, z: q.z, yaw: q.yaw, moving: true, headPitch: 0, walk: t };
   }
-  function staffPlace(s, i, E) { const ev = E.evict && E.evict.plan && E.evict.t < E.evict.plan.endAll ? evStaff(i, E.evict.t, E) : null; return ev || staffPlace0(s, i, E); }
+  function staffPlace(s, i, E) { const ev = E.evict && E.evict.plan && E.evict.t < E.evict.plan.endAll ? evStaff(i, E.evict.t, E) : null, p = ev || staffPlace0(s, i, E); return E.boss && window.BOSS && BOSS[E.boss].place ? BOSS[E.boss].place(s, i, E, p) || p : p; } // 보스전은 자세를 덧입힌다
   function staffPlace0(s, i, E) { // 게임 규칙의 위치(왼쪽·오른쪽 통로, 앞뒤 u, 자리)를 방 좌표로
     const T = E.T;
     if (s.fixed) {
@@ -876,7 +876,7 @@ const WORLD = (() => {
       if (frisk) { const sw = ease(clamp((E.intro.t - 0.5) / 2.2, 0, 1)), fx = EX.eye.x - 0.62, fz = EX.eye.z - 1.5, face = Math.atan2(EX.eye.x - fx, EX.eye.z - fz), swing = lerp(0.34, -0.3, sw);
         p.x = fx; p.z = fz; p.yaw = face + swing; p.moving = false; p.headPitch = 0.14; p.hiddenNow = false; p.seated = false; }
       const hold = s.phase === 'check' && s.check && s.check.kind === 'sheet' && s.check.stage === 'at' ? sheetK(s.check) : null; if (hold) sheetAt = { p, hold };
-      poseModel(m, { hold, x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: p.walk != null ? p.walk : s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
+      poseModel(m, { hold, sit: p.sit, raise: p.raise, x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: p.walk != null ? p.walk : s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
         predict: predict && !s.asleep && !hold && !(E.evict && E.evict.plan && E.evict.t < E.evict.plan.endAll), asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
       if (frisk) { const W2 = EX.gadget.wand, mt = E.intro.t; if (W2.parent !== m.arms[1]) { m.arms[1].add(W2); W2.position.set(0, -1.02, 0.1); W2.rotation.set(Math.PI / 2, 0, 0); W2.scale.setScalar(0.9); }
         m.arms[1].rotation.set(-1.17 + Math.sin(mt * 4.2) * 0.05, 0, 0); m.arms[0].rotation.set(0, 0, 0); W2.visible = true; }
@@ -980,8 +980,11 @@ const WORLD = (() => {
       if (st === 'case' && G2.open > 0.04) { drawGadgetScreen(G2.caseT.g, E, now, 'case'); G2.caseT.t.needsUpdate = true; }
       if (st === 'eraser') { drawGadgetScreen(G2.lcdT.g, E, now, 'eraser'); G2.lcdT.t.needsUpdate = true; }
     }
+    if (E.boss && window.BOSS && BOSS[E.boss].world) BOSS[E.boss].world(E, now, bossApi()); // 보스전 연출: 카메라·시세판·눈·거울 속 나
     draw(EX.scene, cam, now);
   }
+  let BAPI = null;
+  function bossApi() { return BAPI || (BAPI = { THREE, EX, bx, pivot, plane, glowMat, mat, ownMat, makeHuman, poseModel, canvasTex, batch, psx, RW, RH, clamp, lerp, ease, angTo }); } // 보스 연출이 쓰는 3D 도구
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   function pickChoice(x, y) { // 화면(640x360 좌표)에서 톡 친 자리 → 시험지 보기 번호
     if (!W.ok || !EX.scene || !EX.paper) return -1;

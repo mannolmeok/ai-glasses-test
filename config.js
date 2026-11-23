@@ -111,6 +111,19 @@ window.CONFIG = {
   omega_jump: { value: 0.3, min: 0, max: 1, step: 0.05 },
   omega_grow: { value: 0.2, min: 0, max: 1, step: 0.05 },          // Ω: 문제를 풀수록 읽는 박자 폭이 넓어지는 비율 (문항당)
   omega_floor: { value: 0.4, min: 0, max: 1, step: 0.05 },         // Ω: 엇박자 칩을 다 달아도 남는 비율
+  ib_strikes: { value: 3, min: 1, max: 9, step: 1 },               // [해외 보스] 페이즈마다 이만큼 들키거나(1·2) 놓치면(3) 끝
+  ib1_blocks: { value: 72, min: 20, max: 160, step: 2 },           // [해외 보스 1] 블록 러시: 입력할 블록 수
+  ib1_time: { value: 75, min: 30, max: 180, step: 1 },             // [해외 보스 1] 제한 시간(초)
+  ib1_acc: { value: 0.85, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 1] 통과 정확도
+  ib1_stack: { value: 12, min: 6, max: 20, step: 1 },              // [해외 보스 1] 쌓이는 칸 수. 넘치면 맨 아래가 떨어진다
+  ib2_pass: { value: 0.8, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 2] 리듬 면접 통과 정확도
+  ib2_window: { value: 0.13, min: 0.05, max: 0.3, step: 0.01 },    // [해외 보스 2] 박자 판정 폭(± 초)
+  ib3_q: { value: 18, min: 6, max: 40, step: 1 },                  // [해외 보스 3] 질문 수 (함정 포함)
+  ib3_life: { value: 8, min: 3, max: 20, step: 0.5 },              // [해외 보스 3] 첫 질문의 제한 시간(초). 갈수록 짧아진다
+  ib3_scan: { value: 0.6, min: 0.1, max: 3, step: 0.05 },          // [해외 보스 3] 안경이 질문 하나를 읽어 답을 만드는 시간(초)
+  hle_beam: { value: 0.22, min: 0.05, max: 0.6, step: 0.01 },      // [외계 보스 1] 시선 빔의 폭 (방 너비 대비)
+  hle_race_q: { value: 8, min: 3, max: 20, step: 1 },              // [외계 보스 3] 거울 속 나와 겨루는 문제 수
+  hle_mirror: { value: 1.15, min: 0.5, max: 2, step: 0.05 },        // [외계 보스 3] 거울 속 내가 한 문제에 쓰는 시간 배율 (작을수록 빠르다)
   omega_strip: { value: 2, min: 1, max: 8, step: 1 },              // Ω: 이만큼 문제를 풀 때마다 안경이 한 단계씩 내려간다          // Ω에게 박자를 읽히면 오르는 의심도
 
   // ---- 장비 효과 ----

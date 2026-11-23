@@ -762,6 +762,7 @@ function drawGadgetScreen(g, E, now, kind) {
 
 // ---- 시험 중 안경 HUD ----
 function drawExamHud(k, L, E, now, H) {
+  if (E.boss && window.BOSS && BOSS[E.boss].hud && BOSS[E.boss].hud(k, L, E, now, H)) { drawExamOverlays(k, L, E, now, H); return; } // 보스전이 렌즈 화면을 통째로 그리는 구간
   const X = EXAM_LAYOUT, C = PAL, { R, T, TO } = k, tier = E.T;
   const live = E.start <= 0 && !E.over && !E.caught && !(E.breakT > 0), onPaper = E.view === 'paper' && E.viewT >= 1, VF = CONFIG.hud_style === 'viewfinder';
   const q = E.qs[Math.min(E.qi, E.qs.length - 1)];
@@ -870,6 +871,7 @@ function drawExamHud(k, L, E, now, H) {
   if (live && E.ai && !E.fb && E.gear.earbud > 0 && !E.dead && q && !q.final && q.kind !== 'essay' && Math.floor(now * 0.8) % 3 !== 2) k.SUB(`(이어폰) “…${q.aiPick + 1}번…”`, L.W / 2, L.H - 70, 10, '#e8e4da', 'center'); // AI 이어폰: 어디를 보고 있어도 답이 들린다
   if (E.runShown) T(fmtRun(E.runShown), 48, 40, 10, H.c2, 'left', 700);
   if (ST === 'used') k.b.drawImage(rimFor('land'), 0, 0); else if (ST === 'proto') k.b.drawImage(rimFor('land', 1.16), 0, 0); // 안경테: 중고는 두껍고 시제품은 얇다. 렌즈·임플란트는 테가 없다
+  if (E.boss && window.BOSS && BOSS[E.boss].hudTop) BOSS[E.boss].hudTop(k, L, E, now, H); // 보스전이 렌즈 화면 위에 덧그리는 것
   drawExamOverlays(k, L, E, now, H);
 }
 
@@ -900,18 +902,18 @@ function drawExamOverlays(k, L, E, now, H) {
     if (Math.floor(now * 2) % 2 === 0) { TO('<', zw / 2 + 8, L.H / 2, 22, C.white); TO('>', L.W - zw / 2 - 8, L.H / 2, 22, C.white); } }
   }
   if (E.clear && E.qi === 0 && E.start <= 0 && !E.fb && !E.over && !E.caught) k.SUB('…글이 한눈에 들어온다.', L.W / 2, L.H - 48, 12, C.white, 'center');
-  if (E.breakT > 0 && !E.caught && !(E.evict && E.evict.end && E.evict.t < E.evict.end)) { // 쉬는 시간 종소리 뒤의 안내 방송 (앞자리가 끌려 나가는 동안은 조용히)
+  if (E.breakT > 0 && !E.caught && !E.boss && !(E.evict && E.evict.end && E.evict.t < E.evict.end)) { // 쉬는 시간 종소리 뒤의 안내 방송 (앞자리가 끌려 나가는 동안은 조용히)
     
     k.SUB(`${tier.staff[0].name}: "쉬는 시간입니다. 다음은 ${tier.parts[E.part]}."`, L.W / 2, L.H - 48, 12, C.white, 'center', 800);
   }
-  if (E.start > 0) { // 감독관의 안내 방송 (자막)
+  if (E.start > 0 && !E.noStartLine) { // 감독관의 안내 방송 (자막)
     const notes = (E.startNotes || []).map(n => n.text), who = tier.staff[0].name;
     const l1 = `${who}: "${tier.parts ? tier.parts[E.part] + ', ' : ''}${tier.name}${tier.boss ? '. 마지막 관문입니다' : ''}. 지금부터 시작합니다."`, l2 = notes.length ? `"${notes.join(' · ')}"` : '';
     
     let s1 = 12; while (k.TW(l1, s1, 800) > L.W - 40 && s1 > 9) s1--; k.SUB(l1, L.W / 2, L.H - 48, s1, C.white, 'center', 800);
     if (l2) { let s2 = 11; while (k.TW(l2, s2, 700) > L.W - 40 && s2 > 8) s2--; T(l2, L.W / 2, L.H - 30, s2, '#d8d3e6', 'center', 700); }
   }
-  if (E.over && !E.caught) {  k.SUB(`${tier.staff[0].name}: "${E.all ? '답안지 걷겠습니다.' : '시험 종료. 필기구 내려놓으세요.'}"`, L.W / 2, L.H - 48, 12, C.white, 'center', 800); }
+  if (E.over && !E.caught) {  k.SUB(E.endLine || `${tier.staff[0].name}: "${E.all ? '답안지 걷겠습니다.' : '시험 종료. 필기구 내려놓으세요.'}"`, L.W / 2, L.H - 48, 12, C.white, 'center', 800); }
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
