@@ -419,7 +419,7 @@ function viewInput(taps) { // 화면 왼쪽·오른쪽·위를 누르고 있는 
 }
 function scanPointer() { // 시험장: 가운데를 꾹. 면접: 화면 왼쪽(AI 답변이 뜨는 쪽)을 꾹
   if (IVABC && E && E.layout === 'table' && !E.T.mech.includes('gaze')) return false;
-  for (const p of ptrs.values()) if (E && E.layout === 'table' ? p.x < EXAM_LAYOUT.W * 0.45 && p.y < 270 : p.zone === 'C') return true; return false; }
+  for (const p of ptrs.values()) if (E && E.layout === 'table' ? p.y < 300 : p.zone === 'C') return true; return false; }
 
 // ---- Audio: started on first input, mute on M --------------------------------------------
 let audio = null, muted = false;
@@ -583,7 +583,7 @@ function startExam(ti) {
   if (T.mech.includes('sticker')) { E.intro = { kind: 'sticker', t: 0, dur: 3.6 }; if (camOn) E.deadNext = 'sticker'; N.push({ text: camOn ? '단추 카메라가 스티커에 가려졌다. 이 시험은 AI 없이' : '옷 단추마다 스티커 (안경이라 상관없음)', col: camOn ? PAL.bad : PAL.good }); }
   const names = [...T.mech.filter(m => !['tutorial', 'metal', 'glasscheck', 'sticker'].includes(m)).map(m => m === 'idcheck' && T.check === 'calc' ? MECH_NAME.calc : MECH_NAME[m]), ...T.sec.map(s => s === 'pulse' && T.pulse ? SEC_NAME[T.pulse] : SEC_NAME[s])];
   if (names.length) N.push({ text: names.join(' · '), col: PAL.warn });
-  if (T.noAuto) N.push({ text: 'AI 감독관이 이어폰·자동 스캔을 막는다', col: PAL.bad });
+  if (T.noAuto && (g.autoscan > 0 || g.lens >= 7)) N.push({ text: 'AI 감독관이 이어폰·자동 스캔을 막는다', col: PAL.bad });
   beginPart(0, firstEver);
   ptrs.clear(); releases = [];
   if (!G.run.done) G.run.started = true;
@@ -924,9 +924,9 @@ function updateExam(dt) {
     const sq = E.sq; sq.t += dt; if (sq.bad > 0) sq.bad -= dt; if (sq.ok > 0) sq.ok -= dt; if (sq.rush > 0) sq.rush -= dt;
     let key = -1; if (pressed('KeyA')) key = 0; else if (pressed('KeyS')) key = 1; else if (pressed('KeyD')) key = 2;
     for (const [x, y] of taps) { const r = (E.abcRects || []).find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); if (r) key = r.i; }
-    if (key >= 0 && sq.t > 1.2) {
+    if (key >= 0 && sq.t > 0.6) {
       if (blind) { const w = E.staff.find(s => s.fixed && s.phase === 'watch'); E.sus = Math.min(1, E.sus + 0.34); E.source = { how: 'watch', by: w }; sq.bad = 0.5; sfx.no(); } // 보는 중에 누르면 크게 걸린다
-      else if (sq.t - sq.last < 0.2) { sq.rush = 0.6; sq.last = sq.t; sfx.no(); } // 너무 빨리 누르면 말이 꼬인다: 그 블록은 그대로
+      else if (sq.t - sq.last < 0.12) { sq.rush = 0.6; sq.last = sq.t; sfx.no(); } // 너무 빨리 누르면 말이 꼬인다: 그 블록은 그대로
       else if (key === sq.seq[sq.i]) { sq.i++; sq.ok = 0.12; sq.last = sq.t; sfx.scan(); G.hints.iv = true; if (sq.i >= sq.seq.length) { E.wasHold = false; markAnswer(sq.miss <= 2 ? 0 : 2, 'speak'); } }
       else { sq.miss++; sq.bad = 0.35; sq.last = sq.t; sfx.no(); } // 틀리면 말이 끊긴다
     }

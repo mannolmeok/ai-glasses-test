@@ -128,7 +128,8 @@ const HUBUI = (() => {
       if (state) { const sw2 = k.TW(state, 10, 800) + 10; R(cx + 8, cy + 58, sw2, 14, state === '품절' ? '#5a6474' : '#e8453e'); T(state, cx + 8 + sw2 / 2, cy + 65, 10, C.white, 'center', 800); }
       R(cx + 8, cy + 60 + (state ? 16 : 0), cw - 16, 1, '#dfe3ea');
       const ty = cy + 74 + (state ? 16 : 0);
-      wrap(k, eff, cw - 16, 12).slice(0, state ? 1 : 2).forEach((ln, j) => T(ln, cx + 8, ty + j * 15, 12, '#12161f', 'left', 700));
+      { const room = (cy + ch - 46) - (ty - 7); let fs = 12, lh = 15, ls = wrap(k, eff, cw - 16, fs); if (ls.length * lh > room) { fs = 10; lh = 12; ls = wrap(k, eff, cw - 16, fs); } // 효과 설명이 잘리지 않게: 안 들어가면 글자를 줄여 한 줄 더
+        ls.slice(0, Math.max(1, Math.floor(room / lh))).forEach((ln, j) => T(ln, cx + 8, ty - (fs < 12 ? 1 : 0) + j * lh, fs, '#12161f', 'left', 700)); }
       T(sub, cx + 8, cy + ch - 40, fitText(k, sub, cw - 16, 10, 8), '#7a8494', 'left', 700);
       btn(k, cx + 6, cy + ch - 30, cw - 12, 24, label, key, { off, bg: '#e8453e', col: '#e8453e', fg: '#ffffff', size: 13 });
     });

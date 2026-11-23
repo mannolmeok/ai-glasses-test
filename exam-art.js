@@ -643,7 +643,7 @@ function drawCounterFx(k, L, E, now, live) {
   if (live && T.mech.includes('fatigue')) { const f = Math.min(1, E.part * 0.4) * (typeof gearCut === 'function' ? gearCut(E.gear.eyedrop) : 1); // 눈 피로: 블록이 쌓일수록 눈꺼풀이 내려오고, 저절로 깜빡인다
     if (f > 0.02) { const lid = f * 46, gap = 8 - f * 4, bl = (now % gap) < 0.16; let gr = b.createLinearGradient(0, 0, 0, lid * 1.6); gr.addColorStop(0, 'rgba(0,0,0,0.95)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = gr; b.fillRect(0, 0, W, lid * 1.6);
       gr = b.createLinearGradient(0, HH - lid * 1.4, 0, HH); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.95)'); b.fillStyle = gr; b.fillRect(0, HH - lid * 1.4, W, lid * 1.4);
-      b.globalAlpha = 0.1 * f; k.R(0, 0, W, HH, '#7a1e1e'); b.globalAlpha = 1; if (bl) k.R(0, 0, W, HH, '#000000'); if (E.qi === 0 && E.timeLeft > E.timeTotal - 3) k.SUB('…눈이 뻑뻑하다.', W / 2, HH - 70, 11, '#ffffff', 'center'); } }
+      b.globalAlpha = 0.1 * f; k.R(0, 0, W, HH, '#7a1e1e'); b.globalAlpha = 1; if (E.qi === 0 && E.timeLeft > E.timeTotal - 3) k.SUB('…눈이 뻑뻑하다.', W / 2, HH - 70, 11, '#ffffff', 'center'); } }
 }
 function drawIntro(k, L, E, now) { // 입실 검사 장면의 자막과 화면 효과
   const I = E.intro, W = L.W, HH = L.H, b = k.b, t = I.t, who = E.T.staff[0].name, say = s => k.SUB(`${who}: "${s}"`, W / 2, HH - 48, 12, '#ffffff', 'center'), me = s => k.SUB(s, W / 2, HH - 48, 12, '#ffffff', 'center');
