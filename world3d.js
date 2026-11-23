@@ -1175,6 +1175,10 @@ const WORLD = (() => {
     for (const [px, py] of [[-w, -h], [w, -h], [w, h], [-w, h]]) { _p.set(px, py, 0); face.localToWorld(_p); _p.project(HUB.cam); const sx = (_p.x + 1) / 2 * RW, sy = (1 - _p.y) / 2 * RH; x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy); }
     return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
+  function moleRect() { // 앞자리 비밀 감독관이 화면에서 차지하는 자리 (640x360 좌표)
+    if (!W.ok || !MOLE || !MOLE.obj || !EX.cam || MOLE.sc !== EX.scene) return null; _p.setFromMatrixPosition(MOLE.obj.matrixWorld); const bx = _p.x, bz = _p.z;
+    _p.set(bx, 0.6, bz); _p.project(EX.cam); if (_p.z > 1 || Math.abs(_p.x) > 1.2) return null; const x = (_p.x + 1) / 2 * RW, y1 = (1 - _p.y) / 2 * RH;
+    _p.set(bx, 1.32, bz); _p.project(EX.cam); const y0 = (1 - _p.y) / 2 * RH, h = y1 - y0; if (h <= 0) return null; return { x: x - h * 0.32, y: y0, w: h * 0.64, h }; }
   function staffRects() { // 시험장의 감독관들이 화면에서 차지하는 자리 (640x360 좌표). 군용 렌즈의 표적 표시에 쓴다
     const out = []; if (!W.ok || !EX.staff || !EX.cam) return out;
     EX.staff.forEach((m, i) => { if (!m || !m.root || !m.root.visible) return;
@@ -1462,5 +1466,5 @@ const WORLD = (() => {
     return FIG.ms.map(f => { _p.set(f.x, f.top ? 2.3 : -0.15, f.z).project(FIG.cam); return { text: f.label, x: (_p.x + 1) / 2 * RW, y: (1 - _p.y) / 2 * RH, pose: f.pose }; });
   }
 
-  return Object.assign(W, { init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
+  return Object.assign(W, { init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, moleRect, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
 })();

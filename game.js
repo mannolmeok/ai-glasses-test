@@ -1003,6 +1003,7 @@ function updateExam(dt) {
     if (gap != null && E.lastGap != null && Math.abs(gap - E.lastGap) < win) { E.sus = Math.min(1, E.sus + tune.omega_jump); E.source = { how: 'omega', by: E.staff[0] }; flash('Ω가 박자를 읽었다! 간격을 바꿔라', PAL.bad); sfx.pulse(); }
     E.lastGap = gap; E.lastScanT = t;
   }
+  if (hold && !E.wasHold && M_.includes('lookcount') && !E.ai && !E.fb) { E.looks = (E.looks || 0) + 1; if (E.looks > (T.lookLimit || 10)) { E.sus = 1; E.source = { how: 'looks', by: E.staff[0] }; getCaught(); return; } } // 홈에디션: 고개를 숙일 때마다 시선 이탈 1회. 한도를 넘으면 적발
   if (hold && !E.wasHold && M_.includes('loop')) { const t = E.partT || 0; E.loopNow.push(t); if ((E.loopLog || []).some(a => a.some(v => Math.abs(v - t) < 1.2))) { E.sus = Math.min(1, E.sus + 0.34); E.source = { how: 'loop', by: E.staff[0] }; E.labSay = { text: '담임 선생님: "지난번에도 딱 이때 숙였지."', t: 0 }; sfx.pulse(); } }
   if (M_.includes('breath')) { E.breath = clamp((E.breath == null ? 1 : E.breath) + (hold ? -dt / 4.5 : dt / 3), 0, 1); if (E.breath <= 0 && hold) { E.breath = 0.25; E.gasp = 1.6; E.sus = Math.min(1, E.sus + 0.3); E.source = { how: 'breath', by: E.staff[0] }; E.labSay = { text: '(숨이 터졌다. 공기 방울이 솟는다!)', t: 0 }; sfx.bubble(); } }
   if (M_.includes('helmet')) E.fog = clamp((E.fog || 0) + (hold ? dt / 3.2 : -dt / 2.2), 0, 1);

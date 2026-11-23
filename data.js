@@ -670,7 +670,7 @@ const SEC_NAME = { cctv: 'CCTV 회전', pulse: 'AI 탐지 전파', drone: '드�
 const MECH_NAME = { peek: '책상 밑 감시', sticker: '단추 스티커', tutorial: '걸려도 혼나고 끝', metal: '입실 금속탐지기', visit: '불시 순시', listen: '듣기 문항', webcam: '웹캠 원격 감독',
   crowd: '다른 수험생', idcheck: '신분 확인 순회', calc: '계산기 검사', long: '긴 지문', sessions: '3교시 연속', adaptive: '적응형 2모듈',
   glasscheck: '안경 물에 담그기', interview: '마주 보는 면접', fatigue: '눈 피로', swap: '블록마다 교대', tasting: '블라인드 테이스팅',
-  threeeyes: '세 눈 감독관', float: '무중력', silent: '발소리 없음', teleport: '순간이동', clones: '늘어나는 감독관', human: 'AI 사용 감지', omega: '박자 예측', essayall: '전부 서술형', spin: '회전 장치', helmet: '헬멧 김 서림', breath: '숨 참기', dream: '바뀌는 문제', loop: '되풀이', mirror: '좌우 반전', telepathy: '독심', warp: '시간 왜곡', bolt: '낙뢰 (장비 먹통)', drone: '순찰 드론', mole: '암행 감독', family: '가족 난입' };
+  threeeyes: '세 눈 감독관', float: '무중력', silent: '발소리 없음', teleport: '순간이동', clones: '늘어나는 감독관', human: 'AI 사용 감지', omega: '박자 예측', essayall: '전부 서술형', spin: '회전 장치', helmet: '헬멧 김 서림', breath: '숨 참기', dream: '바뀌는 문제', loop: '되풀이', mirror: '좌우 반전', telepathy: '독심', warp: '시간 왜곡', bolt: '낙뢰 (장비 먹통)', drone: '순찰 드론', mole: '암행 감독', lookcount: '시선 이탈 횟수 제한' };
 
 // 장비 효과 문구: lv(그 단계를 가졌을 때)의 효과
 const pct = v => Math.round(v * 100) + '%';
