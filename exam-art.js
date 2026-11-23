@@ -557,10 +557,13 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
       if (WORLD.staffRects) WORLD.staffRects().forEach(r => { const s = E.staff[r.i]; if (!s || r.h < 24) return; const c1 = staffCol(s), h = Math.min(HH - 6 - r.y, r.h); if (h < 8 || r.w < 4) return; hudDraw(k, c => { c.strokeStyle = c1; c.lineWidth = 1.2; c.setLineDash([4, 4]); c.globalAlpha = 0.85; c.beginPath(); c.ellipse(r.x + r.w / 2, r.y + h / 2, r.w / 2 + 4, h / 2 + 4, 0, 0, 7); c.stroke(); }); }); }
   } else if (ST === 'brain') { // 뇌 임플란트: 양옆에 신경망이 켜지고, 생각이 줄지어 지나간다. 위에는 시험 전체의 답
     const G1 = '#ffd678', V1 = '#c9a0ff', n = E.qs.length, bw = Math.min(24, Math.floor((W - 200) / n)), x0 = W / 2 - n * bw / 2, y0 = 38, ph = picked ? 1 : scanning ? E.scan : 0;
-    for (let i = 0; i < n; i++) { const x = x0 + i * bw, a = E.answers[i], cur = i === E.qi;
-      if (a != null && i < E.qi) { b.globalAlpha = 0.9; R(x + 1, y0, bw - 2, 14, G1); b.globalAlpha = 1; T(String(a + 1), x + bw / 2, y0 + 7.5, 9, '#2a1c00', 'center', 800); }
-      else if (cur) { b.globalAlpha = 0.5; R(x + 1, y0, bw - 2, 14, '#1a1028'); b.globalAlpha = 1; k.frame(x + 1, y0, bw - 2, 14, Math.floor(now * 3) % 2 ? '#ffffff' : G1, 1); if (picked) T(String(q.aiPick + 1), x + bw / 2, y0 + 7.5, 9, '#ffffff', 'center', 800); }
-      else { b.globalAlpha = 0.35; k.frame(x + 1, y0, bw - 2, 14, G1, 1); b.globalAlpha = 1; } }
+    { const yc = y0 + 7, cx = i => x0 + i * bw + bw / 2; // 답안 줄: 네모 칸 대신 양옆 신경망과 같은 마디와 선. 푼 문제는 금색 마디에 고른 번호, 지금 문제는 깜빡이는 고리
+      hudDraw(k, c => { c.strokeStyle = 'rgba(255,214,120,0.45)'; c.lineWidth = 1; c.beginPath(); c.moveTo(cx(0), yc); c.lineTo(cx(n - 1), yc); c.stroke();
+        for (let i = 0; i < n; i++) { const a = E.answers[i], cur = i === E.qi, x = cx(i);
+          if (a != null && i < E.qi) { c.fillStyle = 'rgba(255,214,120,0.22)'; c.beginPath(); c.arc(x, yc, 9.5, 0, 7); c.fill(); c.fillStyle = G1; c.beginPath(); c.arc(x, yc, 6.5, 0, 7); c.fill(); }
+          else if (cur) { c.fillStyle = 'rgba(26,16,40,0.85)'; c.beginPath(); c.arc(x, yc, 7.5, 0, 7); c.fill(); c.strokeStyle = Math.floor(now * 3) % 2 ? '#ffffff' : G1; c.lineWidth = 1.6; c.beginPath(); c.arc(x, yc, 7.5, 0, 7); c.stroke(); c.strokeStyle = 'rgba(255,214,120,0.45)'; c.lineWidth = 1; }
+          else { c.fillStyle = 'rgba(201,160,255,0.7)'; c.beginPath(); c.arc(x, yc, 2.2, 0, 7); c.fill(); } } });
+      for (let i = 0; i < n; i++) { const a = E.answers[i], cur = i === E.qi; if (a != null && i < E.qi) T(String(a + 1), cx(i), yc + 0.5, 8, '#2a1c00', 'center', 800); else if (cur && picked) T(String(q.aiPick + 1), cx(i), yc + 0.5, 8, '#ffffff', 'center', 800); } }
     b.globalAlpha = 0.22 + 0.08 * Math.sin(now * 5); b.drawImage(lensGlow('A', '#b07aff'), 0, 0); b.globalAlpha = 1;
     hudDraw(k, c => { for (const side of [0, 1]) { const P = NEURO.map(([x, y]) => [side ? W - x : x, y]), lit = i => (i + 1) / P.length <= ph + 0.001 || Math.sin(now * 2 + i * 1.7 + side) > 0.93;
         c.lineWidth = 1; for (let i = 0; i < P.length; i++) for (const j of [i + 1, i + 2]) { if (j >= P.length) continue; const on = lit(i) && lit(j); c.strokeStyle = on ? G1 : V1; c.globalAlpha = on ? 0.85 : 0.28; c.beginPath(); c.moveTo(P[i][0], P[i][1]); c.lineTo(P[j][0], P[j][1]); c.stroke();
@@ -769,10 +772,11 @@ function drawExamHud(k, L, E, now, H) {
   const pl = (E.omegaDown || 0) >= 2 ? 0 : E.gear.predict; // 시선 예측 (Ω는 중반부터 이것도 끈다): 그쪽 렌즈 가장자리가 경고 (3단계부터 쳐다볼 때도 빨갛게)
   if (pl >= 3 && live && E.layout === 'room') { // 후방 카메라: 등 뒤 감독관을 위쪽 작은 화면에
     const back = E.staff.filter(s => !s.fixed && !s.out && !(s.blink > 0) && s.phase !== 'help' && s.u < 0.37), bx = L.W / 2 - 46, by = ST0 === 'mil' ? 36 : ST0 === 'brain' ? 58 : ST0 === 'contact' ? 11 : 8;
+    if (ST0 === 'brain') { const w0 = back.find(x => x.phase === 'watch') || back.find(x => x.phase === 'tell') || back[0]; if (w0) k.SUB(w0.phase === 'watch' ? `등 뒤 ${w0.side === 'L' ? '왼쪽' : '오른쪽'}에서 보고 있다는 느낌` : `등 뒤 ${w0.side === 'L' ? '왼쪽' : '오른쪽'}에 인기척`, 22, 20, 10, w0.phase === 'watch' ? '#ff9a9a' : w0.phase === 'tell' ? '#ffcf5a' : '#f0ece2', 'left'); } else {
     if (ST0 === 'contact') hudDraw(k, c => { rrect(c, bx, by, 92, 18, 9); c.fillStyle = 'rgba(8,10,14,0.92)'; c.fill(); c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.5; c.stroke(); }); // 콘택트렌즈: 위 호의 한가운데에 얹힌 둥근 마디처럼
     else { k.b.globalAlpha = 0.5; R(bx, by, 92, 18, '#0a0a0e'); k.b.globalAlpha = 0.85; k.frame(bx, by, 92, 18, '#ffffff', 1); k.b.globalAlpha = 1; }
     k.M('후방', bx + 46, by + 9.5, 7.5, '#ffffff', 'center', 700);
-    for (const s of back) { const col = s.phase === 'watch' ? C.bad : s.phase === 'tell' ? C.warn : '#c9c4d8', x = s.side === 'L' ? bx + 14 : bx + 78; k.disc(x, by + 9, 4, col); if (s.phase === 'watch') k.ring(x, by + 9, 6, C.bad); }
+    for (const s of back) { const col = s.phase === 'watch' ? C.bad : s.phase === 'tell' ? C.warn : '#c9c4d8', x = s.side === 'L' ? bx + 14 : bx + 78; k.disc(x, by + 9, 4, col); if (s.phase === 'watch') k.ring(x, by + 9, 6, C.bad); } }
   }
   if (pl > 0 && live && E.layout === 'room') {
     for (const sd of ['L', 'R']) {
