@@ -298,7 +298,7 @@ window.CONFIG = {
       how: '시험관과 1대1 · 녹음되는 대화', beat: '시험관이 메모하느라 고개를 숙일 때 왼쪽 대본을 읽어 두고, 읽어 둔 만큼만 말한다' },
     todai: { slot: 14, act: 2, name: '도쿄대 본고사', subject: '국어 논술', gen: 'spell', essayAll: 'TODAI', qn: 3, time: 150, room: 'todai', sec: [], mech: ['essayall'], staff: [{ type: 'dean', name: '시험 감독' }, { type: 'suneung', name: '보조 감독' }], head: ['東京大学 第2次学力試験', '国語'], lines: ['東京大学 個別学力試験', '答案はすべて手書き'],
       how: '객관식이 없다 · 전부 손으로 쓰는 서술형', beat: '모범 답안 한 줄을 읽고(위험) 그 줄을 옮겨 쓴다(안전). 감독이 볼 때는 쓰기만 한다' },
-    iit: { slot: 18, act: 2, name: '인도 IIT-JEE', subject: 'Physics · Mathematics', gen: 'eqhard', qn: 14, time: 170, room: 'iit', device: null, sec: ['pulse'], pulse: 'drone', mech: ['crowd', 'peek'], staff: [{ type: 'cnproctor', name: '감독관' }, { type: 'cnproctor', name: '감독관' }, { type: 'cnproctor', name: '감독관' }, { type: 'agent', name: '경찰' }], head: ['JEE (Advanced)', 'Paper 1'], lines: ['JEE (Advanced)', '창밖 접근 금지 · 드론 순찰 중'],
+    iit: { slot: 18, act: 2, name: '인도 IIT-JEE', subject: 'Physics · Mathematics', gen: 'iit', qn: 14, time: 170, room: 'iit', device: null, sec: ['pulse'], pulse: 'drone', mech: ['crowd', 'peek'], staff: [{ type: 'cnproctor', name: '감독관' }, { type: 'cnproctor', name: '감독관' }, { type: 'cnproctor', name: '감독관' }, { type: 'agent', name: '경찰' }], head: ['JEE (Advanced)', 'Paper 1'], lines: ['JEE (Advanced)', '창밖 접근 금지 · 드론 순찰 중'],
       how: '체육관에 천 명 · 문제 14개 · 감독관 넷 · 드론', beat: '감독관이 많아 안전한 틈이 짧다. 다른 수험생이 걸려 감독관이 몰려갈 때 몰아서 읽는다' },
     bac: { slot: 16, act: 2, name: '프랑스 바칼로레아', subject: '철학 논술', gen: 'spell', essayAll: 'BAC', qn: 1, time: 150, room: 'bac', device: null, parts: null, sec: [], mech: ['essayall', 'visit'], staff: [{ type: 'ta', name: '감독 교사' }, { type: 'prof', name: '장학관', visit: 'drop' }], head: ['Baccalauréat général', 'Philosophie'], lines: ['Baccalauréat · Philosophie', '4시간 · 한 문제'],
       how: '네 시간짜리 논술 한 문제 · 여덟 줄', beat: '한 줄씩 읽고 옮겨 쓴다. 읽은 줄은 5초 안에 쓰지 않으면 잊는다. 장학관이 불쑥 들어온다' },
@@ -306,23 +306,23 @@ window.CONFIG = {
       how: '칸막이 자리 · 머리 위 카메라 · 불시 손바닥 인증', beat: '카메라가 내 쪽을 볼 때와 직원이 책상 앞에 설 때는 멈춘다' },
     taxi: { slot: 19, act: 2, name: '런던 택시기사 시험', subject: 'The Knowledge · 구술', gen: 'taxi', qn: 5, time: 90, room: 'taxi', layout: 'table', device: 'ar', sec: [], mech: ['interview'], boss: false, staff: [{ type: 'prof', name: '시험관', fixed: true }], head: ['The Knowledge of London', 'Appearance'], lines: [],
       how: '출발지와 도착지를 주면 길을 말로 왼다', beat: '시험관이 지도를 볼 때 경로를 읽어 두고, 막힘없이 말한다' },
-    nasa: { slot: 17, act: 2, name: 'NASA 우주비행사 선발', subject: '회전 장치 필기', gen: 'eqhard', qn: 8, time: 145, room: 'nasa', sec: [], mech: ['spin'], check: null, staff: [{ type: 'agent', name: '선발관' }, { type: 'dean', name: '선발관' }], head: ['Astronaut Candidate Selection', 'Written Test'], lines: ['Astronaut Selection', '다축 회전 장치 가동 중'],
+    nasa: { slot: 17, act: 2, name: 'NASA 우주비행사 선발', subject: '회전 장치 필기', gen: 'orbit', qn: 8, time: 145, room: 'nasa', sec: [], mech: ['spin'], check: null, staff: [{ type: 'agent', name: '선발관' }, { type: 'dean', name: '선발관' }], head: ['Astronaut Candidate Selection', 'Written Test'], lines: ['Astronaut Selection', '다축 회전 장치 가동 중'],
       how: '도는 장치 안에서 필기 · 화면이 기운다', beat: '화면이 많이 기울수록 스캔이 느리다. 수평에 가까울 때 읽는다' },
-    mars: { slot: 20, act: 3, name: '화성 이주 자격시험', subject: '생존 수학', gen: 'eqhard', qn: 10, time: 120, room: 'mars', sec: [], mech: ['helmet'], staff: [{ type: 'suneung', name: '이주 관리관' }, { type: 'agent', name: '이주 관리관' }], head: ['Mars Settler Qualification', 'Survival Mathematics'], lines: ['화성 이주 자격시험', '헬멧을 벗지 마시오'],
+    mars: { slot: 20, act: 3, name: '화성 이주 자격시험', subject: '생존 수학', gen: 'mars', qn: 10, time: 120, room: 'mars', sec: [], mech: ['helmet'], staff: [{ type: 'suneung', name: '이주 관리관' }, { type: 'agent', name: '이주 관리관' }], head: ['Mars Settler Qualification', 'Survival Mathematics'], lines: ['화성 이주 자격시험', '헬멧을 벗지 마시오'],
       how: '우주복을 입고 본다 · 숨을 쉴수록 헬멧에 김이 서린다', beat: '스캔하는 동안 김이 서려 느려지고 앞이 안 보인다. 짧게 끊어 읽고, 김이 걷히길 기다린다' },
     sea: { slot: 21, act: 3, name: '용궁 과거시험', subject: '시무책', gen: 'psat', qn: 10, time: 130, room: 'sea', sec: [], mech: ['float', 'breath'], staff: [{ type: 'don', name: '거북 감독관' }, { type: 'don2', name: '잉어 감독관' }], head: ['용궁 과거시험', '시무책'], lines: ['용궁 과거시험', '숨은 알아서 참으시오'],
       how: '물속 · 시험지가 물결에 흔들린다', beat: '스캔하는 동안 숨을 쓴다. 숨이 바닥나면 공기 방울이 솟아 들킨다. 숨이 찰 때까지 쉰다' },
-    dream: { slot: 21, act: 3, name: '꿈속 시험', subject: '기억나지 않는 과목', gen: 'spell', qn: 8, time: 110, room: 'dream', sec: [], mech: ['dream'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['꿈속 시험', '기억나지 않는 과목'], lines: ['꿈속 시험', '눈을 떼면 바뀐다'],
+    dream: { slot: 21, act: 3, name: '꿈속 시험', subject: '기억나지 않는 과목', gen: 'dream', qn: 8, time: 110, room: 'dream', sec: [], mech: ['dream'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['꿈속 시험', '기억나지 않는 과목'], lines: ['꿈속 시험', '눈을 떼면 바뀐다'],
       how: '보는 사이에 보기 순서가 바뀐다', beat: '화면이 일렁이면 곧 바뀐다. 바뀌기 전에 읽고 바로 마킹한다. 바뀌면 처음부터 다시 읽는다' },
     loop: { slot: 22, act: 3, name: '타임루프 재시험', subject: '어제와 같은 시험', gen: 'psat', qn: 5, time: 60, parts: ['1회차', '2회차', '3회차'], room: 'hs', sec: [], pulse: null, mech: ['loop'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['2026학년도 6월 고3 전국연합학력평가', '국어 영역'], lines: ['6월 모의평가', '…또 6월이다'],
       how: '같은 시험이 세 번 되풀이된다 · 첫 시험장 그대로', beat: '감독관은 지난 회차에 내가 숙인 때를 기억하고 그때 본다. 빨간 표시를 피해 다른 때에 읽는다' },
-    mirror: { slot: 22, act: 3, name: '거울 나라 시험', subject: '뒤집힌 수학', gen: 'eq', qn: 10, time: 120, room: 'mirror', sec: [], pulse: null, mech: ['mirror'], staff: [{ type: 'dean', name: '거울 감독관' }, { type: 'dean', name: '거울 감독관' }], head: ['거울 나라 시험', '수학'], lines: ['거울 나라 시험', '왼쪽이 오른쪽입니다'],
+    mirror: { slot: 22, act: 3, name: '거울 나라 시험', subject: '뒤집힌 수학', gen: 'mirror30', qn: 10, time: 120, room: 'mirror', sec: [], pulse: null, mech: ['mirror'], staff: [{ type: 'dean', name: '거울 감독관' }, { type: 'dean', name: '거울 감독관' }], head: ['거울 나라 시험', '수학'], lines: ['거울 나라 시험', '왼쪽이 오른쪽입니다'],
       how: '시험지 글자와 좌우가 뒤집혀 있다', beat: '왼쪽을 누르면 오른쪽을 본다. AI도 뒤집힌 글자를 읽느라 스캔이 느리다' },
     telepathy: { slot: 23, act: 3, name: '텔레파시 학교 입시', subject: '추리', gen: 'logic', qn: 8, time: 120, room: 'tele', sec: [], mech: ['telepathy'], staff: [{ type: 'alien', name: '독심 감독관' }, { type: 'alien', name: '독심 감독관' }], head: ['텔레파시 학교 입학시험', '추리'], lines: ['텔레파시 학교 입학시험', '생각은 조용히'],
       how: '감독관이 생각을 읽는다', beat: '답이 떠 있는 동안 감독관이 보면 의심이 오른다. 답이 뜨면 바로 마킹해서 머리를 비운다' },
     aicourt: { slot: 23, act: 3, name: 'AI 재판소 배심 시험', subject: '판례', gen: 'law', qn: 10, time: 170, room: 'court', sec: ['cctv'], mech: ['peek'], noAuto: true, staff: [{ type: 'robot', name: 'AI 판사' }, { type: 'robot', name: 'AI 서기' }], head: ['AI 재판소 배심원 자격시험', '판례'], lines: ['AI 재판소', '모든 답안은 기록됩니다'],
       how: '감독관이 전부 AI · 자동 마킹이 막히고 CCTV가 돈다', beat: '뉴럴링코의 자동 마킹이 꺼지므로 답을 직접 고른다. CCTV가 내 쪽을 볼 때와 AI 판사가 볼 때는 멈춘다' },
-    hole: { slot: 23, act: 3, name: '블랙홀 가장자리 시험', subject: '상대론', gen: 'eqhard', qn: 10, time: 130, room: 'hole', sec: [], mech: ['warp'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }, { type: 'alien', name: '사건의 지평선 감독관' }], head: ['사건의 지평선 자격시험', '상대론'], lines: ['블랙홀 가장자리 시험', '시간은 사람마다 다르게 흐릅니다'],
+    hole: { slot: 23, act: 3, name: '블랙홀 가장자리 시험', subject: '상대론', gen: 'relativity', qn: 10, time: 130, room: 'hole', sec: [], mech: ['warp'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }, { type: 'alien', name: '사건의 지평선 감독관' }], head: ['사건의 지평선 자격시험', '상대론'], lines: ['블랙홀 가장자리 시험', '시간은 사람마다 다르게 흐릅니다'],
       how: '시간이 빨라졌다 느려졌다 한다', beat: '시간이 빠를 때는 감독관도 시계도 빠르다. 느려졌을 때 몰아서 읽는다' },
     gods: { slot: 23, act: 3, name: '신들의 수능', subject: '신들의 사생활', gen: 'gods', qn: 10, time: 140, room: 'storm', sec: [], mech: ['bolt'], staff: [{ type: 'don', name: '아테나' }, { type: 'don2', name: '헤르메스' }, { type: 'yeomra', name: '제우스', fixed: true }], head: ['올림포스 수학능력시험', '신들의 사생활'], lines: ['올림포스 수학능력시험', '번개가 치면 쇠붙이는 쉽니다'],
       how: '신들만 아는 문제 · 번개가 칠 때마다 장비가 꺼진다', beat: '천둥이 우르릉 하면 곧 번개. 번개가 치면 2.4초 동안 안경이 먹통이고 읽던 것도 날아간다. 그동안은 경고도 안 뜨니 고개를 들고 기다린다' },
@@ -454,6 +454,26 @@ window.CONFIG = {
   },
   hub_by_act: ['gosi', 'dorm', 'cabin'], // 구간별 거점: 고시원 → 유학생 기숙사 → 우주선 선실
   helper_at: { cctvmap: 'customs', visa: 'sat', leak: 'ibank', trans: 'galaxy', coin: 'afterlife' },
+  // 외계 구간(은하수능~신들의 수능): 해외 마지막 시험들보다 감시가 느슨해지지 않게, 뒤로 갈수록 감독관이 더 자주·더 길게 보고 속임수(헛기침)도 늘린다.
+  // from은 은하수능, to는 신들의 수능 값이고 그 사이는 순서대로 이어진다. add는 시험마다 어울리는 감시를 하나씩 더한 것 (인류의 마지막 시험은 그대로)
+  alien_watch: {
+    from: { stand: [1.15, 2.0], walk: [0.75, 1.3], tell: 0.4, watch: 2.9, speed: 0.17, cross: 0.4, feint: 0.42, sus: 1.6 },
+    to: { stand: [0.9, 1.6], walk: [0.6, 1.0], tell: 0.32, watch: 3.3, speed: 0.21, cross: 0.45, feint: 0.5, sus: 1.8 },
+    add: {
+      mars: { sec: ['cctv'] },                                                   // 기지 감시 카메라
+      sea: { sec: ['pulse'], staff: [{ type: 'don2', name: '자라 감독관' }] },     // 음파 탐지 · 감독관 하나 더
+      afterlife: { mech: ['mole'] },                                             // 앞자리 망자가 사실은 저승사자
+      dream: { mech: ['mole'], staff: [{ type: 'homeroom', name: '또 한 명의 담임' }] }, // 꿈속: 같은 선생님이 둘
+      loop: { sec: ['cctv'], staff: [{ type: 'dean', name: '시험 관리관' }] },
+      multi: { mech: ['drone'] },
+      mirror: { sec: ['cctv'] },
+      telepathy: { sec: ['pulse'], staff: [{ type: 'alien', name: '독심 감독관' }] }, // 뇌파 탐지 · 마음 읽는 감독관 하나 더
+      aicourt: { mech: ['drone'] },
+      human: { sec: ['cctv'], staff: [{ type: 'robot', name: '보조 판별기' }] },
+      hole: { mech: ['drone'], staff: [{ type: 'alien', name: '사건의 지평선 감독관' }] },
+      gods: { mech: ['mole'] },                                                  // 앞자리 수험생으로 변장한 신
+    },
+  },
 };
 (function () { // 정식 순서대로 시험을 엮고, 상금·난도·입고 시점을 번호로 바꾼다
   const C = window.CONFIG, old = C.tiers, byId = {}; old.forEach(t => { byId[t.id] = t; });
@@ -463,6 +483,10 @@ window.CONFIG = {
   const ix = id => tiers.findIndex(t => t.id === id);
   tiers.forEach((t, i) => { const [qn, time, prize, ai] = C.exam_table[t.id]; t.qn = qn; t.time = time; t.ai = ai; t.act = i < 14 ? 1 : i < 28 ? 2 : 3;
     t.base = prize / 8; t.reward = prize / (qn * (t.parts ? t.parts.length : 1)); }); // base: 장비 값의 기준(문제 8개짜리 시험의 문제당 상금으로 환산) · reward: 문제당 상금
+  { const A = C.alien_watch, i0 = ix('galaxy'), i1 = ix('gods'); // 외계 구간 감시 강화 (위 alien_watch)
+    if (A && i0 >= 0 && i1 > i0) tiers.forEach((t, i) => { if (i < i0 || i > i1) return; const k = (i - i0) / (i1 - i0), L = (a, b) => Array.isArray(a) ? a.map((v, j) => +(v + (b[j] - v) * k).toFixed(2)) : +(a + (b - a) * k).toFixed(3);
+      if (t.layout !== 'table') for (const key of Object.keys(A.from)) t[key] = L(A.from[key], A.to[key]);
+      const ad = A.add[t.id]; if (ad) { if (ad.mech) t.mech = [...t.mech, ...ad.mech]; if (ad.sec) t.sec = [...(t.sec || []), ...ad.sec]; if (ad.staff) t.staff = [...t.staff, ...ad.staff]; } }); }
   C.tiers = tiers; C.models.forEach((m, i) => { m.rel = C.model_rel[i]; });
   C.gear.forEach(d => { if (d.at) d.at = d.at.map(ix); else d.unlock = 9999; });
   C.helper.forEach(h => { h.tier = ix(C.helper_at[h.id]); });

@@ -890,7 +890,7 @@ function drawExamOverlays(k, L, E, now, H) {
     if (Math.floor(now * 2) % 2 === 0) { TO('<', zw / 2 + 8, L.H / 2, 22, C.white); TO('>', L.W - zw / 2 - 8, L.H / 2, 22, C.white); } }
   }
   if (E.clear && E.qi === 0 && E.start <= 0 && !E.fb && !E.over && !E.caught) k.SUB('…글이 한눈에 들어온다.', L.W / 2, L.H - 48, 12, C.white, 'center');
-  if (E.breakT > 0 && !E.caught) { // 쉬는 시간 종소리 뒤의 안내 방송
+  if (E.breakT > 0 && !E.caught && !(E.evict && E.evict.end && E.evict.t < E.evict.end)) { // 쉬는 시간 종소리 뒤의 안내 방송 (앞자리가 끌려 나가는 동안은 조용히)
     
     k.SUB(`${tier.staff[0].name}: "쉬는 시간입니다. 다음은 ${tier.parts[E.part]}."`, L.W / 2, L.H - 48, 12, C.white, 'center', 800);
   }

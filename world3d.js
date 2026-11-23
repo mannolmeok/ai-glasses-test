@@ -301,12 +301,13 @@ const WORLD = (() => {
       m.head.scale.y = lerp(m.head.scale.y, o.asleep ? 0.12 : 1, Math.min(1, dt * 3)); // 눈이 감긴다
     } else {
       const sw = o.moving ? Math.sin(o.walk * 7) : 0;
-      const y = m.robot ? 0.06 + Math.sin(o.now * 4) * 0.03 : (o.seated ? -0.4 : o.moving ? Math.abs(sw) * 0.02 : 0);
+      const sit = o.sit != null ? o.sit : o.seated ? 1 : 0; // 1 앉음 · 0 섬 (사이 값이면 일어나는 중)
+      const y = m.robot ? 0.06 + Math.sin(o.now * 4) * 0.03 : (sit > 0 ? -0.4 * sit : o.moving ? Math.abs(sw) * 0.02 : 0);
       m.root.position.set(o.x, y + (o.y || 0), o.z); m.root.scale.setScalar(o.scale || 1);
       m.root.rotation.y = m.yaw; m.head.rotation.set(m.headPitch, m.headYaw, 0);
-      if (m.legs.length) { const lk = o.seated ? -1.4 : 0; m.legs[0].rotation.x = lk + sw * 0.45; m.legs[1].rotation.x = lk - sw * 0.45; }
+      if (m.legs.length) { const lk = -1.4 * sit; m.legs[0].rotation.x = lk + sw * 0.45; m.legs[1].rotation.x = lk - sw * 0.45; }
       const crossArms = m.look && m.look.prop === 'cross' && !o.moving;
-      if (o.seated) { m.arms[0].rotation.set(-0.9, 0, 0.15); m.arms[1].rotation.set(o.phase === 'stand' ? -1.1 : -0.9, 0, -0.15); }
+      if (sit > 0.5) { m.arms[0].rotation.set(-0.9, 0, 0.15); m.arms[1].rotation.set(o.phase === 'stand' ? -1.1 : -0.9, 0, -0.15); }
       else if (crossArms) { m.arms[0].rotation.set(-1.05, 0, 0.55); m.arms[1].rotation.set(-1.05, 0, -0.55); }
       else if (o.raise) { m.arms[0].rotation.set(-sw * 0.35, 0, 0); m.arms[1].rotation.set(-0.5, 0, 0); }
       else { m.arms[0].rotation.set(-sw * 0.35, 0, 0); m.arms[1].rotation.set(o.phase === 'watch' && !m.robot ? -0.35 : sw * 0.35, 0, 0); }
@@ -497,7 +498,7 @@ const WORLD = (() => {
     const sArm = pivot(shirt, 0.6, 0.15, 0.05); bx(sArm, 0.6, 0.085, 0.07, 0xb03a30, 0.37, 0, 0); bx(sArm, 0.09, 0.06, 0.05, 0xd9a57c, 0.03, 0, 0);
     return { paper, paperTex, watch, pen, gadget: { pcase, lid, caseT, caseFace, eraser, lcdT, open: 0, bowl, dunk, bubbles, wand, wandLed, shirt, stickers, sArm } };
   }
-  let MOLE = null;
+  let MOLE = null, EVS = null, EX_DOOR = null; // EVS: 변호사시험 2교시에 끌려 나가는 앞자리 수험생
   function seat() { return EX && EX.my && EX.X0 != null ? [(EX.my.x - (EX.X0 + 0.5)) / ((EX.X1 - 0.5) - (EX.X0 + 0.5)), (EX.my.z + 0.2 - EX.zFront) / (EX.zBack - EX.zFront)] : [0.5, 0.6]; }
   function secDevices(sc, tier, X1, HY, Z0, X0, MY) { // CCTV·탐지 전파 장치·드론
     let cctv = null, pulse = null, drone = null;
@@ -583,6 +584,10 @@ const WORLD = (() => {
       plane(sc, 0.42, 0.42, new THREE.MeshBasicMaterial({ map: clockT.t, transparent: true }), 0, HY - 0.38, Z0 + 0.11);
       clockKeep = clockT;
       if (GEN_ROOM && !R.candles && R.sky !== 'space') { const m = modelInst('door'); if (m) { m.position.set(X1 - 0.09, 0, Z0 + 1.4); m.scale.setScalar(2.15); m.rotation.y = -Math.PI / 2; sc.add(m); } const pd = modelInst('podium'); if (pd) { pd.position.set(0.6, 0, Z0 + 0.7); pd.scale.setScalar(1.08); pd.rotation.y = Math.PI; sc.add(pd); } }
+      else if (tier.id === 'bar') { // 변호사시험: 열리는 문. 열리면 복도 불빛이 들어온다 (2교시에 앞자리를 데리고 나가는 문)
+        const lit = plane(sc, 0.96, 2.06, new THREE.MeshBasicMaterial({ color: 0xfff1d6, fog: false }), X1 - 0.055, 1.03, Z0 + 1.4, 0, -Math.PI / 2);
+        const hinge = pivot(sc, X1 - 0.04, 0, Z0 + 0.9); bx(hinge, 0.08, 2.1, 1.0, 0x8a6a4a, 0, 1.05, 0.5); bx(hinge, 0.1, 0.5, 0.36, 0xcfe8f5, -0.02, 1.55, 0.35);
+        const glow = new THREE.PointLight(0xffe6b8, 0, 6, 1.4); glow.position.set(X1 - 0.7, 1.7, Z0 + 1.4); sc.add(glow); EX_DOOR = { hinge, lit, glow, sc }; }
       else { B.box(0.08, 2.1, 1.0, 0x8a6a4a, X1 - 0.04, 1.05, Z0 + 1.4); B.box(0.1, 0.5, 0.36, 0xcfe8f5, X1 - 0.06, 1.55, Z0 + 1.25); }
       plane(sc, 0.64, 0.48, psx(new THREE.MeshLambertMaterial({ map: noteTex(tier.lines[tier.lines.length - 1] || tier.name) })), X1 - 0.02, 1.6, Z0 + 3.6, 0, -Math.PI / 2);
       B.box(0.3, 0.3, 0.2, 0x3a3a40, X1 - 0.12, HY - 0.4, Z0 + 4.6);
@@ -629,6 +634,7 @@ const WORLD = (() => {
         sp.position.set(sx, 0, sz); sp.rotation.y = Math.atan2(ex - sx, ez - sz); if (sideOn && dx < 0) sp.scale.x *= -1;
         sc.add(sp); mole(sp); return;
       }
+      if (front && tier.id === 'bar') { const st = makeHuman({ top: cl, sleeve: cl, leg: 0x2b2f3d, shirt: 0xe8e8e8, hairC: hr, skin: sk }); sc.add(st.root); EVS = { m: st, x, z: z + 0.42, sc, plan: null }; return; }
       B.box(0.34, 0.14, 0.36, 0x2b2f3d, x, 0.52, z + 0.3);
       B.box(0.12, 0.42, 0.12, 0x2b2f3d, x - 0.08, 0.22, z + 0.12); B.box(0.12, 0.42, 0.12, 0x2b2f3d, x + 0.08, 0.22, z + 0.12);
       if (front && (tier.mech.includes('mole') || tier.id === 'bar')) { // 앞자리 비밀 감독관(또는 변호사시험에서 끌려 나가는 수험생): 윗몸을 따로 만들어 움직일 수 있게 한다
@@ -662,7 +668,7 @@ const WORLD = (() => {
     const eye = new THREE.Vector3(MY.x, 1.2, MY.z + 0.42); cam.position.copy(eye);
     Object.assign(EX, { scene: sc, tier: ti, paper: D.paper, paperTex: D.paperTex, paperSig: '', staff, ...dev, cam, eye, watch: D.watch, pen: D.pen, gadget: D.gadget, clock: clockKeep, clockSec: -1,
       AL: MY.x - 0.9, AR: MY.x + 0.9, zFront: ROWS[0] - 0.75, zBack: ROWS[ROWS.length - 1] + 0.75, my: MY, desks, raise, candle, lamps: glowLamps, views: vd ? VIEWS_VOID : VIEWS_ROOM,
-      layout: 'room', floaty: !!R.floaty, glasses: null, X0, frontZ: ROWS[0] });
+      layout: 'room', floaty: !!R.floaty, glasses: null, X0, frontZ: ROWS[0], door: { x: X1 - 0.4, z: Z0 + 1.4 } });
   }
   function buildTable(ti, tier, R) { // 마주 앉는 방: 면접관·심사위원이 테이블 건너편에
     const S = SKY[R.sky], sc = new THREE.Scene(), B = batch();
@@ -737,7 +743,36 @@ const WORLD = (() => {
   }
   const SEATS = { 1: [0], 2: [-0.45, 0.45], 3: [-0.9, 0, 0.9] };
   const sheetK = c => { const e = c.e || 0, d = c.dur || 4; return { reach: clamp(e / 0.3, 0, 1) * clamp((d - e) / 0.3, 0, 1), lift: ease(clamp((e - 0.3) / 0.5, 0, 1)) * (1 - ease(clamp((e - (d - 0.65)) / 0.4, 0, 1))) }; }; // 장학관 손: 뻗기·들어 올리기
-  function staffPlace(s, i, E) { // 게임 규칙의 위치(왼쪽·오른쪽 통로, 앞뒤 u, 자리)를 방 좌표로
+  // 변호사시험 2교시: 감독관 둘이 앞자리 수험생을 문으로 데리고 나가고, 셋이 되어 돌아온다 (글자 없이 '감독 강화'를 보여 준다)
+  const EV_V = 2.9, EV_BACK = 3.0;
+  function evPath(pts) { const seg = []; let L = 0; for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z); seg.push(l); L += l; } return { pts, seg, L }; }
+  function evAt(P, d) { // 경로 위 d 지점과 그 지점의 진행 방향
+    d = clamp(d, 0, P.L); let i = 0; while (i < P.seg.length - 1 && d > P.seg[i]) { d -= P.seg[i]; i++; }
+    const a = P.pts[i], b = P.pts[i + 1], k = P.seg[i] ? clamp(d / P.seg[i], 0, 1) : 0;
+    return { x: lerp(a.x, b.x, k), z: lerp(a.z, b.z, k), yaw: Math.atan2(b.x - a.x, b.z - a.z) };
+  }
+  function evPlan(E) {
+    const sx = EVS.x, sz = EVS.z, fz = EX.zFront + 0.25, dx = EX.door.x, dSeat = 0.7, gA = 0.8, gB = -0.65;
+    const P = evPath([{ x: sx - dSeat, z: sz }, { x: sx, z: sz }, { x: EX.AR, z: sz }, { x: EX.AR, z: fz }, { x: dx, z: fz }, { x: dx + 0.6, z: fz }]), Ld = P.L - 0.6;
+    const pick = [evAt(P, dSeat + gA), evAt(P, dSeat + gB)], st = pick; // 종이 울리고 고개를 들면 감독관 둘이 이미 앞자리 양옆에 서 있다
+    const T1 = 0.6, tStand = T1 + 0.45, tGo = tStand + 0.1;
+    const passT = g => tGo + (Ld + 0.5 - (dSeat + g)) / EV_V, tOut = passT(gB), tBack = tOut + 0.5;
+    const back = E.staff.slice(0, 3).map((s, j) => { const f = staffPlace0(s, j, E), R = evPath([{ x: dx + 0.3, z: fz }, { x: dx, z: fz }, { x: f.x, z: fz }, { x: f.x, z: f.z }]), e = tBack + j * 0.3; return { R, e, a: e + R.L / EV_BACK, f }; });
+    const end = tBack + 1.1, endAll = Math.max(...back.map(b => b.a)) + 0.05; // end: 고개가 따라가는 장면 끝 · endAll: 셋이 각자 자리에 닿는 때(그동안은 걸어 들어오기만 한다)
+    return { P, Ld, dSeat, gA, gB, st, pick, T1, tStand, tGo, tOut, tBack, back, end, endAll, sDoor: passT(0) - 0.5 / EV_V, doors: [passT(gA) - 0.5 / EV_V, tBack] };
+  }
+  function evStaff(i, t, E) { // 장면이 도는 동안 감독관 i의 자리 (null이면 평소대로)
+    const V = E.evict.plan; if (!V || i > 2) return null;
+    if (i < 2 && t < V.tOut + 0.01) {
+      const g = i ? V.gB : V.gA, a = V.st[i], b = V.pick[i];
+      if (t < V.tGo) return { x: b.x, z: b.z, yaw: Math.atan2(EVS.x - b.x, EVS.z - b.z), moving: false, headPitch: 0.35 };
+      const d = V.dSeat + g + EV_V * (t - V.tGo), q = evAt(V.P, d); return { x: q.x, z: q.z, yaw: q.yaw, moving: true, headPitch: 0, walk: t, hiddenNow: d > V.Ld + 0.5 };
+    }
+    const B = V.back[i]; if (t < B.e) return { x: B.f.x, z: B.f.z, yaw: 0, moving: false, hiddenNow: true };
+    if (t >= B.a) return null; const q = evAt(B.R, EV_BACK * (t - B.e)); return { x: q.x, z: q.z, yaw: q.yaw, moving: true, headPitch: 0, walk: t };
+  }
+  function staffPlace(s, i, E) { const ev = E.evict && E.evict.plan && E.evict.t < E.evict.plan.endAll ? evStaff(i, E.evict.t, E) : null; return ev || staffPlace0(s, i, E); }
+  function staffPlace0(s, i, E) { // 게임 규칙의 위치(왼쪽·오른쪽 통로, 앞뒤 u, 자리)를 방 좌표로
     const T = E.T;
     if (s.fixed) {
       const toMe = x => Math.atan2(EX.eye.x - x, EX.eye.z - (EX.layout === 'table' ? -0.95 : EX.frontZ - 1.55));
@@ -770,6 +805,17 @@ const WORLD = (() => {
   function renderExam(E, now) {
     if (!W.ok) return;
     buildExam(E.tier);
+    if (E.evict && EVS && EVS.sc === EX.scene && !E.evict.plan) { const V = E.evict.plan = evPlan(E); E.evict.end = V.end; E.evict.endAll = V.endAll; E.evict.arrive = V.back.map(b => b.a); E.evict.doors = V.doors; EX.evCam = null; }
+    if (E.evict && E.evict.plan && E.evict.t < E.evict.plan.end + 0.5) { // 끌려 나가는 쪽 → 문 → 돌아오는 감독관들로 고개가 따라간다
+      const V = E.evict.plan, t = E.evict.t; let fx, fz;
+      if (t < V.sDoor) { const q = t < V.tGo ? { x: EVS.x, z: EVS.z } : evAt(V.P, V.dSeat + EV_V * (t - V.tGo)); fx = q.x; fz = q.z; }
+      else if (t < V.tBack + 0.2) { fx = EX.door.x; fz = EX.door.z; }
+      else { let on = V.back.map((b, j) => evStaff(j, t, E) || b.f).filter(p => !p.hiddenNow); if (!on.length) on = [EX.door]; fx = on.reduce((a, p) => a + p.x, 0) / on.length; fz = on.reduce((a, p) => a + p.z, 0) / on.length; }
+      const fd = Math.hypot(fx - EX.eye.x, fz - EX.eye.z), ty = Math.atan2(-(fx - EX.eye.x), -(fz - EX.eye.z)), tp = Math.atan2(1.0 - EX.eye.y, fd), c = EX.evCam || (EX.evCam = { yaw: 0, pitch: -0.1, last: t }), k = 1 - Math.exp(-clamp(t - c.last, 0, 0.5) * 3.2);
+      c.last = t; c.yaw += (ty - c.yaw) * k; c.pitch += (tp - c.pitch) * k; c.fov = (c.fov || 62) + (clamp(64 - (fd - 2.5) * 3.4, 36, 62) - (c.fov || 62)) * k; // 멀어질수록 그쪽에 눈이 간다(조금 당겨 본다)
+      EX.views.evict = { yaw: c.yaw, pitch: c.pitch, fov: c.fov }; }
+    if (EX_DOOR && EX_DOOR.sc === EX.scene) { const V = E.evict && E.evict.plan, t = E.evict ? E.evict.t : 0, win = (a, b) => clamp((t - a) / 0.4, 0, 1) * clamp((b - t) / 0.45, 0, 1); // 데리고 나갈 때 한 번, 셋이 돌아올 때 한 번 열린다
+      const o = V ? Math.max(win(V.doors[0] - 0.55, V.tOut + 0.25), win(V.tBack - 0.35, V.back[2].e + 0.9)) : 0; EX_DOOR.hinge.rotation.y = -ease(o) * 1.35; EX_DOOR.glow.intensity = 2.6 * o; }
     const shS = EX.my && EX.views && E.staff.find(s => s.check && s.check.kind === 'sheet');
     if (shS) { const dx = EX.my.x + (shS.side === 'L' ? -0.3 : 0.3) - EX.eye.x, dz = EX.my.z - 0.62 - EX.eye.z; EX.views.sheet = { yaw: Math.atan2(-dx, -dz) * 0.85, pitch: Math.atan2(1.34 - EX.eye.y, Math.hypot(dx, dz)), fov: 60 }; } // 답안지를 든 장학관 쪽으로 고개를 든다
     const V = EX.views, a = V[E.prevView] || V.paper, b = V[E.view] || V.paper, k = ease(clamp(E.viewT, 0, 1)), cam = EX.cam;
@@ -793,8 +839,8 @@ const WORLD = (() => {
       if (frisk) { const sw = ease(clamp((E.intro.t - 0.5) / 2.2, 0, 1)), fx = EX.eye.x - 0.62, fz = EX.eye.z - 1.5, face = Math.atan2(EX.eye.x - fx, EX.eye.z - fz), swing = lerp(0.34, -0.3, sw);
         p.x = fx; p.z = fz; p.yaw = face + swing; p.moving = false; p.headPitch = 0.14; p.hiddenNow = false; p.seated = false; }
       const hold = s.phase === 'check' && s.check && s.check.kind === 'sheet' && s.check.stage === 'at' ? sheetK(s.check) : null; if (hold) sheetAt = { p, hold };
-      poseModel(m, { hold, x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
-        predict: predict && !s.asleep && !hold, asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
+      poseModel(m, { hold, x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: p.walk != null ? p.walk : s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
+        predict: predict && !s.asleep && !hold && !(E.evict && E.evict.plan && E.evict.t < E.evict.plan.endAll), asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
       if (frisk) { const W2 = EX.gadget.wand, mt = E.intro.t; if (W2.parent !== m.arms[1]) { m.arms[1].add(W2); W2.position.set(0, -1.02, 0.1); W2.rotation.set(Math.PI / 2, 0, 0); W2.scale.setScalar(0.9); }
         m.arms[1].rotation.set(-1.17 + Math.sin(mt * 4.2) * 0.05, 0, 0); m.arms[0].rotation.set(0, 0, 0); W2.visible = true; }
       if (GEN_ROOM && !m.robot && m.type !== 'omega') { // 상자 몸 대신 걷는 동작이 들어간 생성 모델
@@ -828,7 +874,11 @@ const WORLD = (() => {
     if (EX.drone && E.drone) { const d = E.drone, x0 = EX.X0 + 0.5, x1 = EX.X1 - 0.5; // 순찰 드론: 머리 위에 오면 불빛이 붉어지고 빛기둥이 짙어진다
       EX.drone.visible = true; EX.drone.position.set(lerp(x0, x1, d.u), 1.95 + Math.sin(now * 5) * 0.04, lerp(EX.zFront, EX.zBack, d.v)); EX.drone.rotation.y = now * 0.6;
       EX.drone.userData.led.color.setHex(d.near ? (Math.floor(now * 6) % 2 ? 0xff3048 : 0xffb0b0) : d.close ? 0xffa030 : 0x6b2a2a); EX.drone.userData.beam.material.opacity = d.near ? 0.3 : d.close ? 0.16 : 0.07; }
-    if (MOLE && MOLE.obj && MOLE.sc === EX.scene && E.evict) { const o = MOLE.obj, t = E.evict.t; if (MOLE.x0 == null) MOLE.x0 = o.position.x; // 변호사시험 2교시: 앞자리 수험생이 일어나 통로로 끌려 나간다
+    if (EVS && EVS.sc === EX.scene) { const m = EVS.m, V = E.evict && E.evict.plan, t = E.evict ? E.evict.t : 0;
+      if (!V) poseModel(m, { x: EVS.x, z: EVS.z, yaw: Math.PI, seated: true, now, phase: 'stand', headPitch: 0.45, moving: false, walk: 0 });
+      else if (t < V.tGo) { const up = clamp((t - V.T1) / 0.45, 0, 1); poseModel(m, { x: EVS.x, z: EVS.z, yaw: up > 0.6 ? Math.PI / 2 : Math.PI, sit: 1 - up, now, phase: 'stand', headPitch: 0.5, moving: false, walk: 0 }); }
+      else { const d = V.dSeat + EV_V * (t - V.tGo), q = evAt(V.P, d); poseModel(m, { x: q.x, z: q.z, yaw: q.yaw, sit: 0, now, phase: 'walk', headPitch: 0.55, moving: true, walk: t, hidden: d > V.Ld + 0.5 }); } }
+    if (MOLE && MOLE.obj && MOLE.sc === EX.scene && E.evict) { if (!E.evict.end) E.evict.end = 3.6; const o = MOLE.obj, t = E.evict.t; if (MOLE.x0 == null) MOLE.x0 = o.position.x; // 변호사시험 2교시: 앞자리 수험생이 일어나 통로로 끌려 나간다
       o.visible = t < 3.4; o.position.y = MOLE.y0 + Math.min(0.26, t * 0.5) + (t > 0.7 ? Math.abs(Math.sin(t * 9)) * 0.02 : 0); if (!MOLE.sprite) o.rotation.y = MOLE.ry0 + clamp((t - 0.5) / 0.5, 0, 1) * -Math.PI / 2; o.position.x = MOLE.x0 + Math.max(0, t - 0.9) * 1.5; o.rotation.z = t > 0.9 ? Math.sin(t * 9) * 0.05 : 0; MOLE.eyes.visible = false; }
     else if (MOLE && MOLE.obj && MOLE.sc === EX.scene) { const m = E.mole, o = MOLE.obj, caughtM = E.caught && E.caughtHow === 'mole', ph = caughtM ? 'look' : m ? m.phase : 'idle'; // 앞자리 비밀 감독관: 들썩 → 뒤돌아봄
       const turn = ph === 'look' ? clamp((caughtM ? 1 : m.k / 0.25), 0, 1) : 0;
@@ -923,9 +973,9 @@ const WORLD = (() => {
         B.box(0.5, 0.5, 0.4, 0x6a3e22, 0.86, 0.25, -0.45); B.box(0.3, 0.22, 0.26, 0x2a2a30, 0.86, 0.62, -0.45); B.box(0.24, 0.16, 0.01, 0x8ab8d8, 0.86, 0.62, -0.31); // 브라운관 TV와 협탁
         const l = new THREE.PointLight(0xff3a8a, 1.6, 3.2, 2); l.position.set(0.6, 1.5, -0.3); sc.add(l); } },
     cabin: { door: 0x4a5262, bg: 0x05070c, amb: [0xb8d0ff, 0.85], hemi: 0xc8e0ff, lamp: 0x6ad8ff, tube: 0xd0e8ff, wall: ['#7a8494', '#667080', '#8a94a4'], floorKind: 'metal', floorC: 0xffffff, ceil: 0x5a6474, trim: 0x2a3240, desk: [0x8a94a6, 0x5a6474, 0x6a7484], frame: 0x2a3240, win: 'earth',
-      extra(B, sc, D) { for (let i = 0; i < 7; i++) B.box(0.05, 2.4, 0.05, 0x4a5262, D.X0 + 0.2 + i * 0.4, 1.2, -0.68); // 선체 늑골
+      extra(B, sc, D) { for (const x of [-1.15, -0.33, 0.15, 0.55, 0.95, 1.35]) B.box(0.05, 2.4, 0.05, 0x4a5262, x, 1.2, -0.68); // 선체 늑골: 시험 일정표(x −1.10~−0.38)를 가리지 않게 양옆에 세운다
         B.box(D.X1 - D.X0, 0.07, 0.07, 0x3a4250, 0, 2.2, -0.64); B.box(D.X1 - D.X0, 0.05, 0.05, 0xc87a3a, 0, 2.08, -0.65); // 배관
-        B.box(D.X1 - D.X0, 0.025, 0.02, 0x4affd8, 0, 0.9, -0.69); // 바닥 쪽 조명 띠
+        B.box(0.1, 0.025, 0.02, 0x4affd8, (D.X0 - 1.15) / 2, 0.9, -0.69); B.box(D.X1 + 0.33, 0.025, 0.02, 0x4affd8, (D.X1 - 0.33) / 2, 0.9, -0.69); // 바닥 쪽 조명 띠 (일정표 아래는 비운다)
         for (let i = 0; i < 2; i++) { B.box(0.3, 0.9, 0.3, 0x5a6474, 0.7 + i * 0.34, 0.45, -0.5); B.box(0.24, 0.04, 0.02, 0xf2c13a, 0.7 + i * 0.34, 0.7, -0.34); B.box(0.04, 0.04, 0.02, 0x4affd8, 0.7 + i * 0.34, 0.8, -0.34); } // 사물함
         B.box(0.26, 0.34, 0.02, 0xe8e8e0, 0.86, 1.4, -0.68); B.box(0.2, 0.05, 0.022, 0xc8242a, 0.86, 1.5, -0.675); // 비상 수칙 판
         const l = new THREE.PointLight(0x4affd8, 1.0, 3, 2); l.position.set(0.7, 1.0, -0.2); sc.add(l); } },
@@ -1484,5 +1534,6 @@ const WORLD = (() => {
     return FIG.ms.map(f => { _p.set(f.x, f.top ? 2.3 : -0.15, f.z).project(FIG.cam); return { text: f.label, x: (_p.x + 1) / 2 * RW, y: (1 - _p.y) / 2 * RH, pose: f.pose }; });
   }
 
-  return Object.assign(W, { init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, moleRect, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
+  function hasView(v) { return !!(EX && EX.views && EX.views[v]); }
+  return Object.assign(W, { hasView, init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, moleRect, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
 })();

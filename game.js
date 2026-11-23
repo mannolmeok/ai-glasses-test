@@ -401,6 +401,7 @@ function takeReleases() { const r = releases; releases = []; return r; }
 function hitBtn(btns, x, y) { return (btns || []).find(b => x >= b.x && x <= b.x + b.w && y >= b.y - 2 && y <= b.y + b.h + 2); }
 const IVABC = params.get('iv') !== 'old'; // 면접을 버튼 순서 입력으로 (시험 중인 새 방식)
 function scanHeld() { return down.has('Space') || (E && E.layout === 'table' && !(IVABC && !E.T.mech.includes('gaze')) && (down.has('ArrowLeft') || down.has('KeyA'))) || scanPointer(); }
+function EXV(v) { return typeof WORLD !== "undefined" && !!WORLD.hasView && WORLD.hasView(v); }
 function setView(v) { // 고개를 그쪽으로 돌려 둔다 (다시 바꿀 때까지 그대로)
   if (!E || v === E.view) return;
   const side = x => x === 'left' || x === 'right';
@@ -412,7 +413,7 @@ function setView(v) { // 고개를 그쪽으로 돌려 둔다 (다시 바꿀 때
 function viewInput(taps) { // 화면 왼쪽·오른쪽·위를 누르고 있는 동안만 그쪽을 본다. 떼면 시험지로 돌아온다
   if (E.layout === 'table') return;
   if (FORCE_VIEW) { setView(FORCE_VIEW); return; }
-  if (E.evict && E.evict.t < 3.6) { setView('front'); return; } // 앞자리가 끌려 나가는 동안은 그쪽을 보게 된다
+  if (E.evict && E.evict.end && E.evict.t < E.evict.end) { setView(EXV('evict') ? 'evict' : 'front'); return; } // 앞자리가 끌려 나가는 동안은 그쪽을 보게 된다
   if (E.sheetLook) { setView('sheet'); return; } // 장학관이 답안지를 들어 읽는 동안은 고개가 그쪽으로 따라 올라간다
   { const q = E.qs && E.qs[E.qi]; if (q && q.kind === 'listen' && G.gear.earbud > 0 && G.gear.earbud < 4 && !E.ai) { setView('paper'); return; } } // 듣기 중에는 고개를 돌리지 않고 귀를 가린다
   const front = E.layout === 'room' ? 'front' : 'paper'; let z = null;
@@ -550,7 +551,8 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
   if (p > 0) {
     E.sus *= tune.session_keep; E.breakT = tune.break_time;
     if (E.T.id === 'leet' && p === 1 && CONFIG.eggs.stairs) E.stairs = { phase: 'intro', t: 0, steps: 0, last: null, left: tune.stairs_time, stumble: 0, result: null }; // 쉬는 시간: 계단 앞에 서 있다
-    if (T.id === 'bar' && p === 1) { const T2 = E.T = Object.assign({}, T, { stand: T.stand.map(v => v * 0.75), walk: T.walk.map(v => v * 0.8), speed: T.speed * 1.3 }); E.staff.push(newStaff({ type: 'dean', name: '추가 감독관' }, E.staff.length, T2)); E.evict = { t: 0 }; say('앞자리 수험생이 적발되어 끌려 나갔다 · 감독 강화', PAL.bad); sfx.no(); } // 2교시: 감독관 한 명 더, 순찰이 빨라진다
+    if (T.id === 'bar' && p === 1) { const T2 = E.T = Object.assign({}, T, { stand: T.stand.map(v => v * 0.75), walk: T.walk.map(v => v * 0.8), speed: T.speed * 1.3 }); E.staff.push(newStaff({ type: 'dean', name: '추가 감독관' }, E.staff.length, T2)); E.evict = { t: 0 }; E.breakT = 9;
+      E.staff.forEach((s, i) => { s.u = 0.94 - (i === 2 ? 0.1 : 0); s.dir = -1; s.out = false; s.help = s.check = s.peek = null; setPhase(s, 'walk', procDur(T2.walk)); }); } // 쉬는 시간에 감독관 둘이 앞자리를 데리고 나가고 셋이 돌아온다(그림은 world3d). 끝나면 셋 다 앞쪽에서 걸어 들어온 자리에서 이어 간다 // 2교시: 감독관 한 명 더, 순찰이 빨라진다
     if (T.id === 'bar' && p === 2) { E.jam = 1.6; E.pulseFast = 0.6; say('AI 감독관이 방해 전파를 쏜다 · 스캔이 느려진다', PAL.bad); sfx.pulse(); } // 3교시: 스캔 60% 느려짐, 전파 간격 짧아짐
     if (T.swap && T.swap[p]) { E.staff = T.swap[p].map((type, i) => newStaff({ type, name: PROCTOR_NAME[type] }, i, T)); flash('감독관 교대', PAL.hud); } // 블록마다 새 감독관
   }
@@ -623,6 +625,7 @@ function stepFixed(s, T, dt) { // 앞에 앉은 면접관·심사위원·염라�
   else { setPhase(s, 'stand', procDur(T.stand)); s.away = rng() < 0.5; }
 }
 function stepStaff(s, T, dt) {
+  if (E.evict && E.evict.arrive && E.evict.t < E.evict.arrive[E.staff.indexOf(s)]) return; // 앞자리를 데리고 나갔다가 걸어 들어오는 중: 자리에 닿을 때까지는 아무것도 보지 않는다
   if (s.blink > 0) { s.blink -= dt; return; }
   if (s.visit) { // 교수님은 불쑥 들어오고, 선생님은 커피 가지러 나간다
     if (s.out) { s.outT -= dt; if (s.outT <= 0) { s.out = false; s.inT = between(tune.visit_in_min, tune.visit_in_max); s.u = 0.94; s.dir = -1; setPhase(s, 'walk', procDur(T.walk)); sfx.door(); flash(`${s.name} 들어옴`, PAL.bad); if (T.id === 'bac') s.sheetIn = 1.0; } return; }
@@ -630,7 +633,7 @@ function stepStaff(s, T, dt) {
     if (s.inT <= 0 && (s.phase === 'stand' || s.phase === 'walk')) { s.out = true; s.outT = between(tune.visit_out_min, tune.visit_out_max); sfx.door(); flash(`${s.name} 나감`, PAL.good); return; }
   }
   if (s.sheetIn > 0 && s.phase !== 'check') { s.sheetIn -= dt; if (s.sheetIn <= 0) { // 바칼로레아: 장학관이 내 자리로 와서 답안지를 집어 든다
-    s.help = null; s.peek = null; s.from = null; s.check = { kind: 'sheet', stage: 'go', k: 0, t: 0, u0: s.u, go: clamp(Math.abs(s.u - 0.5) * 3, 1.2, 2.2) }; s.phase = 'check'; s.t = 0; say(`${s.name}이 내 자리로 온다`, PAL.warn); } }
+    s.help = null; s.peek = null; s.from = null; s.check = { kind: 'sheet', stage: 'go', k: 0, t: 0, u0: s.u, go: clamp(Math.abs(s.u - 0.5) * 3, 1.2, 2.2) }; s.phase = 'check'; s.t = 0; } }
   s.t += dt;
   if (s.type === 'webcam') return stepWebcam(s, T, dt);
   if (s.phase === 'help') { // 손 든 수험생에게 가 있는 동안은 나를 못 본다
@@ -652,7 +655,7 @@ function stepStaff(s, T, dt) {
       c.t -= dt;
       if (c.kind === 'sheet') { // 손을 뻗어 집어 들고(0.3초~) 읽다가 내려놓는다. 들고 있는 동안은 쓸 수 없고, 고개도 그쪽으로 들게 된다
         const e0 = c.e; c.e += dt; E.sheetUp = c.e > 0.3; E.sheetLook = c.e > 0.45 && c.e < c.dur - 0.35;
-        if (e0 <= 0.3 && c.e > 0.3) { sfx.flip(); say(`${s.name}이 답안지를 집어 들어 읽는다 · 그동안 쓸 수 없다`, PAL.warn); }
+        if (e0 <= 0.3 && c.e > 0.3) sfx.flip();
         if (e0 <= c.dur - 0.65 && c.e > c.dur - 0.65) sfx.flip();
         if (c.t <= 0) { E.sheetUp = false; E.sheetLook = false; }
       }
@@ -791,6 +794,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
   const add = (v, how, by) => { if (v > 0) { r += v; if (!src || v > src.v) src = { v, how, by }; } };
   for (const s of E.staff) {
     if (s.out || s.blink > 0 || s.blocked || s.asleep || s.phase === 'help' || s.phase === 'peek') continue;
+    if (E.evict && E.evict.arrive && E.evict.t < E.evict.arrive[E.staff.indexOf(s)]) continue;
     if (s.fixed && T.mech.includes('bolt')) continue; // 제우스는 지켜보지 않는다: 번개만 던진다
     let k = 0;
     if (s.phase === 'watch') k = 1; else if (s.phase === 'tell') k = tune.tell_ratio;
@@ -898,7 +902,11 @@ function updateExam(dt) {
   if (E.stairs) { updateStairs(dt); return; }
   const T = E.T, g = G.gear;
   const taps = takeTaps();
-  if (E.evict) E.evict.t += dt; if (E.flash) E.flash.t += dt; if (E.say) { E.say.t += dt; if (E.say.t > 3) E.say = null; }
+  if (E.evict) { const v = E.evict, t0 = v.t; v.t += dt; // 장면의 문소리·발소리. 장면 길이가 정해지면 쉬는 시간을 거기에 맞춘다
+    if (v.end && !v.fit) { v.fit = 1; if (E.breakT > 0) E.breakT = Math.max(0.3, v.end - v.t + 0.25); }
+    if (v.doors) for (const d of v.doors) if (t0 < d && v.t >= d) sfx.door();
+    if (v.endAll && v.t < v.endAll && Math.floor(v.t / 0.3) !== Math.floor(t0 / 0.3)) sfx.foot(0.35, 0.06); }
+  if (E.flash) E.flash.t += dt; if (E.say) { E.say.t += dt; if (E.say.t > 3) E.say = null; }
   soundExam(dt);
   E.runShown = G.opts.timer ? G.run.t : 0;
   if (E.caught || E.over) { E.endT += dt; takeReleases(); if (E.endT > (E.caught ? 2.0 : 0.9)) finishExam(); return; }
@@ -914,7 +922,7 @@ function updateExam(dt) {
   }
   if (E.wetT > 0) E.wetT -= dt;
   // 고개 돌리기 (돌아보는 것만으로는 의심받지 않는다)
-  if (E.start > 0 || E.breakT > 0) { if (E.layout === 'room' && E.view !== 'front' && !FORCE_VIEW) setView('front'); } else viewInput(taps);
+  if (E.start > 0 || E.breakT > 0) { const want = E.evict && E.evict.end && E.evict.t < E.evict.end && EXV('evict') ? 'evict' : 'front'; if (E.layout === 'room' && E.view !== want && !FORCE_VIEW) setView(want); } else viewInput(taps);
   const held = E.start <= 0 && !(E.breakT > 0) && E.view === 'paper' && E.viewT >= 1 && scanHeld(); // 책상을 보는 채로 꾹 눌러야 스캔
   E.viewT = Math.min(1, E.viewT + dt / tune.look_time);
   const onPaper = E.view === 'paper' && E.viewT >= 1;

@@ -249,21 +249,41 @@ const MBE = [
   ['관련성 있는 증거라도 배제할 수 있게 하는 규칙은?', 'FRE 403', ['FRE 404', 'FRE 801', 'FRE 702']],
   ['성격 증거로 행위를 입증하는 것을 금하는 규칙은?', 'FRE 404', ['FRE 403', 'FRE 801', 'FRE 901']],
 ];
-const AFTERLIFE = [
-  ['저승의 시왕은 모두 몇 명인가?', '10명', ['7명', '9명', '12명']],
-  ['염라대왕은 시왕 가운데 몇 번째인가?', '다섯 번째', ['첫 번째', '세 번째', '열 번째']],
-  ['죽은 이의 죄를 비추는 거울은?', '업경대', ['명경지수', '청동거울', '만파식적']],
-  ['지옥 중생을 구하겠다고 서원한 보살은?', '지장보살', ['관세음보살', '문수보살', '미륵보살']],
-  ['저승으로 가는 길에 건너는 강은?', '삼도천', ['황하', '은하수', '요단강']],
-  ['49재는 어떻게 지내나?', '7일마다 7번', ['10일마다 5번', '3일마다 16번', '49일째에 1번']],
-  ['저승길에 쓰라고 넣어 주는 돈은?', '노잣돈', ['세뱃돈', '축의금', '부조금']],
-  ['그리스 신화에서 저승의 강을 건네주는 뱃사공은?', '카론', ['하데스', '케르베로스', '타나토스']],
-  ['그 뱃삯으로 죽은 이의 입에 물리던 동전은?', '오볼로스', ['드라크마', '데나리우스', '탈란트']],
-  ['이집트 신화에서 죽은 이의 심장과 함께 저울에 다는 것은?', '마트의 깃털', ['오시리스의 왕관', '호루스의 눈', '금 한 덩이']],
-  ['바리데기가 부모를 살리려고 구하러 간 것은?', '약수', ['불로초', '여의주', '천도복숭아']],
-  ['차사본풀이에서 강림이 잡으러 간 이는?', '염라대왕', ['옥황상제', '저승사자', '삼신할미']],
-  ['저승사자가 쓰는 모자는?', '갓', ['투구', '왕관', '두건']],
-  ['저승 명부에 적혀 있다는 것은?', '사람의 수명', ['통장 잔고', '성적', '혈액형']],
+const AFTERLIFE = [ // 저승 입학시험: 알려진 신화 상식이 아니라, 저승 사람만 아는 일 (AI만 맞힌다)
+  ['염라대왕 집무실 셋째 서랍에 든 도장은 모두 몇 개인가?', '열일곱 개', ['열다섯 개', '열여섯 개', '열아홉 개']],
+  ['저승 명부 4,812쪽 셋째 줄에 적힌 이름의 받침은 모두 몇 개인가?', '네 개', ['두 개', '세 개', '다섯 개']],
+  ['삼도천 나룻배가 어제 오후에 실어 나른 망자는 몇 명인가?', '삼백일흔두 명', ['삼백예순여덟 명', '삼백일흔 명', '삼백일흔다섯 명']],
+  ['업경대가 지난 윤달에 비춘 거짓말 가운데 가장 긴 것은 몇 글자인가?', '마흔세 자', ['서른아홉 자', '마흔한 자', '마흔여섯 자']],
+  ['저승사자 갓의 챙 지름은 얼마인가?', '한 자 두 치', ['한 자 한 치', '한 자 세 치', '한 자 다섯 치']],
+  ['지난여름 열 개 지옥 가운데 냉방이 가장 약했던 곳은?', '검수지옥', ['화탕지옥', '발설지옥', '독사지옥']],
+  ['저승 민원실에서 어제 마지막으로 불린 대기 번호는?', '9,412번', ['9,214번', '9,421번', '9,124번']],
+  ['강림도령이 지난 그믐에 데려온 망자 가운데 끝까지 이름을 대지 않은 이는 몇 명인가?', '세 명', ['한 명', '두 명', '다섯 명']],
+  ['오늘 아침 노잣돈 환전소에서 이승 돈 1만 원은 저승 엽전 몇 닢이었나?', '일흔세 닢', ['예순아홉 닢', '일흔한 닢', '일흔여섯 닢']],
+  ['지난 춘분에 케르베로스의 가운데 머리가 짖은 횟수는?', '이백열한 번', ['이백여덟 번', '이백열세 번', '이백열아홉 번']],
+  ['셋째 이레에 심판하는 송제대왕이 판결문에 쓰는 붓은 필통의 몇 번째 붓인가?', '일곱 번째', ['다섯 번째', '여섯 번째', '아홉 번째']],
+  ['저승 명부 담당 판관의 안경 도수는?', '왼쪽 −3.25 · 오른쪽 −2.75', ['왼쪽 −3.00 · 오른쪽 −2.75', '왼쪽 −3.25 · 오른쪽 −3.00', '왼쪽 −2.75 · 오른쪽 −3.25']],
+  ['레테의 강물 한 바가지를 마시면 며칠 치 기억이 지워지는가?', '십구 일', ['십칠 일', '이십일 일', '이십삼 일']],
+  ['지난 백중날 지장보살 석장의 고리 가운데 울리지 않은 것은?', '넷째 고리', ['둘째 고리', '다섯째 고리', '여섯째 고리']],
+  ['염라대왕이 마지막으로 소리 내어 웃은 날의 저승 날씨는?', '진눈깨비', ['소나기', '짙은 안개', '우박']],
+  ['죽은 지 사흘째 되는 망자가 첫 관문에서 받는 번호표의 색은?', '연한 쑥색', ['진한 쑥색', '연한 회색', '바랜 남색']],
+];
+const DREAM = [ // 꿈속 시험: 기억나지 않는 과목. 꿈을 꾼 사람도 깨면 모른다
+  ['어젯밤 꿈속 계단은 몇 번째 칸에서 끝났는가?', '마흔일곱 번째 칸', ['마흔다섯 번째 칸', '마흔여섯 번째 칸', '마흔아홉 번째 칸']],
+  ['꿈에서 세 번째로 연 문의 손잡이 색은?', '녹슨 하늘색', ['바랜 하늘색', '녹슨 연두색', '짙은 남색']],
+  ['시험 직전 꿈속에서 잃어버린 지우개는 어디서 나왔나?', '냉장고 둘째 칸', ['신발장 맨 위 칸', '필통 지퍼 안쪽', '교실 사물함 뒤']],
+  ['꿈속 교실 시계가 가리키던 시각은?', '열세 시 육십일 분', ['열두 시 육십 분', '열세 시 오십구 분', '열네 시 영 분']],
+  ['꿈에 나온 감독관의 넥타이 무늬는?', '물방울 속 물고기', ['줄무늬 속 새', '체크 속 고양이', '물방울 속 새']],
+  ['꿈속 교실 창밖에 뜬 달은 몇 개였나?', '세 개', ['두 개', '네 개', '다섯 개']],
+  ['꿈에서 시험지를 넘겼을 때 나온 쪽 번호는?', '마이너스 이 쪽', ['영 쪽', '마이너스 일 쪽', '마이너스 삼 쪽']],
+  ['꿈속에서 아무리 뛰어도 가까워지지 않던 건물은 몇 층이었나?', '열한 층', ['아홉 층', '열 층', '열두 층']],
+  ['꿈에서 깨기 직전에 들린 단어의 첫 글자는?', 'ㅂ', ['ㅁ', 'ㅍ', 'ㅃ']],
+  ['꿈속 감독관이 손에 들고 있던 것은?', '거꾸로 흐르는 모래시계', ['녹아내리는 손목시계', '텅 빈 액자', '젖은 우산']],
+  ['꿈의 마지막 장면에 흐르던 노래의 박자는?', '8분의 7박자', ['4분의 3박자', '8분의 6박자', '8분의 5박자']],
+  ['꿈속 답안지 이름 칸에 적은 것은 누구의 이름이었나?', '초등학교 짝꿍의 형', ['중학교 담임의 딸', '옆집 개의 첫 주인', '학원 차 기사님 동생']],
+  ['꿈속 복도에서 마주친 고양이는 몇 번 말을 걸었나?', '일곱 번', ['다섯 번', '여섯 번', '여덟 번']],
+  ['꿈에서 과목 이름을 묻자 감독관이 한 대답은?', '"어제 본 과목"', ['"내일 볼 과목"', '"네가 고른 과목"', '"없는 과목"']],
+  ['꿈속 교실의 책상은 모두 몇 개였나?', '서른일곱 개', ['서른다섯 개', '서른여섯 개', '서른아홉 개']],
+  ['꿈에서 정답이라고 확신했던 번호는?', '5번', ['1번', '3번', '4번']],
 ];
 const MULTILAW = [
   ['평행우주의 나에게 빌린 돈은?', '같은 우주 안에서만 갚는다', ['모든 우주에 갚는다', '갚지 않는다', '이자만 갚는다']],
@@ -599,7 +619,7 @@ const GEN = {
     for (let i = 0; i < 9; i++) grid.push(i < c ? t : (t + 1 + ri(rng, 0, CAPTCHA_ICONS.length - 2)) % CAPTCHA_ICONS.length);
     for (let i = grid.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [grid[i], grid[j]] = [grid[j], grid[i]]; }
     const lo = clampN(c - ri(rng, 0, 3), 1, 6), nums = [lo, lo + 1, lo + 2, lo + 3];
-    return { kind: 'captcha', q: `${CAPTCHA_ICONS[t]}이(가) 있는 칸은 몇 개?`, grid, target: t, choices: nums.map(n => n + '칸'), answer: nums.indexOf(c), human: true, aiBad: true };
+    return { kind: 'captcha', q: `${josa(CAPTCHA_ICONS[t], '이', '가')} 있는 칸은 몇 개?`, grid, target: t, choices: nums.map(n => n + '칸'), answer: nums.indexOf(c), human: true, aiBad: true };
   },
   hle(rng) {
     const idx = pickDistinct(rng, OPEN_PROBLEMS.length, 4);
@@ -607,6 +627,258 @@ const GEN = {
     return { kind: 'text', q: asks[ri(rng, 0, asks.length - 1)], choices: idx.map(i => OPEN_PROBLEMS[i]), answer: ri(rng, 0, 3), human: false };
   },
 };
+// ---- 어려운 계산·추리 문제 (2026-11 개편): 제한 시간 안에 암산·상식으로는 못 풀게 ----
+// 보기는 정답 + 그럴듯한 오답 셋. 오답은 정답 근처 값과 '흔한 실수' 값을 섞어서, 정답이 늘 가운데 오지 않게 고른다
+function gcdN(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; }
+function fracS(n, d) { if (d < 0) { n = -n; d = -d; } const g = gcdN(n, d); n /= g; d /= g; return d === 1 ? String(n) : `${n}/${d}`; }
+function fixN(v, k) { const s = (Math.round(v * 10 ** k) / 10 ** k).toFixed(k); return s === '-0' || /^-0\.0*$/.test(s) ? s.slice(1) : s; }
+function pickN(rng, arr, n) { const a = arr.slice(), out = []; while (out.length < n && a.length) out.push(a.splice(Math.floor(rng() * a.length), 1)[0]); return out; }
+function nearV(a, step, n) { const o = []; for (let k = 1; k <= n; k++) o.push(a + k * step, a - k * step); return o; }
+function C2(n, r) { if (r < 0 || r > n) return 0; let c = 1; for (let i = 0; i < r; i++) c = c * (n - i) / (i + 1); return Math.round(c); }
+function batchim(s) { const c = String(s).trim().slice(-1).charCodeAt(0); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0; }
+function josa(s, a, b) { return s + (batchim(s) ? a : b); } // josa('민수', '은', '는')
+function roJ(n) { return String(n) + (/[036]$/.test(String(n)) ? '으로' : '로'); } // 숫자 뒤 '으로/로': 영·삼·육(받침 ㅇ·ㅁ·ㄱ)만 '으로', 일·칠·팔(ㄹ)과 받침 없는 수는 '로'
+function numJ(n, a, b) { return String(n) + (/[0136780]$/.test(String(n)) ? a : b); } // 숫자 뒤 조사: 영·일·삼·육·칠·팔(받침)이면 a, 아니면 b
+function numOf(s) { const t = String(s).replace(/,/g, '').replace(/−/g, '-'), m = /(-?\d+(?:\.\d+)?)(?:\/(\d+))?/.exec(t); return !m ? NaN : m[2] ? parseFloat(m[1]) / parseFloat(m[2]) : parseFloat(m[1]); }
+function hardQ(rng, q, ans, wrongs, fmt) {
+  const F = fmt || (v => String(v)), A = F(ans), av = numOf(A), all = [], add = s => { if (s && s !== A && !all.includes(s) && !/NaN|Infinity|undefined/.test(s)) all.push(s); };
+  for (const w of wrongs) add(F(w));
+  const dec = (/\.(\d+)/.exec(A) || ['', ''])[1].length;
+  if (typeof ans === 'number') for (let k = 1; k <= 4; k++) { const step = dec ? 7 / 10 ** dec : Math.max(1, Math.round(Math.abs(ans) * 0.02)); add(F(ans + k * step)); add(F(ans - k * step)); }
+  let W;
+  if (!isNaN(av) && all.length >= 3 && all.every(x => !isNaN(numOf(x)))) { // 정답이 보기 가운데 몇 번째 크기인지 고르게 흩는다 (가운데만 찍어도 맞는 일이 없게)
+    const lo = pickN(rng, all.filter(x => numOf(x) < av), 3), hi = pickN(rng, all.filter(x => numOf(x) > av), 3);
+    let nl = Math.min(ri(rng, 0, 3), lo.length), nh = 3 - nl; if (nh > hi.length) { nh = hi.length; nl = Math.min(lo.length, 3 - nh); }
+    W = [...lo.slice(0, nl), ...hi.slice(0, nh)];
+  } else W = [];
+  for (const x of pickN(rng, all, all.length)) { if (W.length >= 3) break; if (!W.includes(x)) W.push(x); }
+  const { choices, answer } = shuffleChoices(rng, A, W.slice(0, 3));
+  return { kind: 'text', q, choices, answer, human: false };
+}
+const HARD = {
+  cubic(rng, big) { // 수능 30번형: 조건으로 삼차함수를 정한 뒤 값을 구한다
+    for (let t = 0; t < 80; t++) {
+      const a = ri(rng, big ? -9 : -6, big ? 9 : 6), p = ri(rng, -3, 4), q = ri(rng, -4, 5), c = ri(rng, -9, 9);
+      if (q === 0 || q === 2 * p || q === p) continue;
+      const b = -3 * p * p - 2 * a * p, f = (x, A = a, B = b) => x ** 3 + A * x * x + B * x + c, v = f(q);
+      const r = ri(rng, big ? -5 : -3, big ? 8 : 6); if (r === q || r === 0 || r === p) continue;
+      const ans = f(r), fa = d => { const A = a + d, B = -3 * p * p - 2 * A * p; return f(r, A, B); };
+      return hardQ(rng, `최고차항의 계수가 1인 삼차함수 f(x)가 f(0) = ${c}, f'(${p}) = 0, f(${q}) = ${numJ(v, '을', '를')} 만족시킬 때, f(${r})의 값은?`, ans, [fa(1), fa(-1), fa(2), f(-r), ans - 2 * c, ...nearV(ans, 2, 4)]);
+    }
+    return HARD.recur(rng, big);
+  },
+  area(rng, big) { // 곡선과 x축으로 둘러싸인 넓이 (기약분수)
+    const p = ri(rng, 1, big ? 5 : 3), q = p + ri(rng, 1, big ? 5 : 3), F = x => 3 * x ** 4 - 4 * (p + q) * x ** 3 + 6 * p * q * x * x; // 12 × 부정적분
+    const A = Math.abs(F(p)) + Math.abs(F(q) - F(p)), S = Math.abs(F(q));
+    const w = [[S, 12], [A + 12, 12], [A - 12, 12], [A + 6, 12], [A - 6, 12], [A, 6], [2 * Math.abs(F(p)), 12], [A + 4, 12], [A - 4, 12]].filter(([n]) => n > 0).map(([n, d]) => fracS(n, d));
+    return hardQ(rng, `곡선 y = x(x − ${p})(x − ${q})와 x축으로 둘러싸인 두 부분의 넓이의 합은?`, fracS(A, 12), w, s => s);
+  },
+  recur(rng, big) { // 점화식으로 정한 수열의 k번째 항
+    const typ = ri(rng, 0, 2), s = ri(rng, 1, 9), c = ri(rng, -4, 4), k = ri(rng, big ? 12 : 10, big ? 15 : 12), A = [0, s];
+    let q;
+    if (typ === 0) { for (let n = 1; n <= k; n++) A.push(2 * A[n] - n + c); q = `a(1) = ${s}, a(n+1) = 2a(n) − n${c === 0 ? '으로' : c < 0 ? ' − ' + roJ(-c) : ' + ' + roJ(c)} 정의된 수열에서 a(${k})의 값은?`; }
+    else if (typ === 1) { const d = ri(rng, 1, 6); for (let n = 1; n <= k; n++) A.push(A[n] + n * n - d * n); q = `a(1) = ${s}, a(n+1) = a(n) + n² − ${d}n으로 정의된 수열에서 a(${k})의 값은?`; }
+    else { const t = ri(rng, 1, 9); A.push(t); for (let n = 2; n <= k; n++) A.push(A[n] + 2 * A[n - 1]); q = `a(1) = ${s}, a(2) = ${t}, a(n+2) = a(n+1) + 2a(n)일 때 a(${k})의 값은?`; }
+    const ans = A[k];
+    return hardQ(rng, q, ans, [A[k - 1], A[k + 1], ...nearV(ans, ri(rng, 1, 3), 4), ans + c, ans - s]);
+  },
+  count(rng, big) { // 조건이 붙은 경우의 수 (직접 세지 않으면 안 나온다)
+    const typ = ri(rng, 0, 2);
+    if (typ === 0) { const N = ri(rng, big ? 11 : 8, big ? 15 : 11), m = ri(rng, 2, 5); let n = 0, loose = 0, noZ = 0;
+      for (let x = 0; x <= N; x++) for (let y = 0; y <= N - x; y++) for (let z = 0; z <= N - x - y; z++) { const w = N - x - y - z; loose++; if (x <= m && y >= 1) { noZ++; if (z !== w) n++; } }
+      return hardQ(rng, `음이 아닌 정수 x, y, z, w가 x + y + z + w = ${N}, x ≤ ${m}, y ≥ 1, z ≠ w를 모두 만족시키는 순서쌍 (x, y, z, w)의 개수는?`, n, [noZ, loose, ...nearV(n, 1, 4), ...nearV(n, 3, 2)]); }
+    if (typ === 1) { const S = ri(rng, big ? 13 : 12, big ? 27 : 24); let n = 0, rep = 0;
+      for (let a = 1; a <= 9; a++) for (let b = 1; b <= 9; b++) for (let c = 1; c <= 9; c++) for (let d = 1; d <= 9; d++) if (a + b + c + d === S) { rep++; if (new Set([a, b, c, d]).size === 4) n++; }
+      if (!n) return HARD.count(rng, big);
+      return hardQ(rng, `1부터 9까지의 숫자로 만든 네 자리 자연수 가운데 각 자리의 숫자가 모두 다르고 그 합이 ${S}인 것의 개수는?`, n, [rep, ...nearV(n, 24, 3), ...nearV(n, 12, 2), n + 6]); }
+    const D = big ? 5 : 4, S = ri(rng, D * 3, D * 4 + 1), cnt = s => { let w = [1]; for (let i = 0; i < D; i++) { const nw = []; for (let j = 0; j < w.length; j++) for (let f = 1; f <= 6; f++) nw[j + f] = (nw[j + f] || 0) + w[j]; w = nw.map(v => v || 0); } return w[s] || 0; };
+    const n = cnt(S);
+    return hardQ(rng, `주사위 한 개를 ${D}번 던질 때 나온 눈의 수의 합이 ${numJ(S, '이', '가')} 되는 경우의 수는?`, n, [cnt(S - 1), cnt(S + 1), ...nearV(n, 1, 3), ...nearV(n, 6, 2)]);
+  },
+  prob(rng, big) { // 확률 (기약분수)
+    for (let t = 0; t < 40; t++) {
+      const a = ri(rng, 4, big ? 9 : 7), b = ri(rng, 3, big ? 8 : 6), c = ri(rng, 3, big ? 5 : 4), k = ri(rng, 2, Math.min(a, c, 3));
+      const tot = C2(a + b, c); let fav = 0, ex = 0; for (let i = k; i <= Math.min(a, c); i++) { const v = C2(a, i) * C2(b, c - i); fav += v; if (i === k) ex = v; }
+      if (fav >= tot || ex === fav) continue;
+      return hardQ(rng, `흰 공 ${a}개와 검은 공 ${b}개가 든 주머니에서 공 ${c}개를 동시에 꺼낼 때, 흰 공이 ${k}개 이상 나올 확률은?`, fracS(fav, tot), [fracS(ex, tot), fracS(tot - fav, tot), fracS(fav + 1, tot), fracS(fav - 1, tot), fracS(fav + 2, tot), fracS(fav, tot + 1)], s => s);
+    }
+    return HARD.area(rng, big);
+  },
+  modpow(rng) { // 거듭제곱의 나머지 (큰 지수)
+    const m = [97, 101, 103, 107, 109, 113][ri(rng, 0, 5)]; let b; do { b = ri(rng, 2, 29); } while (b % m === 1 || b % m === m - 1);
+    const e = ri(rng, 60, 240); let v = 1, x = b % m, n = e; while (n) { if (n & 1) v = v * x % m; x = x * x % m; n >>= 1; }
+    return hardQ(rng, `${b}의 ${e}제곱을 ${roJ(m)} 나눈 나머지는?`, v, [...nearV(v, 1, 4), (v * b) % m, (m - v) % m, (v + b) % m, ...nearV(v, 7, 2)].filter(x => x >= 0 && x < m));
+  },
+  sigma(rng) { // k·r^k의 합
+    const r = ri(rng, 2, 3), n = ri(rng, r === 2 ? 9 : 7, r === 2 ? 13 : 10); let S = 0; for (let k = 1; k <= n; k++) S += k * r ** k;
+    return hardQ(rng, `k × ${r}^k를 k = 1부터 ${n}까지 모두 더한 값은?`, S, [S - n * r ** n, S + (n + 1) * r ** (n + 1), S - r ** n, S + r ** n, ...nearV(S, r, 3), S + n]);
+  },
+  det3(rng) { // 3×3 행렬식
+    const M = [0, 1, 2].map(() => [0, 1, 2].map(() => ri(rng, -7, 9))), m = M;
+    const t0 = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]), t1 = m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]), t2 = m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]), v = t0 - t1 + t2;
+    return hardQ(rng, `행렬 [${M.map(r => r.join(', ')).join(' / ')}]의 행렬식의 값은?`, v, [t0 + t1 + t2, -v, t0 - t1 - t2, ...nearV(v, 1, 3), ...nearV(v, 9, 2)]);
+  },
+  phys(rng) { // IIT 물리
+    const typ = ri(rng, 0, 4), g = 9.8;
+    if (typ === 0) { const v = ri(rng, 15, 45), th = [30, 37, 45, 53, 60][ri(rng, 0, 4)], s2 = { 30: Math.sqrt(3) / 2, 37: 0.96, 45: 1, 53: 0.96, 60: Math.sqrt(3) / 2 }[th], sn = { 30: 0.5, 37: 0.6, 45: Math.SQRT1_2, 53: 0.8, 60: Math.sqrt(3) / 2 }[th];
+      const R = v * v * s2 / g, H = (v * sn) ** 2 / (2 * g), ask = rng() < 0.5, a = ask ? R : H;
+      return hardQ(rng, `지면에서 ${v} m/s의 속력으로 수평면과 ${th}°를 이루게 던진 공의 ${ask ? '수평 도달 거리' : '최고 높이'}는 약 몇 m인가? (g = 9.8 m/s², sin 37° = 0.6)`, a, [ask ? H : R, a * 2, a / 2, ...nearV(a, 0.7, 3), a * 1.1], x => fixN(x, 1)); }
+    if (typ === 1) { const r1 = ri(rng, 3, 18), r2 = ri(rng, 4, 30), r3 = ri(rng, 4, 30), V = ri(rng, 6, 48), Rt = r1 + r2 * r3 / (r2 + r3), I = V / Rt;
+      return hardQ(rng, `${r1} Ω 저항에, ${r2} Ω과 ${r3} Ω을 병렬로 묶은 것을 직렬로 잇고 ${V} V 전압을 걸었다. ${r1} Ω에 흐르는 전류는 몇 A인가?`, I, [V / (r1 + r2 + r3), V / r1, V / (r1 + (r2 + r3) / 2), ...nearV(I, 0.013, 3)], x => fixN(x, 3)); }
+    if (typ === 2) { const m1 = ri(rng, 2, 12), m2 = ri(rng, 2, 12), v1 = ri(rng, 3, 15), v2 = 2 * m1 * v1 / (m1 + m2), v1b = (m1 - m2) * v1 / (m1 + m2);
+      return hardQ(rng, `${m1} kg 물체가 ${v1} m/s로 정지한 ${m2} kg 물체와 정면으로 완전 탄성 충돌했다. 충돌 뒤 ${m2} kg 물체의 속력은 몇 m/s인가?`, v2, [Math.abs(v1b), m1 * v1 / (m1 + m2), v1, ...nearV(v2, 0.17, 3)], x => fixN(x, 2)); }
+    if (typ === 3) { const L = ri(rng, 35, 240) / 100, T = 2 * Math.PI * Math.sqrt(L / g);
+      return hardQ(rng, `길이 ${L} m인 단진자의 주기는 몇 초인가? (g = 9.8 m/s², π = 3.1416)`, T, [Math.PI * Math.sqrt(L / g), 2 * Math.PI * Math.sqrt(g / L), T * 1.1, ...nearV(T, 0.013, 3)], x => fixN(x, 3)); }
+    const C = ri(rng, 12, 470), V = ri(rng, 12, 240), E = 0.5 * C * 1e-6 * V * V * 1000;
+    return hardQ(rng, `전기 용량 ${C} μF인 축전기를 ${V} V로 충전했을 때 저장된 에너지는 몇 mJ인가?`, E, [E * 2, E / 2, C * 1e-6 * V * 1000, ...nearV(E, Math.max(0.07, E * 0.03), 3)], x => fixN(x, 2));
+  },
+  orbit(rng) { // NASA: 원심 장치·궤도 계산
+    const typ = ri(rng, 0, 4), G0 = 9.81, MU = 398600, RE = 6371;
+    if (typ === 0) { const r = ri(rng, 40, 120) / 10, rpm = ri(rng, 12, 40), a = (2 * Math.PI * rpm / 60) ** 2 * r / G0;
+      return hardQ(rng, `반지름 ${r} m 회전 장치가 1분에 ${rpm}바퀴 돈다. 끝에 앉은 사람이 받는 가속도는 몇 g인가? (g = 9.81 m/s²)`, a, [a * 2, Math.sqrt(a), (2 * Math.PI * rpm / 60) * r / G0, ...nearV(a, 0.07, 3)], x => fixN(x, 2) + ' g'); }
+    if (typ === 1) { const k = ri(rng, 3, 9), r = ri(rng, 40, 120) / 10, rpm = 60 / (2 * Math.PI) * Math.sqrt(k * G0 / r);
+      return hardQ(rng, `반지름 ${r} m 회전 장치로 ${k} g를 만들려면 1분에 몇 바퀴 돌려야 하는가? (g = 9.81 m/s²)`, rpm, [rpm * 2, 60 * Math.sqrt(k * G0 / r), rpm / Math.sqrt(2), ...nearV(rpm, 0.7, 3)], x => fixN(x, 1) + ' rpm'); }
+    if (typ === 2) { const h = ri(rng, 30, 200) * 10, v = Math.sqrt(MU / (RE + h));
+      return hardQ(rng, `지구 표면에서 고도 ${h.toLocaleString('ko-KR')} km 원궤도를 도는 위성의 속력은 몇 km/s인가? (μ = 398,600 km³/s², 지구 반지름 6,371 km)`, v, [Math.sqrt(MU / h), Math.sqrt(2 * MU / (RE + h)), Math.sqrt(MU / RE), ...nearV(v, 0.07, 3)], x => fixN(x, 2) + ' km/s'); }
+    if (typ === 3) { const h = ri(rng, 30, 200) * 10, T = 2 * Math.PI * Math.sqrt((RE + h) ** 3 / MU) / 60;
+      return hardQ(rng, `고도 ${h.toLocaleString('ko-KR')} km 원궤도를 한 바퀴 도는 데 몇 분이 걸리는가? (μ = 398,600 km³/s², 지구 반지름 6,371 km)`, T, [2 * Math.PI * Math.sqrt(RE ** 3 / MU) / 60, T * 1.1, T / 2, ...nearV(T, 0.7, 3)], x => fixN(x, 1) + '분'); }
+    const isp = ri(rng, 280, 455), m0 = ri(rng, 180, 900), mf = Math.round(m0 / (2 + rng() * 4)), dv = isp * 9.80665 * Math.log(m0 / mf);
+    return hardQ(rng, `비추력 ${isp}초인 엔진을 단 로켓의 처음 질량이 ${m0}톤, 연료를 다 쓴 뒤 ${mf}톤이다. 얻는 속도 변화는 약 몇 m/s인가?`, dv, [isp * 9.80665 * (m0 / mf), isp * 9.80665 * Math.log10(m0 / mf), isp * Math.log(m0 / mf), ...nearV(dv, 37, 3)], x => Math.round(x).toLocaleString('ko-KR') + ' m/s');
+  },
+  mars(rng) { // 화성 이주: 생존 계산
+    const typ = ri(rng, 0, 4);
+    if (typ === 0) { const H = ri(rng, 500, 9000), s = H / 24.6597;
+      return hardQ(rng, `지구 시간으로 ${H.toLocaleString('ko-KR')}시간은 화성 날짜로 몇 솔인가? (1솔 = 24시간 39분 35초)`, s, [H / 24, H / 24.39, H / 24.65 * 1.02, ...nearV(s, 0.37, 3)], x => fixN(x, 2) + '솔'); }
+    if (typ === 1) { for (;;) { const x = ri(rng, 6, 24) / 10, n = ri(rng, 4, 9), y = ri(rng, 82, 92) / 100, z = ri(rng, 20, 90), net = n * y - x; if (net < 0.5) continue; const d = z / net;
+      return hardQ(rng, `산소 발생기가 하루 ${x} kg을 만들고, 대원 ${n}명이 한 사람당 하루 ${y} kg을 쓴다. 비축 산소 ${z} kg은 며칠 버티는가?`, d, [z / (n * y), z / (n * y + x), (z + x) / (n * y), ...nearV(d, 0.3, 3)], v => fixN(v, 1) + '일'); } }
+    if (typ === 2) { const h = ri(rng, 5, 60), t = Math.sqrt(2 * h / 3.721);
+      return hardQ(rng, `화성(중력 가속도 3.721 m/s²)에서 높이 ${h} m 절벽에서 떨어뜨린 공구가 바닥에 닿기까지 몇 초가 걸리는가?`, t, [Math.sqrt(2 * h / 9.81), Math.sqrt(h / 3.721), 2 * h / 3.721 / 10, ...nearV(t, 0.07, 3)], v => fixN(v, 2) + '초'); }
+    if (typ === 3) { const D = ri(rng, 55, 401), m = D * 1e9 / 299792458 / 60;
+      return hardQ(rng, `지금 지구와 화성 사이 거리가 ${D}00만 km다. 지구에 보낸 구조 요청이 닿는 데 몇 분이 걸리는가? (빛의 속력 299,792.458 km/s)`, m, [m * 2, D * 1e6 / 300000 / 60 * 1.06, m / 1.5, ...nearV(m, 0.3, 3)], v => fixN(v, 1) + '분'); }
+    const A = ri(rng, 12, 60), e = ri(rng, 18, 29), kwh = 0.586 * A * e / 100 * 6.2;
+    return hardQ(rng, `효율 ${e}%인 태양광 패널 ${A} m²로 화성(평균 일사량 586 W/m², 하루 발전 6.2시간)에서 하루에 몇 kWh를 얻는가?`, kwh, [0.586 * A * e / 100 * 24.6, 0.586 * A * 6.2, 1.361 * A * e / 100 * 6.2, ...nearV(kwh, 0.13, 3)], v => fixN(v, 2) + ' kWh');
+  },
+  rel(rng) { // 블랙홀 가장자리: 상대론 계산
+    const typ = ri(rng, 0, 5), V = () => ri(rng, 600, 995) / 1000, gam = v => 1 / Math.sqrt(1 - v * v);
+    if (typ === 0) { const v = V(), g = gam(v);
+      return hardQ(rng, `빛의 속력의 ${v}배로 움직이는 우주선의 로런츠 인자 γ는?`, g, [1 / (1 - v), Math.sqrt(1 - v * v), 1 / (1 - v * v), ...nearV(g, 0.013, 3)], x => fixN(x, 3)); }
+    if (typ === 1) { const v = V(), tau = ri(rng, 2, 15), T = gam(v) * tau;
+      return hardQ(rng, `빛의 속력의 ${v}배로 날아간 우주선 안에서 ${tau}년이 흘렀다. 그동안 지구에서는 몇 년이 흘렀는가?`, T, [tau / gam(v), tau / (1 - v), tau * (1 + v), ...nearV(T, 0.07, 3)], x => fixN(x, 2) + '년'); }
+    if (typ === 2) { const M = ri(rng, 32, 800) / 10, r = 2.9532 * M;
+      return hardQ(rng, `태양 질량의 ${M}배인 블랙홀의 슈바르츠실트 반지름은 몇 km인가? (태양 질량 블랙홀 = 2.9532 km)`, r, [r / 2, r * 2, 1.4766 * M * 3, ...nearV(r, 0.37, 3)], x => fixN(x, 2) + ' km'); }
+    if (typ === 3) { const k = ri(rng, 110, 600) / 100, f = 1 / Math.sqrt(1 - 1 / k);
+      return hardQ(rng, `슈바르츠실트 반지름의 ${k}배 거리에 멈춰 선 시계가 1시간 갈 때, 멀리 있는 관측자의 시계는 몇 시간 가는가?`, f, [Math.sqrt(1 - 1 / k), 1 / (1 - 1 / k), 1 + 1 / k, ...nearV(f, 0.013, 3)], x => fixN(x, 3) + '시간'); }
+    if (typ === 4) { const u = ri(rng, 30, 95) / 100, w = ri(rng, 30, 95) / 100, s = (u + w) / (1 + u * w);
+      return hardQ(rng, `빛의 속력의 ${u}배로 나는 우주선에서 앞으로 빛의 속력의 ${w}배로 탐사선을 쐈다. 밖에서 본 탐사선의 속력은 빛의 속력의 몇 배인가?`, s, [Math.min(0.999, u + w), (u + w) / (1 + u * w * 2), (u + w) / 2 + 0.3, ...nearV(s, 0.007, 3)], x => fixN(x, 3)); }
+    const v = V(), L0 = ri(rng, 100, 900), L = L0 / gam(v);
+    return hardQ(rng, `정지했을 때 길이 ${L0} m인 우주선이 빛의 속력의 ${v}배로 지나간다. 밖에서 잰 길이는 몇 m인가?`, L, [L0 * gam(v), L0 * (1 - v), L0 * Math.sqrt(1 - v), ...nearV(L, 0.7, 3)], x => fixN(x, 1) + ' m');
+  },
+  satMath(rng) { // SAT·GRE 수학: 숫자가 지저분한 문항
+    const typ = ri(rng, 0, 3);
+    if (typ === 0) { const x = ri(rng, -6, 14), y = ri(rng, -5, 12), a = ri(rng, 3, 13), b = ri(rng, 2, 11), d = ri(rng, 2, 9), e = ri(rng, 3, 12), c = a * x + b * y, f = d * x - e * y, ask = rng() < 0.5;
+      const ans = ask ? x + y : x * y;
+      return hardQ(rng, `If ${a}x + ${b}y = ${c} and ${d}x − ${e}y = ${f}, what is the value of ${ask ? 'x + y' : 'xy'}?`, ans, [ask ? x - y : x + y, ask ? x * y : x - y, x, y, ...nearV(ans, 1, 3)]); }
+    if (typ === 1) { const p1 = ri(rng, 12, 38), p2 = ri(rng, 15, 45), p3 = ri(rng, 5, 30), net = ((1 + p1 / 100) * (1 - p2 / 100) * (1 + p3 / 100) - 1) * 100;
+      return hardQ(rng, `A price is raised by ${p1}%, then cut by ${p2}%, then raised by ${p3}%. What is the overall percent change?`, net, [p1 - p2 + p3, ((1 + p1 / 100) * (1 - p2 / 100) - 1) * 100, -net, ...nearV(net, 0.37, 3)], v => (v > 0 ? '+' : '') + fixN(v, 2) + '%'); }
+    if (typ === 2) { const P = ri(rng, 12, 98) * 100, r = ri(rng, 7, 19) / 2, t = ri(rng, 5, 12), v = P * (1 + r / 100) ** t;
+      return hardQ(rng, `A town of ${P.toLocaleString('en-US')} people grows by ${r}% every year. To the nearest whole number, what is its population after ${t} years?`, Math.round(v), [Math.round(P * (1 + r * t / 100)), Math.round(P * (1 + r / 100) ** (t - 1)), Math.round(P * (1 + r / 100) ** (t + 1)), ...nearV(Math.round(v), 7, 3)], n => n.toLocaleString('en-US')); }
+    const a = ri(rng, 2, 7), b = ri(rng, 3, 17), c = ri(rng, 2, 15);
+    return hardQ(rng, `What is the sum of the squares of the solutions of ${a}x² − ${b}x − ${c} = 0?`, fracS(b * b + 2 * a * c, a * a), [fracS(b * b - 2 * a * c, a * a), fracS(b * b, a * a), fracS(b * b + 2 * a * c, a), fracS(b * b + a * c, a * a), fracS(b * b + 2 * a * c + 1, a * a)], s => s);
+  },
+  tax(rng) { // 세무사: 두세 단계를 거치는 세액 계산
+    const k = ri(rng, 0, 5), W = wonText, T = (q, ans, ws) => hardQ(rng, q, ans, ws, W), U = (a, b) => ri(rng, a, b) * 1000;
+    if (k === 0) { const S = U(310000, 980000), P = U(90000, 290000), N = U(12000, 88000), ded = Math.floor(N * 4 / 104), v = S / 10 - P / 10 - ded;
+      return T(`과세 매출 ${W(S)}, 과세 매입 ${W(P)}(모두 공급가액), 면세 농산물 매입 ${W(N)}(의제매입세액 공제율 4/104)일 때 부가가치세 납부세액은?`, v, [S / 10 - P / 10, S / 10 - P / 10 - Math.floor(N * 4 / 100), S / 10 - P / 10 - Math.floor(N * 6 / 106), ...nearV(v, 10000, 3)]); }
+    if (k === 1) { const C = U(4200, 39000), a = U(210000, 880000), b = U(40000, 390000), v = Math.floor(C * b / (a + b));
+      return T(`공통매입세액 ${W(C)}, 과세 공급가액 ${W(a)}, 면세 공급가액 ${W(b)}일 때 면세사업분으로 불공제되는 매입세액은?`, v, [Math.floor(C * a / (a + b)), Math.floor(C * b / a), Math.floor(C / 2), ...nearV(v, 10000, 3)]); }
+    if (k === 2) { const BR = [[14e6, 0.06, 0], [50e6, 0.15, 1.26e6], [88e6, 0.24, 5.76e6], [150e6, 0.35, 15.44e6], [300e6, 0.38, 19.94e6], [500e6, 0.40, 25.94e6], [1e9, 0.42, 35.94e6], [Infinity, 0.45, 65.94e6]];
+      const I = U(48000, 640000), D = U(8000, 31000), base = I - D, tx = b => { const r = BR.find(x => b <= x[0]); return Math.round(b * r[1] - r[2]); }, br = BR.find(x => base <= x[0]);
+      return T(`종합소득금액 ${W(I)}, 종합소득공제 ${W(D)}일 때 종합소득 산출세액은? (2023년 이후 세율)`, tx(base), [tx(I), Math.round(base * br[1]), Math.round(I * br[1] - br[2]), ...nearV(tx(base), 100000, 3)]); }
+    if (k === 3) { const C = U(8000, 98000), r = [0.451, 0.394, 0.313, 0.259, 0.528][ri(rng, 0, 4)]; let B = C; const Y = []; for (let i = 0; i < 3; i++) { const y = Math.floor(B * r); Y.push(y); B -= y; }
+      return T(`취득원가 ${W(C)}인 기계를 정률법(상각률 ${r})으로 상각할 때 3년 차 감가상각비는? (원 미만 버림)`, Y[2], [Y[1], Y[0], Math.floor(C * r * r), Math.floor(Y[1] * (1 - r) * 0.98), ...nearV(Y[2], 1000, 3)]); }
+    if (k === 4) { const S = U(420000, 990000), B0 = U(30000, 90000), P = U(180000, 420000), E = U(20000, 95000), G = U(40000, 160000), v = S - (B0 + P - E) - G;
+      return T(`매출액 ${W(S)}, 기초 재고 ${W(B0)}, 당기 매입 ${W(P)}, 기말 재고 ${W(E)}, 판매비와 관리비 ${W(G)}일 때 영업이익은?`, v, [S - (B0 + P + E) - G, S - (P - E) - G, S - (B0 + P - E), v + 2 * E, ...nearV(v, 100000, 2)]); }
+    const X = U(480000, 1900000), Y = Math.round(X * (0.35 + rng() * 0.35) / 1000) * 1000, Z = U(3000, 42000), n = ri(rng, 3, 15), gain = X - Y - Z, rt = Math.min(0.3, 0.06 + 0.02 * (n - 3)), base = gain - Math.floor(gain * rt) - 2500000;
+    return T(`양도가액 ${W(X)}, 취득가액 ${W(Y)}, 필요경비 ${W(Z)}인 토지를 ${n}년 보유했다(장기보유특별공제 3년 6%, 1년마다 2%p, 최대 30%). 양도소득 과세표준은?`, base, [gain - 2500000, gain - Math.floor(gain * Math.min(0.3, 0.02 * n)) - 2500000, gain - Math.floor(gain * rt), ...nearV(base, 100000, 2)]);
+  },
+  cpa(rng) { // 회계사: 여러 단계 계산
+    const k = ri(rng, 0, 4), W = wonText;
+    if (k === 0) { const F = ri(rng, 1, 9) * 1000000, c = ri(rng, 3, 6) / 100, e = ri(rng, 6, 11) / 100, PV = Math.round(c * F / (1 + e) + c * F / (1 + e) ** 2 + (c * F + F) / (1 + e) ** 3), int = Math.round(PV * e), v = PV + int - c * F;
+      return hardQ(rng, `액면 ${W(F)}, 표시이자율 연 ${Math.round(c * 100)}%(매년 말 지급), 3년 만기 사채를 유효이자율 연 ${Math.round(e * 100)}%로 발행했다. 1년 차 말 사채 장부금액은? (원 미만 반올림)`, v, [PV, PV + int, F - (PV + int - c * F - F), Math.round(PV * (1 + c)), ...nearV(v, 1000, 3)], W); }
+    if (k === 1) { const N = ri(rng, 8, 40) * 1000, a = ri(rng, 1, 9) * 1000, b = ri(rng, 1, 5) * 500, W0 = (N * 12 + a * 9 - b * 4) / 12 * 1.1, NI = Math.round(W0 * ri(rng, 3, 25) * 100), e = Math.round(NI / W0);
+      return hardQ(rng, `기초 유통보통주 ${N.toLocaleString('ko-KR')}주, 4월 1일 유상증자(시가) ${a.toLocaleString('ko-KR')}주, 9월 1일 자기주식 취득 ${b.toLocaleString('ko-KR')}주, 11월 1일 무상증자 10%. 당기순이익이 ${W(NI)}일 때 기본주당이익은? (월할)`, e, [Math.round(NI / ((N * 12 + a * 9 - b * 4) / 12)), Math.round(NI / ((N + a - b) * 1.1)), Math.round(NI / (N * 1.1)), ...nearV(e, 7, 3)], v => W(v)); }
+    if (k === 2) { const F = ri(rng, 120, 980) * 100000, P = ri(rng, 30, 99) * 1000, V = Math.round(P * (0.4 + rng() * 0.3) / 100) * 100, Tg = ri(rng, 20, 90) * 1000000, t = [0.2, 0.22, 0.25][ri(rng, 0, 2)], q = Math.ceil((F + Tg / (1 - t)) / (P - V));
+      return hardQ(rng, `고정원가 ${W(F)}, 단위당 판매가격 ${W(P)}, 단위당 변동원가 ${W(V)}, 법인세율 ${Math.round(t * 100)}%일 때 세후 목표이익 ${W(Tg)}을 내려면 최소 몇 개를 팔아야 하는가?`, q, [Math.ceil((F + Tg) / (P - V)), Math.ceil((F + Tg * (1 - t)) / (P - V)), Math.ceil(F / (P - V)), ...nearV(q, 13, 3)], v => v.toLocaleString('ko-KR') + '개'); }
+    if (k === 3) { const m = ri(rng, 32, 148) / 10, x = ri(rng, 6, 24) / 10, d = ri(rng, 40, 260), roe = m * x * (1 + d / 100);
+      return hardQ(rng, `매출액순이익률 ${m}%, 총자산회전율 ${x}회, 부채비율(부채/자기자본) ${d}%인 회사의 ROE는?`, roe, [m * x, m * x * d / 100, m * x / (1 + d / 100), ...nearV(roe, 0.37, 3)], v => fixN(v, 2) + '%'); }
+    const q0 = ri(rng, 2, 9) * 100, c0 = ri(rng, 40, 90) * 10, q1 = ri(rng, 3, 12) * 100, c1 = c0 + ri(rng, 2, 25) * 10, q2 = ri(rng, 3, 12) * 100, c2 = c1 + ri(rng, -8, 25) * 10, qs = ri(rng, Math.round((q0 + q1 + q2) * 0.5 / 10), Math.round((q0 + q1 + q2) * 0.9 / 10)) * 10;
+    const avg = (q0 * c0 + q1 * c1 + q2 * c2) / (q0 + q1 + q2), v = Math.round(qs * avg);
+    return hardQ(rng, `기초 재고 ${q0}개(@${W(c0)}), 매입 ${q1}개(@${W(c1)}), 매입 ${q2}개(@${W(c2)}), 판매 ${qs}개. 총평균법으로 구한 매출원가는? (원 미만 반올림)`, v, [Math.round(qs * (c0 + c1 + c2) / 3), qs * c2, qs * c0, Math.round(qs * avg * 1.02), ...nearV(v, 1000, 3)], W);
+  },
+  cfa(rng) { // CFA 레벨 3 계산
+    const k = ri(rng, 0, 4), P = v => fixN(v, 2) + '%';
+    if (k === 0) { const w = ri(rng, 3, 7) / 10, s1 = ri(rng, 12, 30), s2 = ri(rng, 8, 25), r = ri(rng, -4, 8) / 10, sp = Math.sqrt(w * w * s1 * s1 + (1 - w) ** 2 * s2 * s2 + 2 * w * (1 - w) * r * s1 * s2);
+      return hardQ(rng, `자산 A(표준편차 ${s1}%) ${Math.round(w * 100)}%, 자산 B(표준편차 ${s2}%) ${Math.round((1 - w) * 100)}%, 상관계수 ${r}인 포트폴리오의 표준편차는?`, sp, [w * s1 + (1 - w) * s2, Math.sqrt(w * w * s1 * s1 + (1 - w) ** 2 * s2 * s2), Math.sqrt(w * s1 * s1 + (1 - w) * s2 * s2), ...nearV(sp, 0.37, 3)], P); }
+    if (k === 1) { const D = ri(rng, 45, 128) / 10, C = ri(rng, 40, 180), dy = (rng() < 0.5 ? -1 : 1) * ri(rng, 5, 15) / 1000, ch = (-D * dy + 0.5 * C * dy * dy) * 100;
+      return hardQ(rng, `수정 듀레이션 ${D}, 볼록성 ${C}인 채권의 금리가 ${dy > 0 ? '+' : '−'}${Math.abs(dy * 100).toFixed(1)}%p 움직일 때 가격 변화율은?`, ch, [-D * dy * 100, (-D * dy - 0.5 * C * dy * dy) * 100, (-D * dy + C * dy * dy) * 100, ...nearV(ch, 0.07, 3)], v => (v > 0 ? '+' : '') + fixN(v, 2) + '%'); }
+    if (k === 2) { const c = ri(rng, 2, 9), y = ri(rng, 20, 95) / 10, n = ri(rng, 3, 8); let pr = 0; for (let t = 1; t <= n; t++) pr += c / (1 + y / 100) ** t; pr += 100 / (1 + y / 100) ** n;
+      return hardQ(rng, `액면 100, 표면금리 연 ${c}%(연 1회 지급), 만기 ${n}년, 만기수익률 ${y}%인 채권의 가격은?`, pr, [100 + (c - y) * n, pr + (c > y ? -1 : 1) * 2.3, 100 * (1 + c / 100) / (1 + y / 100) ** n, ...nearV(pr, 0.37, 3)], v => fixN(v, 2)); }
+    if (k === 3) { const rf = ri(rng, 10, 45) / 10, rm = rf + ri(rng, 30, 80) / 10, b = ri(rng, 6, 18) / 10, rp = ri(rng, 40, 160) / 10, a = rp - (rf + b * (rm - rf));
+      return hardQ(rng, `포트폴리오 수익률 ${rp}%, 베타 ${b}, 무위험 수익률 ${rf}%, 시장 수익률 ${rm}%일 때 젠센의 알파는?`, a, [rp - rm, rp - (rf + b * rm), rp - b * (rm - rf), ...nearV(a, 0.37, 3)], v => (v > 0 ? '+' : '') + fixN(v, 2) + '%p'); }
+    const D0 = ri(rng, 12, 85) / 10, g = ri(rng, 20, 60) / 10, r = g + ri(rng, 25, 70) / 10, P0 = D0 * (1 + g / 100) / ((r - g) / 100);
+    return hardQ(rng, `방금 배당 ${D0}달러를 지급했고 배당이 매년 ${g}%씩 자라며 요구수익률이 ${r}%일 때 고든 성장 모형으로 구한 주가는?`, P0, [D0 / ((r - g) / 100), D0 * (1 + g / 100) / (r / 100), D0 * (1 + g / 100) ** 2 / ((r - g) / 100), ...nearV(P0, 0.37, 3)], v => fixN(v, 2) + '달러');
+  },
+  appraise(rng) { // 감정평가 실무 계산
+    const k = ri(rng, 0, 2), M = v => Math.round(v).toLocaleString('ko-KR') + '만원';
+    if (k === 0) { const rent = ri(rng, 45, 280) * 10, units = ri(rng, 6, 40), vac = ri(rng, 3, 15), op = ri(rng, 18, 42), cap = ri(rng, 35, 85) / 10, pgi = rent * units * 12, v = pgi * (1 - vac / 100) * (1 - op / 100) / (cap / 100);
+      return hardQ(rng, `월 임대료 ${rent}만원짜리 ${units}호실 건물. 공실률 ${vac}%, 운영경비는 유효총수익의 ${op}%, 환원율 ${cap}%일 때 직접환원법 수익가액은?`, v, [pgi * (1 - vac / 100) / (cap / 100), pgi * (1 - (vac + op) / 100) / (cap / 100), pgi / (cap / 100), ...nearV(v, 937, 3)], M); }
+    if (k === 1) { const C = ri(rng, 120, 980) * 100, n = [40, 45, 50, 60][ri(rng, 0, 3)], t = ri(rng, 5, 35), s = [0, 5, 10][ri(rng, 0, 2)], v = C - C * (1 - s / 100) * t / n;
+      return hardQ(rng, `재조달원가 ${M(C)}, 경제적 내용연수 ${n}년, 경과연수 ${t}년, 잔가율 ${s}%(정액법)일 때 적산가액은?`, v, [C - C * t / n, C * (1 - s / 100) - C * t / n, C * (1 - t / n) * (1 - s / 100), ...nearV(v, 173, 3)].filter(x => x !== v), M); }
+    const N1 = ri(rng, 800, 4800), g = ri(rng, 1, 5), r = ri(rng, 6, 11), tc = r - ri(rng, 1, 3) + 0.5, cf = t => N1 * (1 + g / 100) ** (t - 1); let v = 0; for (let t = 1; t <= 3; t++) v += cf(t) / (1 + r / 100) ** t; v += cf(4) / (tc / 100) / (1 + r / 100) ** 3;
+    return hardQ(rng, `1년 차 순영업소득 ${M(N1)}, 매년 ${g}% 성장, 할인율 ${r}%, 3년 차 말 복귀가액은 4년 차 순영업소득을 환원율 ${tc}%로 환원. 할인현금흐름법 수익가액은?`, v, [v - cf(4) / (tc / 100) / (1 + r / 100) ** 3 + cf(4) / (tc / 100), v * 1.04, v - cf(4) / (tc / 100) / (1 + r / 100) ** 3, ...nearV(v, 1913, 3)], M);
+  },
+  logic(rng) { for (let t = 0; t < 30; t++) { const q = HARD.logic1(rng); if (q.q.length <= 112) return q; } return HARD.logic1(rng); },
+  logic1(rng) { // 추리논증: 여섯 명의 순서를 조건으로 좁혀 간다 (답이 하나로 정해질 때까지 조건을 더한다)
+    const P = pickDistinct(rng, NAMES.length, 6).map(i => NAMES[i]), pos = n => P.indexOf(n), ord = ['첫', '두', '세', '네', '다섯', '여섯'];
+    const perms = HARD._perms || (HARD._perms = (() => { const out = [], a = [0, 1, 2, 3, 4, 5], go = k => { if (k === 6) { out.push(a.slice()); return; } for (let i = k; i < 6; i++) { [a[k], a[i]] = [a[i], a[k]]; go(k + 1); [a[k], a[i]] = [a[i], a[k]]; } }; go(0); return out; })());
+    const ask = ri(rng, 0, 5), clues = [], tests = [], E = s => josa(s, '은', '는'), WA = s => josa(s, '과', '와');
+    const make = () => { const t = ri(rng, 0, 4), [x, y] = pickDistinct(rng, 6, 2).map(i => P[i]);
+      if (t === 0) { const [a, b] = pos(x) < pos(y) ? [x, y] : [y, x]; return [`${josa(a, '이', '가')} ${b}보다 앞`, pr => pr.indexOf(P.indexOf(a)) < pr.indexOf(P.indexOf(b))]; }
+      if (t === 1) { const k = Math.abs(pos(x) - pos(y)) - 1; return [k ? `${x}·${y} 사이 ${k}명` : `${x}·${y} 붙어 섬`, pr => Math.abs(pr.indexOf(P.indexOf(x)) - pr.indexOf(P.indexOf(y))) - 1 === k]; }
+      if (t === 2) { let n; do { n = ri(rng, 0, 5); } while (n === pos(x)); return [`${x} ${n + 1}번째 아님`, pr => pr.indexOf(P.indexOf(x)) !== n]; }
+      if (t === 3) { const i = ri(rng, 1, 5), a = P[i], b = P[i - 1]; return [`${E(a)} ${b} 바로 뒤`, pr => pr.indexOf(P.indexOf(a)) === pr.indexOf(P.indexOf(b)) + 1]; }
+      const i = ri(rng, 1, 4), a = P[i]; return [`${a} 양 끝 아님`, pr => { const k = pr.indexOf(P.indexOf(a)); return k > 0 && k < 5; }]; };
+    // 순열 pr: pr[k] = k번째(0부터) 자리에 선 사람의 P 번호 → pr.indexOf(j) = 사람 j의 자리
+    let cand = perms;
+    for (let n = 0; n < 9; n++) {
+      const [txt, ok] = make(); if (clues.includes(txt)) continue; const next = cand.filter(ok); if (next.length === cand.length && n > 2) continue;
+      clues.push(txt); tests.push(ok); cand = next;
+      const who = new Set(cand.map(pr => pr[ask])); if (who.size === 1 && clues.length >= 4) break;
+    }
+    while (new Set(cand.map(pr => pr[ask])).size > 1) { const i = ri(rng, 0, 4), a = P[i], b = P[i + 1], txt = `${E(b)} ${a} 바로 뒤`, ok = pr => pr.indexOf(i + 1) === pr.indexOf(i) + 1; if (clues.includes(txt)) continue; clues.push(txt); cand = cand.filter(ok); }
+    const ans = P[cand[0][ask]], others = P.filter(n => n !== ans);
+    const { choices, answer } = shuffleChoices(rng, ans, pickN(rng, others, 3));
+    return { kind: 'text', q: `여섯 명이 한 줄로 섰다. ${clues.join(', ')}. 앞에서 ${ord[ask]} 번째는?`, choices, answer, human: false };
+  },
+};
+Object.assign(GEN, {
+  eq(rng) { return [HARD.cubic, HARD.area, HARD.recur, HARD.count, HARD.prob][ri(rng, 0, 4)](rng, false); },
+  eqhard(rng) { const t = ri(rng, 0, 7); return t < 5 ? [HARD.cubic, HARD.area, HARD.recur, HARD.count, HARD.prob][t](rng, true) : [HARD.modpow, HARD.sigma, HARD.det3][t - 5](rng); },
+  mirror30(rng) { return [HARD.cubic, HARD.area, HARD.recur, HARD.prob, HARD.sigma][ri(rng, 0, 4)](rng, true); }, // 거울 나라: 수능 30번형만
+  iit(rng) { return rng() < 0.5 ? HARD.phys(rng) : GEN.eqhard(rng); },
+  orbit(rng) { return HARD.orbit(rng); },
+  mars(rng) { return HARD.mars(rng); },
+  relativity(rng) { return HARD.rel(rng); },
+  sat(rng) { return rng() < 0.5 ? poolQ(rng, SAT_WORDS) : HARD.satMath(rng); },
+  tax(rng) { return HARD.tax(rng); },
+  cpa(rng) { return rng() < 0.75 ? HARD.cpa(rng) : HARD.tax(rng); },
+  cfa(rng) { return rng() < 0.6 ? HARD.cfa(rng) : poolQ(rng, CFA); },
+  appraise(rng) { return rng() < 0.5 ? HARD.appraise(rng) : poolQ(rng, APPRAISE); },
+  logic(rng) { return HARD.logic(rng); },
+  afterlife(rng) { return poolQ(rng, AFTERLIFE, false); },
+  dream(rng) { return poolQ(rng, DREAM, false); },
+});
+
 function clampN(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
 // 시험 한 교시(또는 모듈·블록)의 문제. 토익은 앞쪽 listen개가 듣기 문항
