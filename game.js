@@ -545,6 +545,8 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
   if (p > 0) {
     E.sus *= tune.session_keep; E.breakT = tune.break_time;
     if (E.T.id === 'leet' && p === 1 && CONFIG.eggs.stairs) E.stairs = { phase: 'intro', t: 0, steps: 0, last: null, left: tune.stairs_time, stumble: 0, result: null }; // 쉬는 시간: 계단 앞에 서 있다
+    if (T.id === 'bar' && p === 1) { const T2 = E.T = Object.assign({}, T, { stand: T.stand.map(v => v * 0.75), walk: T.walk.map(v => v * 0.8), speed: T.speed * 1.3 }); E.staff.push(newStaff({ type: 'dean', name: '추가 감독관' }, E.staff.length, T2)); flash('앞자리 수험생이 적발되어 끌려 나갔다 · 감독 강화', PAL.bad); sfx.no(); } // 2교시: 감독관 한 명 더, 순찰이 빨라진다
+    if (T.id === 'bar' && p === 2) { E.jam = 1.6; E.pulseFast = 0.6; flash('AI 감독관이 방해 전파를 쏜다 · 스캔이 느려진다', PAL.bad); sfx.pulse(); } // 3교시: 스캔 60% 느려짐, 전파 간격 짧아짐
     if (T.swap && T.swap[p]) { E.staff = T.swap[p].map((type, i) => newStaff({ type, name: PROCTOR_NAME[type] }, i, T)); flash('감독관 교대', PAL.hud); } // 블록마다 새 감독관
   }
 }
@@ -627,7 +629,7 @@ function stepStaff(s, T, dt) {
   if (s.phase === 'help') { // 손 든 수험생에게 가 있는 동안은 나를 못 본다
     const h = s.help;
     if (h.k < 1) { h.k = Math.min(1, h.k + dt / h.go); s.walk += dt; s.stepT += dt; if (s.stepT >= tune.footstep_gap) { s.stepT = 0; footstep(s); } }
-    else { h.stay -= dt; if (h.stay <= 0) { s.u = h.u; s.help = null; setPhase(s, 'stand', procDur(T.stand)); s.away = rng() < 0.5; } }
+    else { h.stay -= dt; if (h.stay <= 0) { s.u = h.u; const look = h.look; s.help = null; if (look) { setPhase(s, 'watch', look); s.away = false; } else { setPhase(s, 'stand', procDur(T.stand)); s.away = rng() < 0.5; } } }
     return;
   }
   if (s.phase === 'peek') { // 통로에서 사라졌다가 내 책상 밑에서 올려다본다. 이때 스캔하면 끝
@@ -687,19 +689,25 @@ function stepCctv(c, dt) {
   c.ph += dt * Math.PI * 2 / tune.cctv_period; c.a = Math.sin(c.ph); c.on = Math.abs(c.a) < 0.28;
   if (c.on && !was && G.gear.cctvjam < 3) sfx.cctv();
 }
+function ringPhone() { // 재난문자: 교실 어딘가에서 다른 수험생 폰이 울린다. 멀면 감독관이 다 그쪽으로 가서 틈이 생기고, 내 근처면 감독관이 바로 옆에 와서 둘러본다
+  const ru = 0.08 + rng() * 0.84, nearMe = Math.abs(ru - 0.5) < 0.2, T = E.T; let n = 0;
+  for (const s of E.staff) { if (s.fixed || s.out || s.blink > 0 || !(s.phase === 'stand' || s.phase === 'walk' || s.phase === 'tell')) continue;
+    const u = clamp(ru + (n++ ? 0.06 : 0), 0.05, 0.95); s.help = { u0: s.u, u, k: 0, go: Math.max(0.4, Math.abs(u - s.u) / Math.max(0.05, T.speed * tune.proctor_speed * 2.2)), stay: nearMe ? 0.8 : 3.2, look: nearMe ? 2.4 : 0 }; s.phase = 'help'; s.t = 0; }
+  sfx.beep(); flash(nearMe ? '바로 옆자리 폰이 울린다! 감독관이 이쪽으로 온다' : '저쪽에서 폰이 울린다. 감독관이 그쪽으로 간다', nearMe ? PAL.bad : PAL.good);
+}
 function stepPulse(p, dt) {
   if (p.active > 0) { p.active -= dt; return; }
   if (p.warn > 0) {
     const before = Math.ceil(p.warn); p.warn -= dt;
     if (p.warn <= 0) { p.warn = 0; p.active = 0.6; sfx.pulse();
       if (E.T.pulse === 'emp' && G.gear.jammer < 3 && !E.dead) { E.dead = 'emp'; E.scan = 0; E.ai = false; sfx.warp(); } // EMP: 대비한 장비가 아니면 전자기기가 전부 먹통
-      if (E.T.pulse === 'alert' && G.gear.lens < 2 && !E.caught) { E.sus = 1; E.source = { how: 'alert', by: E.staff[0] }; getCaught(); } // 재난문자: 폰을 켜 둔 채면 그 자리에서 적발
+      if (E.T.pulse === 'alert') ringPhone();
     }
     else if (Math.ceil(p.warn) !== before) sfx.beep();
     return;
   }
   p.next -= dt;
-  if (p.next <= 0) { p.warn = 1.6; p.next = tune.pulse_gap * (0.7 + rng() * 0.6); sfx.beep(); if (E.T.pulse === 'alert') flash('폰이 떤다... 재난문자가 온다! 손 떼기', PAL.warn); else if (E.T.pulse === 'emp') flash('EMP 충전 중! 손 떼기', PAL.warn); }
+  if (p.next <= 0) { p.warn = 1.6; p.next = tune.pulse_gap * (E.pulseFast || 1) * (0.7 + rng() * 0.6); sfx.beep(); if (E.T.pulse === 'alert') flash('재난문자가 온다… 누군가의 폰이 울릴 것 같다', PAL.warn); else if (E.T.pulse === 'emp') flash('EMP 충전 중! 손 떼기', PAL.warn); }
 }
 function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생, 신분 확인, 늘어나는 감독관
   const free = s => !s.fixed && !s.out && !(s.blink > 0) && (s.phase === 'stand' || s.phase === 'walk');
@@ -758,7 +766,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
   if (T.mech.includes('telepathy') && E.ai && !E.fb && E.staff.some(s => !s.out && s.phase === 'watch')) { idle += base * 1.3; E.mindRead = true; } else if (E) E.mindRead = false; // 독심: 답을 떠올리고 있는 동안 보면 읽힌다
   if (E.cctv && E.cctv.on) add(base * tune.cctv_rate * (tgHas('cctvmap') ? 0.5 : 1) * jamFactor(g.cctvjam, 3), 'cctv', null);
   r *= Math.pow(1 - tune.stealth_cut, g.stealth); idle *= Math.pow(1 - tune.stealth_cut, g.stealth);
-  if (E.pulse && E.pulse.active > 0) { const v = tune.pulse_rate * E.pulseCut; r += v; if (v > 0 && (!src || v > src.v)) src = { v, how: T.pulse || 'pulse', by: null }; }
+  if (E.pulse && E.pulse.active > 0 && T.pulse !== 'alert') { const v = tune.pulse_rate * E.pulseCut; r += v; if (v > 0 && (!src || v > src.v)) src = { v, how: T.pulse || 'pulse', by: null }; }
   return { r, idle, src };
 }
 function markAnswer(i, how) { // 정답인지는 시험이 끝날 때까지 모른다
@@ -920,13 +928,12 @@ function updateExam(dt) {
     if (!E.sq || E.sq.q !== q) { // 대답의 어절 하나가 블록 하나. 누를 때마다 한 어절씩 말이 나간다
       const cap = 10 + Math.min(8, Math.floor(E.tier / 5)), groups = []; let cnt = 0; for (const ln of q.lines) { const w = ln.split(' '); if (groups.length >= 2 && cnt + w.length > cap) break; groups.push(w); cnt += w.length; }
       const words = [].concat(...groups), n = words.length, seq = []; while (seq.length < n) { const v = Math.floor(rng() * 3), m = seq.length; if (m >= 2 && seq[m - 1] === v && seq[m - 2] === v) continue; seq.push(v); }
-      E.sq = { q, seq, words, groups, i: 0, t: 0, lim: 14 + n * 1.6, miss: 0, bad: 0, ok: 0, last: -9, rush: 0 }; }
+      const wait = clamp(0.5 + String(q.q || '').length * 0.045, 1, 3); E.sq = { q, seq, words, groups, i: 0, t: 0, wait, lim: wait + 14 + n * 1.6, miss: 0, bad: 0, ok: 0, last: -9, rush: 0 }; } // wait: 질문을 다 말할 때까지는 블록이 뜨지 않는다
     const sq = E.sq; sq.t += dt; if (sq.bad > 0) sq.bad -= dt; if (sq.ok > 0) sq.ok -= dt; if (sq.rush > 0) sq.rush -= dt;
     let key = -1; if (pressed('KeyA')) key = 0; else if (pressed('KeyS')) key = 1; else if (pressed('KeyD')) key = 2;
     for (const [x, y] of taps) { const r = (E.abcRects || []).find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); if (r) key = r.i; }
-    if (key >= 0 && sq.t > 0.6) {
+    if (key >= 0 && sq.t >= sq.wait) {
       if (blind) { const w = E.staff.find(s => s.fixed && s.phase === 'watch'); E.sus = Math.min(1, E.sus + 0.34); E.source = { how: 'watch', by: w }; sq.bad = 0.5; sfx.no(); } // 보는 중에 누르면 크게 걸린다
-      else if (sq.t - sq.last < 0.12) { sq.rush = 0.6; sq.last = sq.t; sfx.no(); } // 너무 빨리 누르면 말이 꼬인다: 그 블록은 그대로
       else if (key === sq.seq[sq.i]) { sq.i++; sq.ok = 0.12; sq.last = sq.t; sfx.scan(); G.hints.iv = true; if (sq.i >= sq.seq.length) { E.wasHold = false; markAnswer(sq.miss <= 2 ? 0 : 2, 'speak'); } }
       else { sq.miss++; sq.bad = 0.35; sq.last = sq.t; sfx.no(); } // 틀리면 말이 끊긴다
     }
@@ -971,7 +978,7 @@ function updateExam(dt) {
     if (table) G.hints.iv = true;
     const before = Math.floor(E.scan * 3 + 1e-6);
     const labSlow = (M_.includes('spin') ? 1 + 2.2 * Math.abs(E.roll || 0) : 1) * (M_.includes('helmet') ? 1 + 2.5 * (E.fog || 0) : 1) * (M_.includes('mirror') ? 1.6 : 1);
-    const secs = scanSecondsAt(Math.max(3, g.lens - (E.omegaDown || 0))) * labSlow * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
+    const secs = scanSecondsAt(Math.max(3, g.lens - (E.omegaDown || 0))) * (E.jam || 1) * labSlow * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
     E.scan += dt / secs * (1 - tune.float_wobble * (g.floaty ? 0.4 : 1) * E.float);
     E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); }
     if (E.scan >= 1) completeScan();

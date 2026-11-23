@@ -224,7 +224,7 @@ window.CONFIG = {
       head: ['제17회 변호사시험', '선택형'], lines: ['변호사시험', 'AI 감독 시스템 가동 중'] },
     // ---- 2막 글로벌 ----
     { id: 'sat', act: 2, name: '미국 SAT', subject: 'Reading & Math', gen: 'sat', qn: 6, parts: ['Module 1', 'Module 2'], time: 70, room: 'usclass', device: 'tablet', sec: [], mech: ['adaptive', 'visit'],
-      staff: [{ type: 'teacher', name: '감독 선생님', visit: 'coffee' }],
+      staff: [{ type: 'teacher', name: '감독 선생님', visit: 'coffee' }, { type: 'dean', name: '시험 관리관' }],
       stand: [2.0, 3.2], walk: [1.0, 1.8], tell: 0.65, watch: 2.3, speed: 0.12, cross: 0.25, feint: 0.2, sus: 1.2, ai: 6.6, reward: 3400000000, pay: '미국 대학 장학금',
       head: ['SAT · Bluebook', 'Reading and Writing / Math'], lines: ['SAT Test Day', 'Phones in bags · No smart glasses'] },
     { id: 'gaokao', act: 2, name: '중국 가오카오', subject: '수학', gen: 'eqhard', qn: 10, time: 120, room: 'gaokao', sec: ['cctv', 'pulse'], pulse: 'drone', mech: ['glasscheck', 'peek'],
@@ -421,7 +421,7 @@ window.CONFIG = {
     appraiser: [10, 130, 1360000, 3.78],
     aiiv: [5, 170, 2880000, 4.14],
     leet: [7, 120, 6080000, 4.49],
-    mdeet: [11, 165, 12800000, 4.84],
+    mdeet: [16, 165, 12800000, 4.84],
     bar: [8, 105, 27200000, 5.2],
     sat: [8, 95, 57600000, 5.55],
     ielts: [5, 100, 120000000, 5.9],

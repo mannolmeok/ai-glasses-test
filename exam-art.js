@@ -557,7 +557,8 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
 function drawAbc(k, L, E, now, q) { // 창도 숫자도 없다. 안경이 띄운 블록 세 줄이 허공에서 내려오고, 누를 때마다 한 어절씩 자막으로 말이 나간다
   const sq = E.sq; if (!sq || sq.q !== q) return; const W = L.W, HH = L.H, b = k.b, n = sq.seq.length, blind = E.staff.some(s => s.fixed && s.phase === 'watch'), tell = E.staff.some(s => s.fixed && s.phase === 'tell');
   const INK = blind ? '#ff5a5a' : tell ? '#ffcf5a' : '#7fe9ff', lw = 46, gap = 12, rows = 7, rh = 30, x0 = W - 44 - (lw * 3 + gap * 2), hitY = HH - 112, lx = i => x0 + i * (lw + gap), slide = sq.ok > 0 ? (sq.ok / 0.12) * rh : 0;
-  hudDraw(k, c => {
+  const asking = sq.t < (sq.wait || 0); // 질문을 말하는 동안은 블록도 받침도 없다
+  hudDraw(k, c => { if (asking) return;
     for (let i = 0; i < 3; i++) { const cx = lx(i) + lw / 2, gr = c.createLinearGradient(0, hitY - rows * rh, 0, hitY + 10); gr.addColorStop(0, 'rgba(127,233,255,0)'); gr.addColorStop(1, blind ? 'rgba(255,90,90,0.5)' : 'rgba(127,233,255,0.5)'); c.strokeStyle = gr; c.lineWidth = 1; c.setLineDash([2, 5]); c.beginPath(); c.moveTo(cx, hitY - rows * rh); c.lineTo(cx, hitY + 8); c.stroke(); c.setLineDash([]);
       c.strokeStyle = INK; c.globalAlpha = 0.8; c.lineWidth = 1.2; c.beginPath(); c.moveTo(lx(i), hitY + 12); c.lineTo(lx(i), hitY + 17); c.lineTo(lx(i) + lw, hitY + 17); c.lineTo(lx(i) + lw, hitY + 12); c.stroke(); c.globalAlpha = 1; } // 받침: 여기 닿은 블록을 누른다
     for (let r = rows - 1; r >= 0; r--) { const v = sq.seq[sq.i + r]; if (v == null) continue; const yy = hitY - 14 - r * rh - slide, cur = r === 0, a = blind ? 0.35 : cur ? 1 : Math.max(0.18, 0.8 - r * 0.12), x = lx(v);
@@ -565,12 +566,12 @@ function drawAbc(k, L, E, now, q) { // 창도 숫자도 없다. 안경이 띄운
       c.fillStyle = cur && !blind ? '#ffffff' : INK; c.fillRect(x + 4, yy + 4, 3, 3); c.fillRect(x + 10, yy + 4, lw - 28 - (r * 5) % 12, 1); c.fillRect(x + 10, yy + 8, lw - 20 - (r * 7) % 14, 1); c.fillRect(x + 4, yy + 12, lw - 14, 1); // 블록 안의 가는 줄: 데이터 조각처럼
       if (cur && !blind) { c.globalAlpha = 0.35 + 0.25 * Math.sin(now * 10); c.strokeStyle = '#ffffff'; c.strokeRect(x - 2.5, yy - 2.5, lw + 5, 23); } c.globalAlpha = 1; }
     const tf = Math.max(0, 1 - sq.t / sq.lim), bw = 220; c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(W / 2 - bw / 2, HH - 22, bw, 1.5); c.globalAlpha = 0.9; c.fillStyle = tf < 0.25 ? '#ff6a6a' : '#ffffff'; c.fillRect(W / 2 - bw / 2, HH - 22, bw * tf, 1.5); c.globalAlpha = 1; }); // 남은 시간: 자막 아래의 가는 선 하나
-  E.abcRects = [0, 1, 2].map(i => ({ i, x: lx(i) - gap / 2, y: hitY - rows * rh, w: lw + gap, h: rows * rh + 60 }));
-  for (let i = 0; i < 3; i++) k.M(['A', 'S', 'D'][i], lx(i) + lw / 2, hitY + 26, 7, INK, 'center', 500);
+  E.abcRects = asking ? [] : [0, 1, 2].map(i => ({ i, x: lx(i) - gap / 2, y: hitY - rows * rh, w: lw + gap, h: rows * rh + 60 }));
+  if (!asking) for (let i = 0; i < 3; i++) k.M(['A', 'S', 'D'][i], lx(i) + lw / 2, hitY + 26, 7, INK, 'center', 500);
   if (sq.bad > 0) { b.globalAlpha = Math.min(0.3, sq.bad); k.R(0, 0, W, HH, '#ff2020'); b.globalAlpha = 1; }
   let left = sq.i, line = []; for (const g of sq.groups) { if (left <= g.length) { line = g.slice(0, left); break; } left -= g.length; line = g; } // 지금 말하고 있는 줄에서, 누른 만큼의 어절
   const text = line.join(' ') + (sq.rush > 0 ? '— 어, 그' : ''); if (sq.i > 0 || sq.rush > 0) k.SUB(text, W / 2, HH - 40, 14, sq.rush > 0 ? '#ffd0d0' : '#ffffff', 'center');
-  if (sq.t < 3.2 || sq.i === 0) k.SUB(`${E.T.staff[0].name}: "${q.q}"`, W / 2, 40, 11, '#ffffff', 'center');
+  if (sq.t < (sq.wait || 0) + 3.2 || sq.i === 0) k.SUB(`${E.T.staff[0].name}: "${asking ? String(q.q).slice(0, Math.ceil(String(q.q).length * sq.t / sq.wait)) : q.q}"`, W / 2, 40, 11, '#ffffff', 'center');
 }
 // ---- 면접 × 리듬 (B안 · 한 마디 호흡) 화면 시안. 주소에 ?rh=1|2|3 을 붙이면 박자 표시만 미리 본다 (조작은 아직 지금 방식) ----
 function drawRhythmPreview(k, L, E, now, v, q) {
@@ -852,7 +853,7 @@ function drawExamOverlays(k, L, E, now, H) {
   if (E.over && !E.caught) {  k.SUB(`${tier.staff[0].name}: "${E.all ? '답안지 걷겠습니다.' : '시험 종료. 필기구 내려놓으세요.'}"`, L.W / 2, L.H - 48, 12, C.white, 'center', 800); }
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
-    const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', alert: '재난문자에 폰이 울림', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
+    const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
       webcam: '웹캠에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '공기 방울이 솟음', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음' }[E.caughtHow] || `${who.name}에게 걸림`;
     drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
     k.SUB(`${who.name}: ${E.caughtHow === 'alert' ? '"방금 울린 거, 수험생 폰이죠?"' : CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
