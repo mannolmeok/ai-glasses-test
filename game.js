@@ -727,7 +727,7 @@ function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생
   if (T.mech.includes('mole')) { // 앞자리 비밀 감독관: 의자가 들썩이고, 잠시 뒤 뒤돌아본다
     const m = E.mole || (E.mole = { phase: 'idle', t: between(7, 12), k: 0 }); m.t -= dt; m.k += dt;
     if (m.t <= 0) { m.k = 0;
-      if (m.phase === 'idle') { m.phase = 'tell'; m.t = E.tier > 24 ? 0.8 : E.tier > 20 ? 1.0 : 1.2; sfx.hand(); if (G.gear.predict >= 4) say('동선 AI: 앞자리 수험생이 수상하다', PAL.warn); }
+      if (m.phase === 'idle') { m.phase = 'tell'; m.t = E.tier > 24 ? 0.8 : E.tier > 20 ? 1.0 : 1.2; sfx.hand(); }
       else if (m.phase === 'tell') { m.phase = 'look'; m.t = 2.0; sfx.cctv(); }
       else { m.phase = 'idle'; m.t = between(8, 14); } }
   }
@@ -794,7 +794,6 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
   }
   if (E.family && E.family.phase === 'in') { idle += base * 0.5; if (!src) src = { v: 0, how: 'family', by: E.staff[0] }; } // 웹캠에 제3자가 잡혀 있는 동안은 가만히 있어도 의심이 오른다
   if (E.drone && E.drone.near) add(base * tune.cctv_rate * 1.3 * (g.cover >= 6 ? 0.5 : 1), 'drone', null); // 드론이 머리 위에 있는 동안 스캔하면 찍힌다 (광학 위장 필름이면 절반)
-  if (E.mole && E.mole.phase === 'look') add(base * 2.4, 'mole', null); // 비밀 감독관이 돌아본 순간 스캔 중이면 크게 오른다
   { const ec = earCheck(); if (ec && ec.phase === 'watch' && E.cover !== ec.side) { idle += base * 1.1; if (!src) src = { v: 0, how: 'ear', by: ec }; } } // 귀를 안 가린 채 눈이 마주치면 이어폰이 보인다
   if (T.mech.includes('telepathy') && E.ai && !E.fb && E.staff.some(s => !s.out && s.phase === 'watch')) { idle += base * 1.3; E.mindRead = true; } else if (E) E.mindRead = false; // 독심: 답을 떠올리고 있는 동안 보면 읽힌다
   if (E.cctv && E.cctv.on) add(base * tune.cctv_rate * (tgHas('cctvmap') ? 0.5 : 1) * jamFactor(g.cctvjam, 3), 'cctv', null);
@@ -852,7 +851,6 @@ function getCaught() {
   const src = E.source, w = E.staff.find(s => s.phase === 'watch' && !s.out) || E.staff.find(s => s.phase === 'tell' && !s.out);
   if (src && src.how !== 'watch') { E.caughtHow = src.how; E.caughtBy = src.by || E.staff[0]; }
   else { E.caughtBy = (src && src.by) || w || E.staff[0]; E.caughtHow = 'watch'; }
-  if (E.caughtHow === 'mole' && E.layout === 'room') setView('front'); // 암행 적발: 일어서서 돌아본 앞자리를 보게 된다
   sfx.caught(); events.push({ type: 'caught', how: E.caughtHow });
 }
 function examHint() { // 첫 시험(모의평가)에서만, 한 번에 하나
@@ -1009,6 +1007,7 @@ function updateExam(dt) {
   if (M_.includes('breath')) { E.breath = clamp((E.breath == null ? 1 : E.breath) + (hold ? -dt / 4.5 : dt / 3), 0, 1); if (E.breath <= 0 && hold) { E.breath = 0.25; E.gasp = 1.6; E.sus = Math.min(1, E.sus + 0.3); E.source = { how: 'breath', by: E.staff[0] }; E.labSay = { text: '(숨이 터졌다. 공기 방울이 솟는다!)', t: 0 }; sfx.bubble(); } }
   if (M_.includes('helmet')) E.fog = clamp((E.fog || 0) + (hold ? dt / 3.2 : -dt / 2.2), 0, 1);
   const peeker = E.staff.find(s => s.phase === 'peek' && s.peek.stage === 'stare');
+  if (E.mole && E.mole.phase === 'look' && E.mole.k > 0.25 && risky) { E.sus = 1; E.source = { how: 'mole', by: E.staff[0] }; getCaught(); return; } // 돌아본 앞자리와 눈이 마주친 채 스캔하면 끝 (책상 밑 감시와 같은 규칙)
   if (peeker && risky) { E.sus = 1; E.source = { how: 'peek', by: peeker }; getCaught(); return; } // 올려다보는 눈과 마주친 채 스캔하면 끝
   if (!hold && !E.ai && !E.fb && E.scan > 0) E.scan = table ? Math.floor(E.scan * 4 + 1e-6) / 4 : tune.scan_drop >= 10 ? 0 : Math.max(0, E.scan - tune.scan_drop * dt); // 손을 떼면 스캔이 처음으로 돌아간다
   E.wasHold = hold; E.holding = hold; E.autoHolding = autoHold && !manual;

@@ -814,7 +814,7 @@ const WORLD = (() => {
       EX.drone.userData.led.color.setHex(d.near ? (Math.floor(now * 6) % 2 ? 0xff3048 : 0xffb0b0) : d.close ? 0xffa030 : 0x6b2a2a); EX.drone.userData.beam.material.opacity = d.near ? 0.3 : d.close ? 0.16 : 0.07; }
     if (MOLE && MOLE.obj && MOLE.sc === EX.scene) { const m = E.mole, o = MOLE.obj, caughtM = E.caught && E.caughtHow === 'mole', ph = caughtM ? 'look' : m ? m.phase : 'idle'; // 앞자리 비밀 감독관: 들썩 → 뒤돌아봄
       const turn = ph === 'look' ? clamp((caughtM ? 1 : m.k / 0.25), 0, 1) : 0;
-      o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0) + (caughtM ? 0.22 : 0);
+      o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0) ;
       if (MOLE.sprite) o.scale.x = MOLE.sx * (1 - 2 * turn) || 0.001; else o.rotation.y = MOLE.ry0 + Math.PI * turn;
       MOLE.eyes.visible = turn > 0.6; }
     if (EX.cctv) {

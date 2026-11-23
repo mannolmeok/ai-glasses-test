@@ -480,14 +480,16 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     else { const arc = (y0, cy, f, col) => { b.save(); b.setTransform(S, 0, 0, S, 0, 0); b.lineWidth = 1.5; b.strokeStyle = 'rgba(255,255,255,0.3)'; b.beginPath(); b.moveTo(W * 0.2, y0); b.quadraticCurveTo(W / 2, cy, W * 0.8, y0); b.stroke();
         b.beginPath(); b.rect(W * 0.2, 0, W * 0.6 * f, HH); b.clip(); b.strokeStyle = col; b.beginPath(); b.moveTo(W * 0.2, y0); b.quadraticCurveTo(W / 2, cy, W * 0.8, y0); b.stroke(); b.restore(); };
       arc(46, -6, frac, low ? '#ff6a6a' : '#ffffff'); arc(HH - 40, HH + 8, sus, sp >= 60 ? '#ff6a6a' : '#ffcf5a');
-      const C1 = '#7fe9ff', mname = (CONFIG.models[E.gear.model] || {}).name || '', tk = (y0, cy) => { b.save(); b.setTransform(S, 0, 0, S, 0, 0); b.strokeStyle = 'rgba(255,255,255,0.55)'; b.lineWidth = 1; for (let i = 0; i <= 12; i++) { const t = i / 12, x = W * (0.2 + 0.6 * t), y = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y0, d = cy < y0 ? 1 : -1, len = i % 3 ? 3 : 6; b.beginPath(); b.moveTo(x, y + d * 3); b.lineTo(x, y + d * (3 + len)); b.stroke(); } b.restore(); };
-      tk(46, -6); tk(HH - 40, HH + 8); // 호에 눈금을 달아 계기처럼
-      const box = (x, y, w, h) => { b.globalAlpha = 0.72; R(x, y, w, h, '#061a20'); b.globalAlpha = 1; R(x, y, 2, h, C1); };
-      box(26, 36, 150, 30); M('LENS-C 6.0  ● LINK', 34, 45, 8.5, C1, 'left', 700); M(mname, 34, 58, 8.5, '#ffffff', 'left', 500);
-      box(W - 176, 36, 150, 30); M(E.finalQ ? 'T---:--' : `T-${mm}:${ss}`, W - 34, 47, 15, low ? '#ff6a6a' : '#ffffff', 'right', 700); M(`Q ${q2(qn)}/${q2(qt)}${part}`, W - 34, 60, 8, C1, 'right', 500);
-      box(26, HH - 46, 150, 20); M(picked ? `ANS ${q.aiPick + 1} · CONF ${q.conf}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'SCAN READY', 34, HH - 36, 9, picked ? '#8dffa8' : C1, 'left', 700);
-      box(W / 2 - 46, HH - 30, 92, 18); M(`SUS ${q2(sp)}%`, W / 2, HH - 21, 10.5, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', 'center', 700);
-      box(W - 176, HH - 46, 150, 20); M(`PROCTOR ×${E.staff.length} · ${E.staff.some(s0 => s0.phase === 'watch') ? 'WATCH' : E.staff.some(s0 => s0.phase === 'tell') ? 'TURN' : 'CLEAR'}`, W - 34, HH - 36, 9, E.staff.some(s0 => s0.phase === 'watch') ? '#ff6a6a' : C1, 'right', 700); }
+      const along = (str, y0, cy, tm, size, col, dy) => { // 호를 따라 휘어지는 글자: 계기 눈금처럼 호에 붙어 읽힌다
+        b.save(); b.setTransform(S, 0, 0, S, 0, 0); b.font = `700 ${size}px "Galmuri11","SF Mono","Menlo","Consolas","Roboto Mono",sans-serif`; b.textAlign = 'center'; b.textBaseline = 'middle';
+        const ws = [...str].map(ch => b.measureText(ch).width + 0.6), tot = ws.reduce((x, y) => x + y, 0); let t = tm - tot / 2 / (W * 0.6);
+        [...str].forEach((ch, i) => { const tc = t + ws[i] / 2 / (W * 0.6), x = W * (0.2 + 0.6 * tc), y = (1 - tc) * (1 - tc) * y0 + 2 * (1 - tc) * tc * cy + tc * tc * y0, ang = Math.atan2(2 * (cy - y0) * (1 - 2 * tc), W * 0.6);
+          b.save(); b.translate(x, y + dy); b.rotate(ang); b.fillStyle = 'rgba(0,0,0,0.55)'; b.fillText(ch, 0.8, 0.8); b.fillStyle = col; b.fillText(ch, 0, 0); b.restore(); t += ws[i] / (W * 0.6); });
+        b.restore(); };
+      along(E.finalQ ? '--:--' : `${mm}:${ss}`, 46, -6, 0.5, 17, low ? '#ff6a6a' : '#ffffff', 21);                       // 위 호 = 남은 시간. 숫자가 호 안쪽에 크게
+      along(`${q2(qn)} / ${q2(qt)}`, 46, -6, 0.87, 10, '#e8e4da', 13); along('TIME', 46, -6, 0.12, 9, 'rgba(255,255,255,0.75)', 13);
+      along(`의심 ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에
+      along(picked ? `ANS ${q.aiPick + 1}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'READY', HH - 40, HH + 8, 0.13, 9, picked ? '#8dffa8' : 'rgba(255,255,255,0.75)', -11); }
   } else if (ST === 'brain') { // 뇌 임플란트: 숫자도 틀도 없다. 속마음 한 줄과 심장 박동선
     k.SUB(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 10, low ? '#ff9a9a' : '#f0ece2', 'right');
     k.SUB(`${qn}번째 문제${part}`, W - 22, 34, 8, '#d8d4c8', 'right');
@@ -822,7 +824,8 @@ function drawExamHud(k, L, E, now, H) {
     k.M(`AI 감지 ${Math.round(E.aiSus * 100)}%`, x, y - 9, 8, E.aiSus > 0.6 ? '#ff6a6a' : '#ffffff', 'left', 700);
     k.b.globalAlpha = 0.3; R(x, y, w, 2, '#ffffff'); k.b.globalAlpha = 1; R(x, y, Math.round(w * E.aiSus), 2, E.aiSus > 0.6 ? '#ff6a6a' : '#ffcf5a');
   }
-  if (live && E.staff.some(s => s.phase === 'peek' && s.peek.stage === 'sneak') && E.gear.predict >= 2) { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('발소리가 사라졌다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; } // 시선 예측 2단계부터 경고
+  if (live && E.staff.some(s => s.phase === 'peek' && s.peek.stage === 'sneak') && E.gear.predict >= 2) { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('발소리가 사라졌다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; }
+  if (live && E.mole && E.mole.phase === 'tell') { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('앞자리 의자가 들썩인다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; } // 비밀 감독관이 돌아보기 직전 // 시선 예측 2단계부터 경고
   // 떠다니는 안내 글자는 쓰지 않는다: 소리와 화면 속 움직임으로 안다
   if (E.say && !E.caught && !E.over) { const a = E.say.t < 2.4 ? 1 : Math.max(0, (3 - E.say.t) / 0.6); k.b.globalAlpha = a; const tw = k.TW(E.say.text, 11, 800) + 24; k.b.globalAlpha = a * 0.78; k.R(L.W / 2 - tw / 2, L.H - 96, tw, 20, '#0a0a0e'); k.b.globalAlpha = a; k.T(E.say.text, L.W / 2, L.H - 86, 11, E.say.col || '#ffffff', 'center', 800); k.b.globalAlpha = 1; } // 사건 알림: 검은 띠 위의 한 줄
   if (false && E.flash) { const a = E.flash.t < 1.2 ? 1 : (1.6 - E.flash.t) / 0.4; k.b.globalAlpha = a; TO(E.flash.text, L.W / 2, 96, 14, E.flash.col || C.warn); k.b.globalAlpha = 1; }
@@ -878,8 +881,8 @@ function drawExamOverlays(k, L, E, now, H) {
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
       webcam: '웹캠에 찍힘', family: '웹캠에 다른 사람이 계속 잡힘', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '공기 방울이 솟음', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음' }[E.caughtHow] || `${who.name}에게 걸림`;
-    drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: E.caughtHow === 'mole' ? '암행 적발' : '적발', lines: ['LENS-OS 0.9b', E.caughtHow === 'mole' ? '앞자리 수험생 .... 감독관이었음' : `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
-    k.SUB(E.caughtHow === 'mole' ? '앞자리 수험생: "시험관리위원회 암행 감독관입니다. 안경 벗으세요."' : `${who.name}: ${CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
+    drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
+    k.SUB(`${who.name}: ${CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
     k.SUB(why, L.W / 2, L.H - 42, 9, '#e8e4da', 'center');
   }
 }
