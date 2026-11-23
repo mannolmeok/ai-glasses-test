@@ -615,7 +615,7 @@ const WORLD = (() => {
       desks.push({ x, z });
       B.box(0.24, 0.004, 0.32, R.candles ? 0xe8d8b0 : 0xf4f1e6, x - 0.04, 0.743 + fy, dz + 0.02, 0, 0.1);
       const cl = CLOTH[Math.floor(rnd() * CLOTH.length)], hr = HAIRS[Math.floor(rnd() * HAIRS.length)], lean = 0.18 + rnd() * 0.12, sk = SKINS[Math.floor(rnd() * SKINS.length)];
-      const front = x === MY.x && z === Math.max(...ROWS.filter(r => r < MY.z - 0.01), -99), mole = m => { if (!front || !m || !tier.mech.includes('mole')) return; const eyes = pivot(sc, x, 1.02, z + 0.56); bx(eyes, 0.035, 0.025, 0.01, 0, -0.045, 0, 0, glowMat(0xff3048)); bx(eyes, 0.035, 0.025, 0.01, 0, 0.045, 0, 0, glowMat(0xff3048)); eyes.visible = false; MOLE = { obj: m, eyes, y0: m.position.y, ry0: m.rotation.y, sx: m.scale.x, sprite: !!m.isSprite || !!(m.material && m.material.map && !m.children.length), sc }; };
+      const front = x === MY.x && z === Math.max(...ROWS.filter(r => r < MY.z - 0.01), -99), mole = m => { if (!front || !m || !(tier.mech.includes('mole') || tier.id === 'bar')) return; const eyes = pivot(sc, x, 1.02, z + 0.56); bx(eyes, 0.035, 0.025, 0.01, 0, -0.045, 0, 0, glowMat(0xff3048)); bx(eyes, 0.035, 0.025, 0.01, 0, 0.045, 0, 0, glowMat(0xff3048)); eyes.visible = false; MOLE = { obj: m, eyes, y0: m.position.y, ry0: m.rotation.y, sx: m.scale.x, sprite: !!m.isSprite || !!(m.material && m.material.map && !m.children.length), sc }; };
       if (GENR) { const sn = 'stu' + (1 + Math.floor(rnd() * 3)); mole(put(sn, x + (rnd() - 0.5) * 0.04, 0, z + 0.47, 1.2, 1.2, 1.2, STU_YAW[sn] + (rnd() - 0.5) * 0.1)); return; }
       if (PXS) { // 내 자리에서 보이는 방향에 맞춰 뒷모습이나 옆모습 그림을 세운다
         const ex = MY.x, ez = MY.z + 0.45, sx = x, sz = z + 0.42, dx = sx - ex, dz = sz - ez, sideOn = z >= MY.z - 0.1;
@@ -625,7 +625,7 @@ const WORLD = (() => {
       }
       B.box(0.34, 0.14, 0.36, 0x2b2f3d, x, 0.52, z + 0.3);
       B.box(0.12, 0.42, 0.12, 0x2b2f3d, x - 0.08, 0.22, z + 0.12); B.box(0.12, 0.42, 0.12, 0x2b2f3d, x + 0.08, 0.22, z + 0.12);
-      if (front && tier.mech.includes('mole')) { // 앞자리 비밀 감독관: 윗몸을 따로 만들어 뒤돌아볼 수 있게 한다
+      if (front && (tier.mech.includes('mole') || tier.id === 'bar')) { // 앞자리 비밀 감독관(또는 변호사시험에서 끌려 나가는 수험생): 윗몸을 따로 만들어 움직일 수 있게 한다
         const g = pivot(sc, x, 0, z + 0.4); bx(g, 0.36, 0.46, 0.2, cl, 0, 0.8, 0.04); bx(g, 0.09, 0.1, 0.3, cl, -0.17, 0.79, -0.2); bx(g, 0.09, 0.1, 0.3, cl, 0.17, 0.79, -0.2);
         bx(g, 0.19, 0.22, 0.2, sk, 0, 1.08, -0.05); bx(g, 0.2, 0.09, 0.21, hr, 0, 1.19, -0.04); bx(g, 0.2, 0.17, 0.06, hr, 0, 1.11, 0.06);
         bx(g, 0.16, 0.035, 0.012, 0x15161c, 0, 1.1, -0.156); bx(g, 0.07, 0.012, 0.012, 0x5a2a22, 0, 1.02, -0.156); // 선글라스 같은 검은 안경과 굳게 다문 입
@@ -812,7 +812,9 @@ const WORLD = (() => {
     if (EX.drone && E.drone) { const d = E.drone, x0 = EX.X0 + 0.5, x1 = EX.X1 - 0.5; // 순찰 드론: 머리 위에 오면 불빛이 붉어지고 빛기둥이 짙어진다
       EX.drone.visible = true; EX.drone.position.set(lerp(x0, x1, d.u), 1.95 + Math.sin(now * 5) * 0.04, lerp(EX.zFront, EX.zBack, d.v)); EX.drone.rotation.y = now * 0.6;
       EX.drone.userData.led.color.setHex(d.near ? (Math.floor(now * 6) % 2 ? 0xff3048 : 0xffb0b0) : d.close ? 0xffa030 : 0x6b2a2a); EX.drone.userData.beam.material.opacity = d.near ? 0.3 : d.close ? 0.16 : 0.07; }
-    if (MOLE && MOLE.obj && MOLE.sc === EX.scene) { const m = E.mole, o = MOLE.obj, caughtM = E.caught && E.caughtHow === 'mole', ph = caughtM ? 'look' : m ? m.phase : 'idle'; // 앞자리 비밀 감독관: 들썩 → 뒤돌아봄
+    if (MOLE && MOLE.obj && MOLE.sc === EX.scene && E.evict) { const o = MOLE.obj, t = E.evict.t; if (MOLE.x0 == null) MOLE.x0 = o.position.x; // 변호사시험 2교시: 앞자리 수험생이 일어나 통로로 끌려 나간다
+      o.visible = t < 3.4; o.position.y = MOLE.y0 + Math.min(0.26, t * 0.5) + (t > 0.7 ? Math.abs(Math.sin(t * 9)) * 0.02 : 0); if (!MOLE.sprite) o.rotation.y = MOLE.ry0 + clamp((t - 0.5) / 0.5, 0, 1) * -Math.PI / 2; o.position.x = MOLE.x0 + Math.max(0, t - 0.9) * 1.5; o.rotation.z = t > 0.9 ? Math.sin(t * 9) * 0.05 : 0; MOLE.eyes.visible = false; }
+    else if (MOLE && MOLE.obj && MOLE.sc === EX.scene) { const m = E.mole, o = MOLE.obj, caughtM = E.caught && E.caughtHow === 'mole', ph = caughtM ? 'look' : m ? m.phase : 'idle'; // 앞자리 비밀 감독관: 들썩 → 뒤돌아봄
       const turn = ph === 'look' ? clamp((caughtM ? 1 : m.k / 0.25), 0, 1) : 0;
       o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0) ;
       if (MOLE.sprite) o.scale.x = MOLE.sx * (1 - 2 * turn) || 0.001; else o.rotation.y = MOLE.ry0 + Math.PI * turn;
