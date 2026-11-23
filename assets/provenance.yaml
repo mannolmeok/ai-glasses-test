@@ -22,8 +22,9 @@
   date: 2026-11-22
   ships: true
 - path: assets/icon-32.png
-  origin: authored
-  tool: "직접 그린 SVG(어둠 속 수험생, 한쪽 렌즈에 가로줄 세 개)를 크기별로 렌더. icon-180, icon-192, icon-512, icon-maskable-512도 같은 원본"
+  origin: generated
+  tool: "Higgsfield gpt_image_2_6, 앞 아이콘(어둠 속 수험생, 한쪽 렌즈에 가로줄 세 개)을 참고 이미지로 넣어 초록 바탕 스티커 그림 1024px 한 장으로 다시 그림. icon-180, icon-192, icon-512, icon-maskable-512(80%로 줄여 가운데)도 같은 원본을 크기별로 줄임"
+  model: "gpt_image_2_6"
   date: 2026-11-23
   ships: true
 - path: assets/model-icons.jpg
