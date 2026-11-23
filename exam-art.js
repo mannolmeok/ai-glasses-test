@@ -836,10 +836,10 @@ function drawExamHud(k, L, E, now, H) {
         c.globalAlpha = 0.6; c.beginPath(); c.moveTo(r.x, r.y + 12); c.lineTo(lx + 108, ly + 8); c.stroke(); c.globalAlpha = 1; c.fillStyle = 'rgba(6,20,26,0.82)'; c.fillRect(lx, ly, 108, 38); c.fillStyle = col; c.fillRect(lx, ly, 2, 38);
         if (f > 0) { c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(lx + 8, ly + 30, 92, 3); c.globalAlpha = 1; c.fillStyle = col; c.fillRect(lx + 8, ly + 30, 92 * f, 3); } });
       k.M('앞자리 분석', lx + 8, ly + 9, 7.5, col, 'left', 700); k.M(txt, lx + 8, ly + 21, 9, '#ffffff', 'left', 700); }
-    else if (m.phase !== 'idle') { const lx = L.W / 2 - 90, ly = 112; // 시험지를 보는 중: 앞자리가 화면 밖(위)에 있으니 위를 가리키는 창으로
-      hudDraw(k, c => { c.fillStyle = 'rgba(6,20,26,0.86)'; c.fillRect(lx, ly, 180, 34); c.fillStyle = col; c.fillRect(lx, ly, 180, 2); c.beginPath(); c.moveTo(L.W / 2 - 6, ly); c.lineTo(L.W / 2, ly - 7); c.lineTo(L.W / 2 + 6, ly); c.fill();
-        c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(lx + 8, ly + 27, 164, 3); c.globalAlpha = 1; c.fillStyle = col; c.fillRect(lx + 8, ly + 27, 164 * f, 3); });
-      k.M('▲ 앞자리 분석', lx + 8, ly + 10, 7.5, col, 'left', 700); k.M(txt, lx + 172, ly + 10, 9, '#ffffff', 'right', 700); } }
+    else if (m.phase !== 'idle') { const st1 = hudStage(E), lx = L.W / 2 - 90, ly = st1 === 'mil' ? 58 : st1 === 'brain' ? 80 : 40; // 시험지를 보는 중: 시험지를 가리지 않게 화면 맨 위, 후방 표시 바로 아래에 얇게
+      hudDraw(k, c => { c.fillStyle = 'rgba(6,20,26,0.86)'; c.fillRect(lx, ly, 180, 24); c.fillStyle = col; c.fillRect(lx, ly, 2, 24);
+        c.globalAlpha = 0.3; c.fillStyle = '#ffffff'; c.fillRect(lx + 8, ly + 19, 164, 2); c.globalAlpha = 1; c.fillStyle = col; c.fillRect(lx + 8, ly + 19, 164 * f, 2); });
+      k.M('▲ 앞자리 분석', lx + 8, ly + 9.5, 7.5, col, 'left', 700); k.M(txt, lx + 172, ly + 9.5, 9, '#ffffff', 'right', 700); } }
   if (live && E.T.mech.includes('lookcount')) { const n = E.looks || 0, lim = E.T.lookLimit || 10, hot = n >= lim - 2, tw = 118; k.b.globalAlpha = 0.8; k.R(26, 64, tw, 18, hot ? '#5a1014' : '#0a0a0e'); k.b.globalAlpha = 1; k.M(`시선 이탈 ${n} / ${lim}`, 26 + tw / 2, 73.5, 9.5, hot ? '#ff8a8a' : '#ffffff', 'center', 700); } // 홈에디션: 감독 프로그램이 화면 밖을 본 횟수를 센다 // 시선 예측 2단계부터 경고
   // 떠다니는 안내 글자는 쓰지 않는다: 소리와 화면 속 움직임으로 안다
   if (E.say && !E.caught && !E.over) { const a = E.say.t < 2.4 ? 1 : Math.max(0, (3 - E.say.t) / 0.6); k.b.globalAlpha = a; const tw = k.TW(E.say.text, 11, 800) + 24; k.b.globalAlpha = a * 0.78; k.R(L.W / 2 - tw / 2, L.H - 96, tw, 20, '#0a0a0e'); k.b.globalAlpha = a; k.T(E.say.text, L.W / 2, L.H - 86, 11, E.say.col || '#ffffff', 'center', 800); k.b.globalAlpha = 1; } // 사건 알림: 검은 띠 위의 한 줄
