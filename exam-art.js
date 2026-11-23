@@ -480,7 +480,14 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     else { const arc = (y0, cy, f, col) => { b.save(); b.setTransform(S, 0, 0, S, 0, 0); b.lineWidth = 1.5; b.strokeStyle = 'rgba(255,255,255,0.3)'; b.beginPath(); b.moveTo(W * 0.2, y0); b.quadraticCurveTo(W / 2, cy, W * 0.8, y0); b.stroke();
         b.beginPath(); b.rect(W * 0.2, 0, W * 0.6 * f, HH); b.clip(); b.strokeStyle = col; b.beginPath(); b.moveTo(W * 0.2, y0); b.quadraticCurveTo(W / 2, cy, W * 0.8, y0); b.stroke(); b.restore(); };
       arc(46, -6, frac, low ? '#ff6a6a' : '#ffffff'); arc(HH - 40, HH + 8, sus, sp >= 60 ? '#ff6a6a' : '#ffcf5a');
-      M(E.finalQ ? '--:--' : `${Math.floor(sec / 60)}:${ss}`, W / 2, 12, 7.5, low ? '#ff6a6a' : '#ffffff', 'center', 500); M(`${qn}/${qt}`, W / 2, HH - 8, 7, '#e8e4da', 'center', 500); }
+      const C1 = '#7fe9ff', mname = (CONFIG.models[E.gear.model] || {}).name || '', tk = (y0, cy) => { b.save(); b.setTransform(S, 0, 0, S, 0, 0); b.strokeStyle = 'rgba(255,255,255,0.55)'; b.lineWidth = 1; for (let i = 0; i <= 12; i++) { const t = i / 12, x = W * (0.2 + 0.6 * t), y = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y0, d = cy < y0 ? 1 : -1, len = i % 3 ? 3 : 6; b.beginPath(); b.moveTo(x, y + d * 3); b.lineTo(x, y + d * (3 + len)); b.stroke(); } b.restore(); };
+      tk(46, -6); tk(HH - 40, HH + 8); // 호에 눈금을 달아 계기처럼
+      const box = (x, y, w, h) => { b.globalAlpha = 0.72; R(x, y, w, h, '#061a20'); b.globalAlpha = 1; R(x, y, 2, h, C1); };
+      box(26, 36, 150, 30); M('LENS-C 6.0  ● LINK', 34, 45, 8.5, C1, 'left', 700); M(mname, 34, 58, 8.5, '#ffffff', 'left', 500);
+      box(W - 176, 36, 150, 30); M(E.finalQ ? 'T---:--' : `T-${mm}:${ss}`, W - 34, 47, 15, low ? '#ff6a6a' : '#ffffff', 'right', 700); M(`Q ${q2(qn)}/${q2(qt)}${part}`, W - 34, 60, 8, C1, 'right', 500);
+      box(26, HH - 46, 150, 20); M(picked ? `ANS ${q.aiPick + 1} · CONF ${q.conf}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'SCAN READY', 34, HH - 36, 9, picked ? '#8dffa8' : C1, 'left', 700);
+      box(W / 2 - 46, HH - 30, 92, 18); M(`SUS ${q2(sp)}%`, W / 2, HH - 21, 10.5, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', 'center', 700);
+      box(W - 176, HH - 46, 150, 20); M(`PROCTOR ×${E.staff.length} · ${E.staff.some(s0 => s0.phase === 'watch') ? 'WATCH' : E.staff.some(s0 => s0.phase === 'tell') ? 'TURN' : 'CLEAR'}`, W - 34, HH - 36, 9, E.staff.some(s0 => s0.phase === 'watch') ? '#ff6a6a' : C1, 'right', 700); }
   } else if (ST === 'brain') { // 뇌 임플란트: 숫자도 틀도 없다. 속마음 한 줄과 심장 박동선
     k.SUB(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 10, low ? '#ff9a9a' : '#f0ece2', 'right');
     k.SUB(`${qn}번째 문제${part}`, W - 22, 34, 8, '#d8d4c8', 'right');

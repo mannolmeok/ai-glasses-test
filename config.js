@@ -177,7 +177,7 @@ window.CONFIG = {
       staff: [{ type: 'dean', name: '토익 감독관' }],
       stand: [2.4, 3.8], walk: [1.2, 2.0], tell: 0.9, watch: 2.0, speed: 0.12, cross: 0.25, feint: 0.12, sus: 0.95, ai: 2.5, reward: 9300, pay: '어학 장학금',
       head: ['TOEIC 정기시험', 'LISTENING · READING'], lines: ['TOEIC 정기시험', 'LC 방송 중 이동 금지 · 신분증 지참'] },
-    { id: 'toefl', act: 1, name: '토플 홈에디션', subject: 'Reading', gen: 'toefl', qn: 6, time: 80, room: 'home', device: 'laptop', sec: [], mech: ['webcam', 'family'],
+    { id: 'toefl', act: 1, name: '토플 홈에디션', subject: 'Reading', gen: 'toefl', qn: 6, time: 80, room: 'home', device: 'laptop', sec: [], mech: ['webcam'],
       staff: [{ type: 'webcam', name: '원격 감독관', fixed: true }],
       stand: [3, 6], walk: [1, 1], tell: 0.8, watch: 2.4, speed: 0, cross: 0, feint: 0.1, sus: 1.0, ai: 3.2, reward: 34000, pay: '유학 장학금',
       head: ['TOEFL iBT Home Edition', 'Reading Section'], lines: [] },
