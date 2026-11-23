@@ -728,7 +728,7 @@ function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생
     const m = E.mole || (E.mole = { phase: 'idle', t: between(7, 12), k: 0 }); m.t -= dt; m.k += dt;
     if (m.t <= 0) { m.k = 0;
       if (m.phase === 'idle') { m.phase = 'tell'; m.t = m.tell = between(1.6, 3.4) * (E.tier > 24 ? 0.65 : E.tier > 20 ? 0.8 : 1); sfx.hand(); } // 들썩인 뒤 돌아보기까지는 매번 다르다: 장비가 없으면 언제인지 모른다
-      else if (m.phase === 'tell') { m.phase = 'look'; m.t = 2.0; sfx.cctv(); }
+      else if (m.phase === 'tell') { m.phase = 'look'; m.t = between(1.4, 3.0); sfx.cctv(); } // 쳐다보는 시간도 매번 다르다
       else { m.phase = 'idle'; m.t = between(8, 14); } }
   }
   const free = s => !s.fixed && !s.out && !(s.blink > 0) && (s.phase === 'stand' || s.phase === 'walk');
