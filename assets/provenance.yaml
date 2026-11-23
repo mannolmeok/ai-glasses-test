@@ -26,3 +26,8 @@
   tool: "직접 그린 SVG(어둠 속 수험생, 한쪽 렌즈에 가로줄 세 개)를 크기별로 렌더. icon-180, icon-192, icon-512, icon-maskable-512도 같은 원본"
   date: 2026-11-23
   ships: true
+- path: assets/model-icons.jpg
+  origin: generated
+  tool: "Higgsfield gpt_image_2_6, 한 장(4x4 아이콘 16개)을 96px 격자로 줄임. AI 모델 15종 그림"
+  date: 2026-11-23
+  ships: true
