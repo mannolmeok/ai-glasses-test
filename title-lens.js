@@ -245,17 +245,20 @@
     const b = k.b, M = k.M, R = k.R;
     art(k, TT.rank, RBOX, a, 0, 0);
     const rows = RK.rows, total = RK.total || rows.length, mineI = rows.findIndex(r => r.me), rankOf = i => rows[i].rank || i + 1, per = 10, pages = Math.max(1, Math.ceil(rows.length / per)), page = Math.max(0, Math.min(pages - 1, RK.page || 0));
-    const stats = [RK.online ? `응시자 ${total.toLocaleString()}명` : `이 기기의 기록 ${total}개`, mineI >= 0 ? `내 석차 ${rankOf(mineI)}등` : '내 석차 미정'].concat(RK.online && RK.runs > 0 ? [`누적 응시 ${RK.runs.toLocaleString()}회`] : []);
+    const stats = RK.old ? [`시즌 1 · 보관된 기록 ${total.toLocaleString()}개`] : [RK.online ? `응시자 ${total.toLocaleString()}명` : `이 기기의 기록 ${total}개`, mineI >= 0 ? `내 석차 ${rankOf(mineI)}등` : '내 석차 미정'].concat(RK.online && RK.runs > 0 ? [`누적 응시 ${RK.runs.toLocaleString()}회`] : []);
     b.globalAlpha = a; M(stats.join(' · '), 621, 60, 8, G1, 'right', 700);
     const x0 = 356, x1 = 622, y0 = 70, y1 = 298;
     b.save(); b.globalAlpha = a; b.fillStyle = 'rgba(4,22,12,0.78)'; b.fillRect(x0, y0, x1 - x0, y1 - y0); b.strokeStyle = G1; b.lineWidth = 1; b.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0 - 1, y1 - y0 - 1); b.fillStyle = G1; b.fillRect(x0, y0, 2, y1 - y0); b.restore();
-    b.globalAlpha = a; k.T('전국 석차', x0 + 10, y0 + 9, 7.5, G1, 'left', 700); k.T(RK.online ? 'ONLINE' : 'LOCAL', x1 - 8, y0 + 9, 6.5, '#cfe9d8', 'right', 500);
+    b.globalAlpha = a; k.T(RK.old ? '지난 시즌 석차' : '전국 석차', x0 + 10, y0 + 9, 7.5, RK.old ? CREAM : G1, 'left', 700);
+    if (RK.canOld) { k.T(RK.old ? '◂ 이번 시즌' : '지난 시즌 ▸', x1 - 8, y0 + 9, 7, '#cfe9d8', 'right', 700); if (rk >= 1) btns.push({ x: x1 - 84, y: y0 - 4, w: 88, h: 24, key: 'rank:season' }); } // 석차표 시즌 전환 (게임 본체가 rank:season 을 받는다)
+    else k.T(RK.online ? 'ONLINE' : 'LOCAL', x1 - 8, y0 + 9, 6.5, '#cfe9d8', 'right', 500);
     const lh = 18, rx = x0 + 12, rw = x1 - x0 - 24, show = Math.floor(a * 13), list = rows.slice(page * per, page * per + per);
     const row = (i, r, y, inv) => { const nm = [...r.name].slice(0, 8).join('');
       if (inv) { R(rx - 4, y - 8, rw + 8, 16, G1); k.T(`${rankOf(i)}등`, rx, y, 9, '#06200e', 'left', 700); k.T(nm, rx + 44, y, 9, '#06200e', 'left', 700); k.T(fmtRunT(r.t), rx + rw, y, 9, '#06200e', 'right', 700); return; }
       M(`${rankOf(i)}등`, rx, y, 9, G1, 'left', 700); M(nm, rx + 44, y, 9, i === mineI ? '#ffffff' : G1, 'left', 700); M(fmtRunT(r.t), rx + rw, y, 9, G1, 'right', 700); };
     list.forEach((r, i) => { if (i < show) row(page * per + i, r, y0 + 26 + i * lh, false); });
-    if (!rows.length && show > 2) { M('아직 기록이 없습니다', (x0 + x1) / 2, (y0 + y1) / 2 - 8, 9, G1, 'center', 700); M('엔딩을 보면 석차표에 오릅니다', (x0 + x1) / 2, (y0 + y1) / 2 + 10, 8, CREAM, 'center', 700); }
+    if (!rows.length && show > 2 && RK.old) M(RK.wait ? '불러오는 중…' : '보관된 기록이 없습니다', (x0 + x1) / 2, (y0 + y1) / 2, 9, G1, 'center', 700);
+    else if (!rows.length && show > 2) { M('아직 기록이 없습니다', (x0 + x1) / 2, (y0 + y1) / 2 - 8, 9, G1, 'center', 700); M('엔딩을 보면 석차표에 오릅니다', (x0 + x1) / 2, (y0 + y1) / 2 + 10, 8, CREAM, 'center', 700); }
     if (mineI >= 0 && show > 11) { if (mineI >= page * per + per) { b.globalAlpha = a * 0.5; M('⋮', rx + 6, y1 - 30, 8, G1, 'left', 700); b.globalAlpha = a; } row(mineI, rows[mineI], y1 - 17, true); }
     if (rk >= 1) { const py = y1 + 13; b.globalAlpha = a * (page > 0 ? 1 : 0.35); M('▲ 위로', x0, py, 9, G1, 'left', 700); b.globalAlpha = a * (page < pages - 1 ? 1 : 0.35); M('아래로 ▼', x1, py, 9, G1, 'right', 700); b.globalAlpha = a;
       if (rows.length) M(`${page * per + 1}~${Math.min(rows.length, page * per + per)}등 / ${(RK.listed != null ? RK.listed : total).toLocaleString()}명`, (x0 + x1) / 2, py, 8, G1, 'center', 700);

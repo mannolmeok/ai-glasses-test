@@ -387,7 +387,8 @@ function drawTitle(k, L, now, hasSave, info) { // 타이틀: 첫 시험장의 �
     if (mineI >= 0 && show > 11) { b.globalAlpha = 0.5; text(':', rx, fy + 26 + 10 * lh - 6, bf(13), G1, 'left'); b.globalAlpha = 1; row(mineI, rows[mineI], fy + fh - 9, true); }
     if (rk >= 1) { const py = fy + fh + 15; b.globalAlpha = page > 0 ? 1 : 0.35; text('▲ 위로', fx, py, bf(12), G1, 'left', '#0a4018'); b.globalAlpha = page < pages - 1 ? 1 : 0.35; text('아래로 ▼', fx + fw, py, bf(12), G1, 'right', '#0a4018'); b.globalAlpha = 1;
       text(rows.length ? `${page * per + 1}~${Math.min(rows.length, page * per + per)}등 / ${(RK.listed != null ? RK.listed : total).toLocaleString()}명` : '', fx + fw / 2, py, bf(12), G1, 'center', '#0a4018');
-      btns.push({ x: fx - 10, y: py - 16, w: fw / 3, h: 26, key: 'rank:up' }, { x: fx + fw * 2 / 3 + 10, y: py - 16, w: fw / 3, h: 26, key: 'rank:down' }); }
+      btns.push({ x: fx - 10, y: py - 16, w: fw / 3, h: 26, key: 'rank:up' }, { x: fx + fw * 2 / 3 + 10, y: py - 16, w: fw / 3, h: 26, key: 'rank:down' });
+      if (RK.canOld) { const lab = RK.old ? '◀ 이번 시즌' : '지난 시즌 ▶'; text(lab, fx + fw, fy - 8, bf(12), '#d8f8e0', 'right', '#0a4018'); b.font = bf(12); const lw = b.measureText(lab).width; btns.push({ x: fx + fw - lw - 10, y: fy - 24, w: lw + 20, h: 24, key: 'rank:season' }); if (RK.old) text('시즌 1 · 보관된 기록', fx, fy - 8, bf(12), '#ffe98a', 'left', '#0a4018'); } }
   }
   if (info && info.ios && rk <= 0) text('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', tx, HH - 104, bf(10), '#d8f8e0', 'right', '#0a4018');
   const label = scr(half ? '◀ 돌아가기 [ESC]' : hasSave ? '▶ 이어서 하기 [ENTER]' : '▶ 시험 시작 [ENTER]', 9); b.font = bf(16); const bw = Math.ceil(b.measureText(label).width) + 30, bh = 28, bx = tx - bw, by = HH - 60 - bh, on = Math.floor(now * 2) % 2 === 0;
