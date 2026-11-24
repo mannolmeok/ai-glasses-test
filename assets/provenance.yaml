@@ -32,9 +32,15 @@
   tool: "Higgsfield gpt_image_2_6, 한 장(4x4 아이콘 16개)을 96px 격자로 줄임. AI 모델 15종 그림"
   date: 2026-11-23
   ships: true
-- path: assets/title/lens-plate-px.png
+- path: assets/title/lens-loop.mp4
   origin: generated
-  tool: "Higgsfield gpt_image_2_6. 타이틀 시안 3번(렌즈 반사 클로즈업) 그림을 참고 이미지로 넣어 제목 글자·버튼·석차표 줄·테두리·오른쪽 렌즈 괄호·땀방울을 지운 배경판을 다시 뽑고, 게임 화면 칸(640x360)으로 줄여 64색 도트 그림으로 바꿈 (Pillow: 중앙값 3 → 평균 축소 → 선명하게 → 64색)"
-  model: "gpt_image_2_6"
+  tool: "Higgsfield minimax_h3 (첫 장면 = 끝 장면 = 타이틀 시안 3번 배경판, 10초). 오른쪽 렌즈 속 감독관이 다가왔다 물러나는 고리 영상을 게임 화면 칸(640x360)으로 줄여 64색 점 그림으로 바꿈 (ffmpeg: 중앙값 3 → 평균 축소, Pillow: 선명하게, 끝 8장을 처음에 섞어 이어 붙임, 공용 64색 팔레트 + 깜빡임 억제), 색이 번지지 않게 2배 그대로 키워 H.264로"
+  model: "minimax_h3"
+  date: 2026-11-24
+  ships: true
+- path: assets/title/lens-loop-poster.png
+  origin: generated
+  tool: "위 고리 영상의 첫 장면 (영상을 못 틀 때와 켜지는 연출 동안 보이는 그림, 64색)"
+  model: "minimax_h3"
   date: 2026-11-24
   ships: true
