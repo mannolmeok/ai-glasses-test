@@ -1752,11 +1752,11 @@ function seaSignal(dt) {
   const S = E.sig || (E.sig = { t: rng() * 20, next: between(4, 7), left: 0, dur: 0, p1: rng() * 6.28, p2: rng() * 6.28 }), j = G.gear.jammer || 0;
   const amp = j >= 3 ? 0.5 : j >= 2 ? 0.7 : 0.9, depth = j >= 3 ? 0.45 : j >= 2 ? 0.6 : 0.85; // 너울 폭 · 해류가 끊는 깊이
   S.t += dt;
-  if (S.left > 0) { S.left -= dt; if (S.left <= 0) { S.left = 0; S.next = between(6.5, 10.5); } } // 해류가 지나간 뒤 다음 해류까지
-  else { S.next -= dt; if (S.next <= 0) { S.dur = S.left = between(1.6, 2.4); sfx.bubble(); } } // 해류가 밀려온다 (기포 소리)
+  if (S.left > 0) { S.left -= dt; if (S.left <= 0) { S.left = 0; S.next = between(2.6, 4.6); } } // 해류가 지나간 뒤 다음 해류까지
+  else { S.next -= dt; if (S.next <= 0) { S.dur = S.left = between(1.9, 3.0); sfx.bubble(); } } // 해류가 밀려온다 (기포 소리)
   const dip = S.left > 0 ? Math.sin(Math.PI * (1 - S.left / S.dur)) : 0;
-  const swell = 0.56 + amp * (0.34 * Math.sin(2 * Math.PI * S.t / 4.4 + S.p1) + 0.1 * Math.sin(2 * Math.PI * S.t / 1.45 + S.p2));
+  const swell = 0.47 + amp * (0.34 * Math.sin(2 * Math.PI * S.t / 4.4 + S.p1) + 0.1 * Math.sin(2 * Math.PI * S.t / 1.45 + S.p2));
   E.sigV = clamp(swell * (1 - depth * dip), 0, 1);
   E.sigRate = E.sigV <= 0.18 ? 0 : E.sigV >= 0.58 ? 1 : (E.sigV - 0.18) / 0.4;
-  if (E.sigRate === 0 && E.holding && !E.ai && !E.fb && E.scan > 0) E.scan = Math.max(0, E.scan - 0.15 * dt); // 끊긴 동안 받던 진행이 샌다
+  if (E.sigRate === 0 && E.holding && !E.ai && !E.fb && E.scan > 0) E.scan = Math.max(0, E.scan - 0.55 * dt); // 끊긴 동안 받던 진행이 샌다
 }

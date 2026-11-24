@@ -70,7 +70,7 @@ BOSS.ibank = (() => {
   // 틈(면접관이 고개를 숙임): 길게 눌러 스캔 → 안경이 답변 블록을 왼쪽부터 하나씩 읽어 낸다. 시간 안에 못 읽은 블록은 ?로 남는다.
   // 본다(면접관이 나를 봄): 그 문장을 와다다 말한다(블록마다 왼쪽·가운데·오른쪽). ?는 셋 중 하나를 찍어야 한다. 시간 안에 못 말한 블록은 말이 끊긴 것.
   // 보는 동안 스캔을 누르고 있으면 들킨다. gz.ph: idle(틈·스캔) → tell(고개 드는 중) → watch(말하기)
-  const TELL1 = 0.45, LANE_C = ['#ffd24a', '#5fe08a', '#ff7ad9']; // 왼쪽 노랑 · 가운데 초록 · 오른쪽 분홍
+  const TELL1 = 0.45, LANE_C = ['#ffb23a', '#7fe9ff', '#74ff8e']; // 왼쪽 호박 · 가운데 하늘 · 오른쪽 연두 (이 게임 렌즈 화면의 세 가지 색)
   function newP1(E) {
     const NS = Math.round(tune.ib1_sent), pool = [].concat(...E.qs.filter(q => q.lines).map(q => q.lines.join(' ').split(' '))); if (!pool.length) pool.push('…');
     const sents = []; let pi = 0, N = 0;
@@ -141,7 +141,7 @@ BOSS.ibank = (() => {
   }
   function p2Target(B, P) { // 누구의 서류를 스캔 중인가: 키(왼·가운데·오른쪽) 또는 그 사람 얼굴을 길게 누르기
     for (let l = 0; l < 3; l++) if (KEYS[l].some(k => down.has(k))) return P.order[l];
-    let best = -1, bd = 80; for (const pt of ptrs.values()) B.heads.forEach((h, i) => { if (!h) return; const d = Math.hypot(pt.x - h.x, pt.y - (h.y + 10)); if (d < bd) { bd = d; best = i; } }); return best;
+    let best = -1, bd = 80; for (const pt of ptrs.values()) B.heads.forEach((h, i) => { for (const q of [h, B.docs && B.docs[i]]) { if (!q) continue; const d = Math.hypot(pt.x - q.x, pt.y - q.y); if (d < bd) { bd = d; best = i; } } }); return best; // 그 사람 얼굴이나 서류
   }
   function stepP2(dt, taps) {
     const B = E.B, P = B.p2; P.t += dt;
@@ -280,6 +280,8 @@ BOSS.ibank = (() => {
     W3.slide = Ax.canvasTex(512, 288, true); W3.slideN = -1; const sm = new THREE.MeshBasicMaterial({ map: W3.slide.t, fog: false });
     W3.screen = Ax.plane(sc, 2.1, 1.18, sm, 0.42, 1.72, 2.17, 0, Math.PI); W3.screen.visible = false;
     W3.sl = new THREE.PointLight(0x8fb8ff, 0, 5, 1.5); W3.sl.position.set(0.3, 1.8, 1.7); sc.add(W3.sl);
+    W3.docs = [-0.9, 0, 0.9].map((x, i) => { const t = Ax.canvasTex(64, 88, true), g = t.g; g.fillStyle = '#f4f1e6'; g.fillRect(0, 0, 64, 88); g.fillStyle = '#1c2a4a'; g.fillRect(6, 6, 30, 5); g.fillStyle = '#6a7080'; for (let r = 0; r < 9; r++) g.fillRect(6, 18 + r * 7, 30 + ((r * 17 + i * 11) % 22), 2); g.fillStyle = '#3a7bff'; g.fillRect(40, 60, 6, 20); g.fillRect(48, 52, 6, 28); g.fillRect(56, 66, 4, 14); t.t.needsUpdate = true;
+      const m = new THREE.MeshBasicMaterial({ map: t.t, fog: false }), d = Ax.plane(sc, 0.24, 0.32, m, x, 0.776, -0.5, -Math.PI / 2); d.rotation.z = (i - 1) * 0.12; d.visible = false; return { mesh: d, m }; }); // 면접관마다 앞에 놓인 서류
     W3.v = new THREE.Vector3(); W3.camT = new THREE.Vector3();
   }
   function camPose(B, now) {
@@ -326,6 +328,8 @@ BOSS.ibank = (() => {
     // 면접관 머리(와 3페이즈의 내 머리)가 화면에서 있는 자리: 렌즈 화면이 표적을 그린다
     cam.updateMatrixWorld(); EX.scene.updateMatrixWorld();
     const pr = (o, h) => { o.getWorldPosition(W3.v); W3.v.y += h || 0; const d = W3.v.distanceTo(cam.position); W3.v.project(cam); return W3.v.z > 1 ? null : { x: (W3.v.x + 1) / 2 * 640, y: (1 - W3.v.y) / 2 * 360, s: 0.16 / Math.max(0.2, d) / Math.tan(cam.fov * Math.PI / 360) * 180 }; };
+    W3.docs.forEach((d, i) => { d.mesh.visible = stage === 1; const P = B.p2, on = P && P.tgt === i && !B.tr, pr0 = P && P.qi >= 0 ? P.qs[P.qi].prog[i] : 0; d.m.color.setScalar(on ? 1.5 + 0.4 * Math.sin(now * 20) : pr0 >= 1 ? 0.55 : 1); });
+    B.docs = W3.docs.map(d => d.mesh.visible ? pr(d.mesh, 0) : null);
     B.heads = EX.staff.map(m => m && m.head && m.root.visible ? pr(m.head, 0.02) : null); B.meHead = me.root.visible ? pr(me.head, 0.02) : null;
   }
 
@@ -384,27 +388,33 @@ BOSS.ibank = (() => {
     if (live && P.cut > 0) k.SUB('"어… 그러니까…"', L.W / 2, 198, 11, '#ffd0d0', 'center');
     else if (live && P.said.length && P.saidT < 1.6) k.SUB(P.said.slice(-7).join(' '), L.W / 2, 198, 11, '#ffffff', 'center');
   }
-  function hudP2(k, L, E, now, col) { // 서류 훔쳐보기: 면접관 얼굴마다 표적(색 = 왼·가운데·오른쪽), 아래에 모은 답 조각 셋
+  function hudP2(k, L, E, now, col) { // 서류 훔쳐보기: 얼굴마다 표적, 서류마다 테두리, 왼쪽 아래 서류 분석 창, 아래 가운데 모은 답 조각 셋. 색은 렌즈 색 하나
     const B = E.B, P = B.p2, c = k.b, live = !E.over && !E.caught && !B.tr, tch = !!STATE.touchUI, Q = P.qi >= 0 ? P.qs[P.qi] : null, on = live && Q && P.gapT <= 0;
     B.zones = [];
     head(k, E, 1, col); const need = Math.ceil(P.NQ * tune.ib2_pass - 1e-9);
     k.M(`ANSWERED ${String(P.done).padStart(2, '0')}/${P.NQ}`, 24, 54, 7.5, rgba(WH, 0.85), 'left', 700); k.M(`통과 ${need}`, 24, 66, 7, rgba(col, 0.8), 'left', 700); if (P.lost) k.M(`MISSED ${P.lost}`, 96, 54, 7.5, AMB, 'left', 700);
     strikesUi(k, P.strikes, 616, 28, col, 'EXPOSED'); if (B.shield > 0 || B.shieldT > 0) k.M(B.shield > 0 ? 'GUARD ◆' : 'GUARD ◇', 616, 42, 7, B.shield > 0 ? col : AMB, 'right', 700);
+    const tg = on ? P.tgt : -1, tw = tg >= 0 && P.gz[tg].ph === 'watch', PX = 18, PY = 196, PW = 132, PH = 96;
     hudDraw(k, c => {
       c.fillStyle = 'rgba(2,6,10,0.72)'; c.fillRect(190, 18, 260, 34);
-      P.order.forEach((si, l) => { const h = B.heads[si]; if (!h) return; const g = P.gz[si], w = g.ph === 'watch', tl = g.ph === 'tell', lc = LANE_C[l], cc = w ? RED : tl ? AMB : lc, r = Math.max(15, h.s * 1.3), pr = Q ? Q.prog[si] : 0, tg = P.tgt === si && on;
-        brk(c, h.x - r, h.y - r, r * 2, r * 2, 6, cc, tg ? 2 : 1.3);
-        if (w) { c.fillStyle = rgba(RED, 0.16); c.fillRect(h.x - r, h.y - r, r * 2, r * 2); }
-        const bx = h.x - r, by = h.y + r + 5, bw = r * 2; c.fillStyle = 'rgba(3,8,12,0.6)'; c.fillRect(bx, by, bw, 5); c.fillStyle = pr >= 1 ? WH : lc; c.fillRect(bx, by, bw * pr, 5); c.strokeStyle = rgba(lc, 0.9); c.lineWidth = 1; c.strokeRect(bx + 0.5, by + 0.5, bw - 1, 4); // 그 사람 서류를 얼마나 읽었나
-        if (tg && !w) { c.strokeStyle = rgba(lc, 0.75); c.lineWidth = 1; c.setLineDash([3, 3]); c.lineDashOffset = -now * 40; c.beginPath(); c.moveTo(230 + l * 90, 296); c.lineTo(h.x, by + 6); c.stroke(); c.setLineDash([]); } });
+      P.order.forEach((si, l) => { const h = B.heads[si], d = B.docs && B.docs[si], g = P.gz[si], w = g.ph === 'watch', tl = g.ph === 'tell', cc = w ? RED : tl ? AMB : col, pr = Q ? Q.prog[si] : 0, sel = tg === si;
+        if (h) { const r = Math.max(15, h.s * 1.3); brk(c, h.x - r, h.y - r, r * 2, r * 2, 6, cc, sel ? 2 : 1.2); if (w) { c.fillStyle = rgba(RED, 0.16); c.fillRect(h.x - r, h.y - r, r * 2, r * 2); } }
+        if (d) { const dw = 26, dh = 15; c.strokeStyle = pr >= 1 ? rgba(col, 0.45) : sel && !w ? WH : rgba(col, 0.9); c.lineWidth = sel ? 1.6 : 1; c.strokeRect(d.x - dw + 0.5, d.y - dh + 0.5, dw * 2 - 1, dh * 2 - 1); // 그 사람 앞의 서류
+          c.fillStyle = 'rgba(3,8,12,0.6)'; c.fillRect(d.x - dw, d.y + dh + 3, dw * 2, 4); c.fillStyle = pr >= 1 ? WH : col; c.fillRect(d.x - dw, d.y + dh + 3, dw * 2 * pr, 4);
+          if (sel && !w && pr < 1) { const sx = d.x - dw + dw * 2 * ((now * 1.6) % 1); c.fillStyle = WH; c.fillRect(sx, d.y - dh, 1.5, dh * 2); c.strokeStyle = rgba(col, 0.7); c.lineWidth = 1; c.setLineDash([3, 3]); c.lineDashOffset = -now * 40; c.beginPath(); c.moveTo(PX + PW, PY + 20); c.lineTo(d.x - dw, d.y); c.stroke(); c.setLineDash([]); } } });
       if (Q) { const kx = cl(1 - P.qt / Q.life, 0, 1), warn = kx < 0.3; c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(215, 46, 210, 2); c.fillStyle = warn ? (Math.floor(now * 8) % 2 ? RED : AMB) : col; c.fillRect(215, 46, 210 * (P.gapT > 0 ? 0 : kx), 2); // 이 질문의 남은 시간
-        for (let l = 0; l < 3; l++) { const si = P.order[l], x = 187 + l * 90, y = 298, pr = Q.prog[si], lc = LANE_C[l]; c.fillStyle = pr >= 1 ? rgba(lc, 0.3) : 'rgba(3,8,12,0.6)'; c.fillRect(x, y, 86, 22); c.strokeStyle = lc; c.lineWidth = pr >= 1 ? 1.5 : 1; if (pr < 1) c.setLineDash([2, 2]); c.strokeRect(x + 0.5, y + 0.5, 85, 21); c.setLineDash([]);
-          if (pr > 0 && pr < 1) { c.fillStyle = rgba(lc, 0.35); c.fillRect(x, y, 86 * pr, 22); } } }
+        for (let l = 0; l < 3; l++) { const si = P.order[l], x = 187 + l * 90, y = 298, pr = Q.prog[si]; c.fillStyle = pr >= 1 ? rgba(col, 0.28) : 'rgba(3,8,12,0.62)'; c.fillRect(x, y, 86, 22); c.strokeStyle = pr >= 1 ? WH : rgba(col, 0.8); c.lineWidth = 1; if (pr < 1) c.setLineDash([2, 2]); c.strokeRect(x + 0.5, y + 0.5, 85, 21); c.setLineDash([]); if (pr > 0 && pr < 1) { c.fillStyle = rgba(col, 0.3); c.fillRect(x, y, 86 * pr, 22); } } }
+      if (live && Q) { const pc = tw ? RED : col; c.fillStyle = 'rgba(3,8,12,0.74)'; c.fillRect(PX, PY, PW, PH); brk(c, PX - 3, PY - 3, PW + 6, PH + 6, 7, rgba(pc, 0.9), 1.2); // 서류 분석 창
+        if (tg >= 0 && !tw) { const pr = Q.prog[tg], rows = 6; for (let r = 0; r < rows; r++) { const y = PY + 26 + r * 9, w = 60 + ((r * 37 + tg * 23) % 70), rd = cl(pr * rows - r, 0, 1); c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(PX + 10, y, w, 3); c.fillStyle = col; c.fillRect(PX + 10, y, w * rd, 3); }
+          c.fillStyle = rgba(col, 0.25); c.fillRect(PX + 10, PY + 82, PW - 20, 4); c.fillStyle = pr >= 1 ? WH : col; c.fillRect(PX + 10, PY + 82, (PW - 20) * pr, 4); } }
     });
-    P.order.forEach((si, l) => { const h = B.heads[si]; if (!h) return; const g = P.gz[si], r = Math.max(15, h.s * 1.3); k.M(g.ph === 'watch' ? 'EYES ON' : g.ph === 'tell' ? 'TURNING' : tch ? '●' : 'ASD'[l], h.x, h.y - r - 7, g.ph === 'idle' ? 8 : 6.5, g.ph === 'watch' ? RED : g.ph === 'tell' ? AMB : LANE_C[l], 'center', 800); });
-    if (Q) { for (let l = 0; l < 3; l++) { const si = P.order[l], pr = Q.prog[si]; if (pr >= 1) k.T(Q.fr[si], 230 + l * 90, 309.5, k.TW(Q.fr[si], 8.5, 700) > 80 ? 7 : 8.5, WH, 'center', 700); else k.M('?', 230 + l * 90, 309.5, 9, rgba(LANE_C[l], 0.8), 'center', 700); }
-      if (live) k.SUB(`${E.T.staff[0].name}: "${Q.q}"`, L.W / 2, 30, 10.5, '#ffffff', 'center'); }
-    if (on && P.tgt >= 0 && P.gz[P.tgt].ph === 'watch' && Math.floor(now * 10) % 2) k.M('손 떼기', L.W / 2, 286, 8, RED, 'center', 700);
+    P.order.forEach((si, l) => { const h = B.heads[si]; if (!h) return; const g = P.gz[si], r = Math.max(15, h.s * 1.3); k.M(g.ph === 'watch' ? 'EYES ON' : g.ph === 'tell' ? 'TURNING' : tch ? '' : 'ASD'[l], h.x, h.y - r - 7, g.ph === 'idle' ? 8 : 6.5, g.ph === 'watch' ? RED : g.ph === 'tell' ? AMB : col, 'center', 800); });
+    if (Q) { for (let l = 0; l < 3; l++) { const si = P.order[l], pr = Q.prog[si]; if (pr >= 1) k.T(Q.fr[si], 230 + l * 90, 309.5, k.TW(Q.fr[si], 8.5, 700) > 80 ? 7 : 8.5, WH, 'center', 700); else k.M('?', 230 + l * 90, 309.5, 9, rgba(col, 0.8), 'center', 700); }
+      if (live) { k.SUB(`${E.T.staff[0].name}: "${Q.q}"`, L.W / 2, 30, 10.5, '#ffffff', 'center');
+        k.M('DOC SCAN', PX + 10, PY + 11, 7, tw ? RED : col, 'left', 700);
+        if (tg >= 0 && !tw) { const pr = Q.prog[tg]; k.T(E.staff[tg].name, PX + PW - 10, PY + 11, 8, WH, 'right', 700); k.M(pr >= 1 ? Q.fr[tg] : `${Math.floor(pr * 100)}%`, PX + PW - 10, PY + 73, pr >= 1 ? 8 : 7.5, WH, 'right', 700); if (pr >= 1) k.M('읽음', PX + 10, PY + 73, 7, col, 'left', 700); }
+        else if (tw) { k.M('손 떼기', PX + PW / 2, PY + 50, 10, Math.floor(now * 10) % 2 ? RED : AMB, 'center', 700); }
+        else { k.T('안 보는 사람의 서류를', PX + PW / 2, PY + 42, 8, rgba(WH, 0.8), 'center', 700); k.T(tch ? '길게 누르기' : 'A · S · D 길게', PX + PW / 2, PY + 56, 8, rgba(WH, 0.8), 'center', 700); } } }
     if (live && P.said) k.SUB(P.said.text, L.W / 2, 340, 11, P.said.bad ? '#ffd0d0' : '#ffffff', 'center');
   }
   function hudP3(k, L, E, now, col) {

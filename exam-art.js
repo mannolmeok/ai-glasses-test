@@ -36,9 +36,9 @@ function glyphRow(g, seed, n, x, y, s, col, lw) { alienWord(seed, n).forEach((gl
 function drawCallHud(k, L, E, now) { // [저승] 부른 횟수만큼 이름이 겹쳐 들린다. 감독관 동선 AI가 있으면 어느 쪽에서 부르는지도 (시험지 밖 가장자리에만)
   const C = E.call; if (!C || C.phase !== 'call' || C.n < 1) return;
   const since = C.k - C.at[C.n - 1], a = Math.min(1, since / 0.15) * (1 - Math.max(0, Math.min(1, (since - 1.1) / 0.6)) * 0.5), txt = Array(C.n).fill('김수험…').join(' ');
-  const dir = E.gear.predict >= 1 ? (C.ok.length === 1 && C.ok[0] === 'front' ? 'front' : C.yaw > 0 ? 'left' : 'right') : null;
-  k.b.globalAlpha = 0.3 + 0.45 * a; // 시험지를 가리지 않게 왼쪽 위 구석에만. 방향은 장비가 있을 때 화살표로
-  k.SUB((dir === 'left' ? '‹ ' : dir === 'front' ? '˄ ' : '') + txt + (dir === 'right' ? ' ›' : ''), 18, 50, 10, '#cfd8ff', 'left');
+  const dir = C.ok.length === 1 && C.ok[0] === 'front' ? 'front' : C.yaw > 0 ? 'left' : 'right'; // 부르는 쪽 가장자리에 뜬다: 그쪽을 봐야 한다
+  k.b.globalAlpha = 0.45 + 0.55 * a; const sz = 10 + C.n * 1.5, col = C.n >= 3 ? '#ff9a9a' : '#cfd8ff';
+  if (dir === 'left') k.SUB('‹ ' + txt, 14, 150, sz, col, 'left'); else if (dir === 'right') k.SUB(txt + ' ›', L.W - 14, 150, sz, col, 'right'); else k.SUB('˄ ' + txt + ' ˄', L.W / 2, 40, sz, col, 'center');
   k.b.globalAlpha = 1;
 }
 function captchaIcon(g, id, cx, cy, s) { // 로봇 확인 그림 6종 (신호등·자동차·나무·버스·자전거·소화전)

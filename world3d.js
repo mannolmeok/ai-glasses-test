@@ -511,8 +511,13 @@ const WORLD = (() => {
     m.root.traverse(o => { if (o.isMesh && o.material && o !== m.cone) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.86; if (o.material.emissive && o.material.color && o.material.color.getHSL({}).l > 0.4) o.material.emissive.setHex(0x14202a); } }); m.cone.visible = false; sc.add(m.root); // 피부·소복만 촛불 아래에서도 차갑고 창백하게 (머리카락은 그대로 검게)
     const dm = new THREE.MeshBasicMaterial({ color: 0xd8efff, transparent: true, opacity: 0.9, fog: false }), drops = [];
     for (let i = 0; i < 6; i++) { const d = new THREE.Mesh(UNIT, dm); d.scale.set(0.006, 0.018, 0.006); d.visible = false; sc.add(d); drops.push(d); }
-    const wet = canvasTex(64, 64, true); { const g = wet.g, gr = g.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(70,84,104,0.30)'); gr.addColorStop(0.72, 'rgba(60,74,96,0.42)'); gr.addColorStop(0.86, 'rgba(40,50,70,0.55)'); gr.addColorStop(1, 'rgba(40,50,70,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(24, 22, 5, 3, -0.6, 0, Math.PI * 2); g.fill(); wet.t.needsUpdate = true; } // 시험지에 번진 물자국
-    const marks = []; for (let i = 0; i < 14; i++) { const p = plane(sc, 0.05, 0.05, new THREE.MeshBasicMaterial({ map: wet.t, transparent: true, depthWrite: false, opacity: 0, polygonOffset: true, polygonOffsetFactor: -2 }), 0, 0.7466, 0, -Math.PI / 2); p.visible = false; marks.push(p); }
+    const wet = canvasTex(128, 128, true); { const g = wet.g; let sd = 41; const rr = () => (sd = (sd * 16807) % 2147483647) / 2147483647; // 젖은 종이: 울퉁불퉁하게 번진 얼룩, 짙은 가장자리, 번진 잉크, 가운데 고인 물
+      const blob = (cx, cy, r, col) => { g.fillStyle = col; g.beginPath(); for (let i = 0; i <= 18; i++) { const a = i / 18 * 6.283, q = r * (0.8 + 0.28 * Math.sin(a * 3 + 1) + 0.12 * Math.sin(a * 7)); i ? g.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q) : g.moveTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); } g.fill(); };
+      blob(64, 64, 52, 'rgba(70,78,84,0.34)'); blob(64, 64, 47, 'rgba(120,128,130,0.5)'); blob(62, 66, 38, 'rgba(96,106,112,0.42)'); for (let i = 0; i < 5; i++) blob(64 + (rr() - 0.5) * 80, 64 + (rr() - 0.5) * 80, 7 + rr() * 9, 'rgba(100,110,116,0.45)');
+      g.strokeStyle = 'rgba(30,34,52,0.5)'; g.lineWidth = 3.5; g.lineCap = 'round'; for (let i = 0; i < 5; i++) { const y = 38 + i * 13, x0 = 30 + rr() * 12; g.beginPath(); g.moveTo(x0, y); g.bezierCurveTo(x0 + 18, y + rr() * 5, x0 + 36, y - rr() * 4, x0 + 52 + rr() * 12, y + rr() * 4); g.stroke(); } // 번진 글자
+      const gr = g.createRadialGradient(58, 58, 2, 62, 62, 22); gr.addColorStop(0, 'rgba(235,245,255,0.5)'); gr.addColorStop(0.6, 'rgba(190,210,230,0.16)'); gr.addColorStop(1, 'rgba(190,210,230,0)'); g.fillStyle = gr; g.fillRect(30, 30, 70, 70);
+      g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.ellipse(52, 50, 8, 4, -0.6, 0, Math.PI * 2); g.fill(); wet.t.needsUpdate = true; } // 시험지에 번진 물자국
+    const marks = []; for (let i = 0; i < 14; i++) { const p = plane(sc, 0.085, 0.085, new THREE.MeshBasicMaterial({ map: wet.t, transparent: true, depthWrite: false, opacity: 0, polygonOffset: true, polygonOffsetFactor: -2 }), 0, 0.7466, 0, -Math.PI / 2); p.visible = false; marks.push(p); }
     const sh = canvasTex(64, 64, true); { const g = sh.g, gr = g.createRadialGradient(32, 32, 4, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,0.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); sh.t.needsUpdate = true; } // 머리 위에 무언가 있을 때 시험지에 드리우는 그림자
     const shadow = plane(sc, 0.38, 0.32, new THREE.MeshBasicMaterial({ map: sh.t, transparent: true, depthWrite: false, opacity: 0, polygonOffset: true, polygonOffsetFactor: -1 }), MY.x, 0.7464, MY.z - 0.14, -Math.PI / 2); shadow.visible = false;
     UW = { m, drops, marks, shadow, sc };
@@ -533,7 +538,7 @@ const WORLD = (() => {
     if (EX.views && !EX.views.ghostlook) EX.views.ghostlook = { yaw: 0, pitch: 0.22, fov: 56 }; // 올려다본 순간: 내려다보는 망자의 얼굴
     const P = EX.paper ? EX.paper.position : { x: EX.my.x, z: EX.my.z - 0.02 }, pw = 0.31, ph = 0.43;
     U.drops.forEach((d, i) => { const dd = g.drops[i]; d.visible = !!dd; if (dd) { const k = clamp(dd.t / 0.32, 0, 1); d.position.set(P.x + (dd.u - 0.5) * pw, 1.3 - 0.55 * k * k, P.z + (dd.v - 0.5) * ph); } }); // 떨어지는 물방울
-    U.marks.forEach((mk, i) => { const M = g.marks[g.marks.length - 1 - i]; mk.visible = !!M; if (M) { const gr = M.s * (0.45 + 0.55 * Math.min(1, M.t / 0.5)); mk.scale.set(gr, gr, 1); mk.position.set(P.x + (M.u - 0.5) * pw, 0.7466 + i * 0.00002, P.z + (M.v - 0.5) * ph); mk.material.opacity = 0.85 * (1 - clamp((M.t - 9) / 5, 0, 1)); } });
+    U.marks.forEach((mk, i) => { const M = g.marks[g.marks.length - 1 - i]; mk.visible = !!M; if (M) { const gr = M.s * (0.3 + 0.7 * (1 - Math.pow(1 - Math.min(1, M.t / 2.2), 2))); mk.scale.set(gr, gr, 1); mk.rotation.z = (M.u * 37 + M.v * 91) % 6.28; /* 떨어진 자리에서 천천히 번진다 */ mk.position.set(P.x + (M.u - 0.5) * pw, 0.7466 + i * 0.00002, P.z + (M.v - 0.5) * ph); mk.material.opacity = 0.85 * (1 - clamp((M.t - 9) / 5, 0, 1)); } });
     const pres = g.phase === 'over' ? 1 : g.phase === 'come' ? g.k : g.phase === 'go' ? 1 - g.k : 0; U.shadow.visible = pres > 0.01; U.shadow.material.opacity = 0.5 * pres;
   }
   function secDevices(sc, tier, X1, HY, Z0, X0, MY) { // CCTV·탐지 전파 장치·드론
@@ -656,7 +661,7 @@ const WORLD = (() => {
         B.box(0.4, 0.03, 0.38, SEAT, x, 0.44, z + 0.42); B.box(0.4, 0.26, 0.03, SEAT, x, 0.72, z + 0.62);
         B.box(0.03, 0.44, 0.36, METAL, x - 0.18, 0.22, z + 0.42); B.box(0.03, 0.44, 0.36, METAL, x + 0.18, 0.22, z + 0.42);
       }
-      if (R.partitions) { B.box(0.02, 0.5, 0.5, 0xb8c0c8, x - 0.33, 0.98, dz); B.box(0.62, 0.5, 0.02, 0xb8c0c8, x, 0.98, dz - 0.24); if (!mine) { B.box(0.3, 0.2, 0.02, 0x1a1c22, x, 0.9, dz - 0.15); } }
+      if (R.partitions) { B.box(0.02, 0.5, 0.5, 0xb8c0c8, x - 0.33, 0.98, dz); if (!(mine && (tier.mech.includes('mole') || tier.id === 'bar'))) B.box(0.62, 0.5, 0.02, 0xb8c0c8, x, 0.98, dz - 0.24); /* 앞자리에 암행 감독관이 있는 시험은 내 책상 앞 가림막이 없다 (가리면 안 보인다) */ if (!mine) { B.box(0.3, 0.2, 0.02, 0x1a1c22, x, 0.9, dz - 0.15); } }
       if (PXS) plane(sc, 0.62, 0.44, PXDESK || (PXDESK = new THREE.MeshLambertMaterial({ map: pxTex(PXD.tex.desk, 1, 1) })), x, 0.7412 + fy, dz, -Math.PI / 2);
       if (mine) return;
       desks.push({ x, z });
