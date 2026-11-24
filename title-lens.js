@@ -379,7 +379,7 @@
         return;
       }
       if (STATE.newArm > 0 && pressed('Escape')) { STATE.newArm = 0; return; }
-      titleBgm(dt);
+      if (typeof window.__music === 'function') window.__music(() => titleBgm(dt)); else titleBgm(dt); // 배경음으로 친다 (효과음만 껐을 때도 난다)
       const was = scene, r = tUpd.call(this, dt);
       if (was === 'title' && scene !== 'title') startSnd(); // 시험 시작 · 이어서 하기를 누른 소리
       return r;

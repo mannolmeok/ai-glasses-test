@@ -80,6 +80,22 @@
   try { if (localStorage.getItem(MK) === '1') muted = true; } catch (_) { }
   const origSetMuted = setMuted;
   window.setMuted = function (m) { origSetMuted(m); try { localStorage.setItem(MK, m ? '1' : '0'); } catch (_) { } };
+  // 배경음 · 효과음 따로 끄기 (일시정지 창에서). 왼쪽 위 소리 버튼은 전체 끄기 그대로이고, 다시 켜면 여기서 정해 둔 대로 난다. 이 기기에 기억한다
+  //  배경음 = 고시원 음악 · 마지막 시험 음악 · 타이틀 배경음 (CONFIG.sound.music 을 끈다)   효과음 = 그 밖의 모든 소리
+  const BK = 'ai-glasses-bgm', SK = 'ai-glasses-sfx', SND2 = { bgm: true, sfx: true, mus: 0 };
+  try { if (localStorage.getItem(BK) === '0') SND2.bgm = false; if (localStorage.getItem(SK) === '0') SND2.sfx = false; } catch (_) { }
+  const MUSIC0 = !(CONFIG.sound && CONFIG.sound.music === false);
+  const applyBgm = () => { if (CONFIG.sound) CONFIG.sound.music = MUSIC0 && SND2.bgm; };
+  applyBgm();
+  function setBgm(on) { SND2.bgm = on; applyBgm(); try { localStorage.setItem(BK, on ? '1' : '0'); } catch (_) { } }
+  function setSfx(on) { SND2.sfx = on; try { localStorage.setItem(SK, on ? '1' : '0'); } catch (_) { } }
+  window.__music = f => { SND2.mus++; try { return f(); } finally { SND2.mus--; } }; // 이 안에서 나는 소리는 배경음으로 친다 (타이틀 배경음이 쓴다)
+  { const t0 = toneAt, n0 = noiseAt; // 효과음을 껐으면 배경음이 아닌 소리는 내지 않는다
+    window.toneAt = function () { if (!SND2.sfx && !SND2.mus) return; return t0.apply(this, arguments); };
+    window.noiseAt = function () { if (!SND2.sfx && !SND2.mus) return; return n0.apply(this, arguments); };
+    if (typeof soundHub === 'function') { const h0 = soundHub; window.soundHub = function () { SND2.mus++; try { return h0.apply(this, arguments); } finally { SND2.mus--; } }; }
+    if (typeof soundExam === 'function') { const e0 = soundExam; window.soundExam = function () { // 시험장 소리: 시계·연필·기침은 효과음, 마지막 시험 음악은 배경음
+      if (SND2.sfx) return e0.apply(this, arguments); const a = CONFIG.sound.amb; CONFIG.sound.amb = false; SND2.mus++; try { return e0.apply(this, arguments); } finally { SND2.mus--; CONFIG.sound.amb = a; } }; } }
 
   // ---- 3) 일시정지 창 ----
   function openPause(from) { if (scene === 'pause' || (from !== 'play' && from !== 'hub')) return; STATE.pauseFrom = from; STATE.pauseArm = 0; ptrs.clear(); scene = 'pause'; }
@@ -94,26 +110,29 @@
     STATE.pauseArm = Math.max(0, (STATE.pauseArm || 0) - dt);
     if (needRotate()) return; // 세로로 들고 있는 동안은 멈춰 둔다
     let key = null; for (const [x, y] of taps) { const hb = hitBtn(BTNS, x, y); key = hb ? hb.key : 'resume'; } // 빈 곳을 누르면 계속
-    if (pressed('KeyP') || pressed('Escape') || pressed('Enter')) key = 'resume'; else if (pressed('KeyT')) key = 'title';
+    if (pressed('KeyP') || pressed('Escape') || pressed('Enter')) key = 'resume'; else if (pressed('KeyT')) key = 'title'; else if (pressed('KeyB')) key = 'bgm'; else if (pressed('KeyS')) key = 'sfx';
     const exam = STATE.pauseFrom !== 'hub';
     if (key === 'resume') resumePause();
     else if (key === 'sound') { setMuted(!muted); if (!muted) sfx.flip(); }
+    else if (key === 'bgm') { if (muted) setMuted(false); setBgm(!SND2.bgm); sfx.flip(); }
+    else if (key === 'sfx') { if (muted) setMuted(false); setSfx(!SND2.sfx); sfx.flip(); }
     else if (key === 'title') { if (exam && !(STATE.pauseArm > 0)) { STATE.pauseArm = 3; sfx.no(); } else toTitle(exam); }
   };
   scenes.pause.draw = function (B) {
     const exam = STATE.pauseFrom !== 'hub';
     if (exam) { WORLD.renderExam(E, now); drawExamHud(B.k, B.L, E, now, hudSet()); } else scenes.hub.draw(B);
-    BTNS = drawPauseMenu(B.k, B.L, now, { exam, muted, arm: STATE.pauseArm || 0, touch: STATE.touchUI, hover: STATE.hover });
+    BTNS = drawPauseMenu(B.k, B.L, now, { exam, muted, bgm: SND2.bgm && !muted, sfx: SND2.sfx && !muted, arm: STATE.pauseArm || 0, touch: STATE.touchUI, hover: STATE.hover });
   };
   function drawPauseMenu(k, L, now, o) { // 기존 초록 일시정지 화면 위에 버튼 셋
     const b = k.b, W = L.W, R = k.R, G1 = '#74ff8e', RD = '#ff6a6a', btns = [];
     drawLensScreen(k, L, now, { col: G1, glow: '#0a4018', tint: '#061e0e', big: '일시정지', y: 150, lines: o.exam ? ['LENS-OS 0.9b', '시험 ......... 멈춤', '감독관 ....... 멈춤'] : ['LENS-OS 0.9b', '고시원 ....... 멈춤'] });
     const text = (str, x, y, size, col, glow) => { b.font = `400 ${size * BOOT_K}px ${BOOT_FONT}`; b.textAlign = 'center'; b.textBaseline = 'alphabetic'; b.shadowColor = glow || 'transparent'; b.shadowBlur = glow ? 4 * (k.S || HUD_SCALE) : 0; b.fillStyle = col; b.fillText(str, x, y); b.shadowBlur = 0; b.shadowColor = 'transparent'; };
-    const armed = o.exam && o.arm > 0, defs = [['▶ 계속하기', 'P', 'resume'], [o.muted ? '소리 켜기' : '소리 끄기', 'M', 'sound'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']];
-    const bw = 150, bh = 30, gap = 12, x0 = W / 2 - (bw * 3 + gap * 2) / 2, by = 196;
+    const armed = o.exam && o.arm > 0, defs = [['▶ 계속하기', 'P', 'resume'], [o.bgm ? '배경음 켜짐' : '배경음 꺼짐', 'B', 'bgm'], [o.sfx ? '효과음 켜짐' : '효과음 꺼짐', 'S', 'sfx'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']];
+    const bw = 138, bh = 30, gap = 10, x0 = W / 2 - (bw * defs.length + gap * (defs.length - 1)) / 2, by = 196;
     defs.forEach(([label, keyName, key], i) => {
       const bx = x0 + i * (bw + gap), red = key === 'title' && armed, col = red ? RD : G1, hot = !!o.hover && o.hover[0] >= bx && o.hover[0] <= bx + bw && o.hover[1] >= by && o.hover[1] <= by + bh;
-      b.globalAlpha = red ? 0.24 : hot ? 0.2 : 0.08; R(bx, by, bw, bh, col); b.globalAlpha = 1; k.frame(bx, by, bw, bh, col, 1.5);
+      const off = (key === 'bgm' && !o.bgm) || (key === 'sfx' && !o.sfx);
+      b.globalAlpha = red ? 0.24 : hot ? 0.2 : 0.08; R(bx, by, bw, bh, col); b.globalAlpha = off ? 0.45 : 1; k.frame(bx, by, bw, bh, col, 1.5);
       text(label, bx + bw / 2 - (o.touch ? 0 : 6), by + bh / 2 + 5, 15, col, red ? 'rgba(255,90,90,0.45)' : 'rgba(116,255,142,0.45)');
       if (!o.touch) k.M(keyName, bx + bw - 11, by + bh / 2 + 0.5, 7.5, red ? '#ffb0b0' : '#c8ffd8', 'center', 700);
       btns.push({ x: bx, y: by, w: bw, h: bh, key });
