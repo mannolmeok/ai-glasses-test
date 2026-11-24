@@ -124,7 +124,7 @@ BOSS.ibank = (() => {
   function fragsOf(it) { let t = it[2].replace(/·/g, ' ').split(/\s+/).filter(Boolean); while (t.length > 3) { t[t.length - 2] += ' ' + t.pop(); } while (t.length < 3) t.unshift(it[0]); return t; }
   function newP2() {
     const NQ = Math.round(tune.ib2_q), pool = shuffle(IB_QA.slice()).slice(0, NQ);
-    const qs = pool.map((it, i) => ({ q: it[1], fr: fragsOf(it), prog: [0, 0, 0], who: (i % 2 ? 1 : 0), life: lerp(tune.ib2_life, tune.ib2_life * 0.7, i / Math.max(1, NQ - 1)) }));
+    const qs = pool.map((it, i) => ({ q: it[1], fr: fragsOf(it), prog: [0, 0, 0], who: (i % 2 ? 1 : 0), life: lerp(tune.ib2_life, tune.ib2_life * 5 / 7, i / Math.max(1, NQ - 1)) }));
     const gz = [0, 1, 2].map(i => ({ ph: 'idle', t: 0, dur: 0.8 + i * 0.7 }));
     return { t: 0, qs, NQ, qi: -1, qt: 0, gapT: 1.2, done: 0, lost: 0, strikes: 0, seen: 0, gz, tgt: -1, heldBad: 0, win: null, order: [0, 1, 2], fx: [], said: null, lastBeat: -9, beatN: 0, secFlash: 0, bpm: 108 };
   }
@@ -149,9 +149,9 @@ BOSS.ibank = (() => {
     const hs = B.heads.map((h, i) => [h ? h.x : i * 100, i]).sort((x, y) => x[0] - y[0]); P.order = hs.map(x => x[1]); // 화면에서 왼쪽부터
     const prog = cl(P.qi / Math.max(1, P.NQ - 1), 0, 1), nW = P.gz.filter(g => g.ph !== 'idle').length;
     P.gz.forEach((g, i) => { g.t += dt; // 저마다: 서류를 본다(idle) → 고개를 든다(tell) → 나를 본다(watch)
-      if (g.ph === 'idle' && g.t >= g.dur) { if (nW >= (prog > 0.45 ? 2 : 1) + (prog > 0.85 ? 1 : 0)) g.dur += 0.25; else { g.ph = 'tell'; g.t = 0; g.dur = 0.4; } }
+      if (g.ph === 'idle' && g.t >= g.dur) { if (nW >= 2 + (prog > 0.7 ? 1 : 0)) g.dur += 0.25; /* 처음부터 두 명이 겹쳐 본다. 끝에는 셋 */ else { g.ph = 'tell'; g.t = 0; g.dur = 0.4; } }
       else if (g.ph === 'tell' && g.t >= g.dur) { g.ph = 'watch'; g.t = 0; g.dur = between(0.8, 1.5); }
-      else if (g.ph === 'watch' && g.t >= g.dur) { g.ph = 'idle'; g.t = 0; g.dur = between(1.1, 2.3) * lerp(1, 0.6, prog); }
+      else if (g.ph === 'watch' && g.t >= g.dur) { g.ph = 'idle'; g.t = 0; g.dur = between(1.2, 2.2) * lerp(1, 0.8, prog); }
       const s = E.staff[i]; if (s) { s.phase = g.ph === 'idle' ? 'stand' : g.ph; s.t = g.t; s.dur = g.dur; } });
     if (P.said) { P.said.t += dt; if (P.said.t > 1.5) P.said = null; }
     P.fx = P.fx.filter(f => (f.t += dt) < 0.5); if (B.shieldT > 0) B.shieldT -= dt;
@@ -162,6 +162,7 @@ BOSS.ibank = (() => {
       if (g.ph === 'watch') { P.heldBad += dt; if (P.heldBad > 0.16) { P.heldBad = -0.7; P.win = { who: t }; expose(); P.win = null; if (E.caught) return; } } // 보는 사람의 서류를 훔쳐봤다
       else { P.heldBad = Math.min(0, P.heldBad + dt); if (Q.prog[t] < 1) { const b4 = Q.prog[t]; Q.prog[t] = Math.min(1, Q.prog[t] + dt / tune.ib2_scan); if (Math.floor(Q.prog[t] * 4) > Math.floor(b4 * 4)) sfx.scan(); if (Q.prog[t] >= 1) { S.read(); P.fx.push({ k: 'got', who: t, t: 0 }); } } } }
     else P.heldBad = Math.min(0, P.heldBad + dt);
+    for (let i = 0; i < 3; i++) if (i !== t && Q.prog[i] < 1 && Q.prog[i] > 0) Q.prog[i] = Math.max(0, Q.prog[i] - dt * 2.2); /* 손을 떼면 읽던 것이 금방 날아간다: 한 번에 끝까지 */
     if (Q.prog.every(v => v >= 1)) { P.done++; P.said = { text: Q.fr.join(' · ') + '입니다.', t: 0 }; S.sent(); P.gapT = 1.1; }
     else if (P.qt >= Q.life) { P.lost++; P.said = { text: '"…확인해 보겠습니다."', t: 0, bad: true }; S.lapse(); B.flash = 0.3; P.gapT = 1.1; }
   }

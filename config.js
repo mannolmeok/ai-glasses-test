@@ -120,9 +120,9 @@ window.CONFIG = {
   ib1_acc: { value: 0.85, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 1] 통과 정확도
   ib1_stack: { value: 12, min: 6, max: 20, step: 1 },              // [해외 보스 1] 쌓이는 칸 수. 넘치면 맨 아래가 떨어진다
   ib2_q: { value: 8, min: 3, max: 16, step: 1 },                   // [해외 보스 2] 서류 훔쳐보기: 질문 수
-  ib2_life: { value: 9, min: 4, max: 20, step: 0.5 },              // [해외 보스 2] 첫 질문의 제한 시간(초). 마지막은 70%
+  ib2_life: { value: 7, min: 4, max: 20, step: 0.5 },              // [해외 보스 2] 첫 질문의 제한 시간(초). 마지막은 71%(5초)
   ib2_scan: { value: 0.9, min: 0.2, max: 3, step: 0.05 },          // [해외 보스 2] 서류 한 장을 읽는 시간(초)
-  ib2_pass: { value: 0.75, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 2] 리듬 면접 통과 정확도
+  ib2_pass: { value: 0.875, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 2] 리듬 면접 통과 정확도
   ib2_window: { value: 0.13, min: 0.05, max: 0.3, step: 0.01 },    // [해외 보스 2] 박자 판정 폭(± 초)
   ib3_q: { value: 18, min: 6, max: 40, step: 1 },                  // [해외 보스 3] 질문 수 (함정 포함)
   ib3_life: { value: 8, min: 3, max: 20, step: 0.5 },              // [해외 보스 3] 첫 질문의 제한 시간(초). 갈수록 짧아진다
@@ -136,7 +136,7 @@ window.CONFIG = {
   hle_race_q: { value: 12, min: 3, max: 15, step: 1 },             // [외계 보스 4] 거울 속 나와 겨루는 문제 수
   hle_mirror: { value: 1.35, min: 0.5, max: 2, step: 0.05 },        // [외계 보스 4] 거울 속 내가 한 문제에 쓰는 시간 배율 (작을수록 빠르다)
   hle_sc_n: { value: 8, min: 2, max: 8, step: 1 },                  // [외계 보스 3 대본] 문장 수
-  hle_sc_time: { value: 120, min: 40, max: 240, step: 5 },          // [외계 보스 3 대본] 전체 제한 시간(초)
+  hle_sc_time: { value: 150, min: 40, max: 240, step: 5 },          // [외계 보스 3 대본] 전체 제한 시간(초)
   hle_sc_base: { value: 2.5, min: 0.5, max: 8, step: 0.1 },         // [외계 보스 3 대본] Ω 눈꺼풀이 다 감기기까지: 기본 시간(초)
   hle_sc_per: { value: 1.0, min: 0.3, max: 3, step: 0.05 },         // [외계 보스 3 대본] 블록 하나마다 더해지는 시간(초)
   hle_sc_show: { value: 1.0, min: 0.3, max: 3, step: 0.1 },         // [외계 보스 3 대본] 쪼개지기 전에 대본이 온전히 보이는 시간(초)

@@ -505,6 +505,8 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     k.poly([[px - 12, y], [px - 6, y - 8 - sus * 8], [px - 3, y], [px, y + 9 + sus * 6], [px + 4, y - 4], [px + 8, y], [px + 8, y + 1.5], [px - 12, y + 1.5]], '#ff5a5a'); k.b.globalAlpha = 1;
     if (live && picked && !E.finalQ) k.SUB(q.conf >= 70 ? `…${q.aiPick + 1}번이다. 왜인지는 모르겠다.` : `…${q.aiPick + 1}번인 것 같다.`, W / 2, HH - 34, 13, '#ffffff', 'center');
     else if (live && scanning) k.SUB('…'.repeat(1 + Math.floor(E.scan * 3)), W / 2, HH - 34, 13, '#ffffff', 'center');
+    if (live && scanning && !E.rising && !E.staff.some(s => s.phase === 'watch' || s.phase === 'tell' || omenOf(s) > 0)) { // 안전할 때: 금빛 줄이 시야를 훑어 내린다
+      const yy = 30 + ((now * 150) % (HH - 70)); k.b.globalAlpha = 0.16; R(0, yy - 7, W, 7, '#ffd678'); k.b.globalAlpha = 0.75; R(0, yy, W, 1.2, '#ffe9a8'); k.b.globalAlpha = 1; }
   }
 }
 // ---- 장비 단계별로 더 붙는 화면: 안경이 좋아질수록 보여 주는 것이 늘어난다 (전부 실제 값만 보여 준다) ----
@@ -788,6 +790,10 @@ function drawExamHud(k, L, E, now, H) {
     k.M('후방', bx + 46, by + 9.5, 7.5, '#ffffff', 'center', 700);
     for (const s of back) { const col = s.phase === 'watch' ? C.bad : s.phase === 'tell' ? C.warn : '#c9c4d8', x = s.side === 'L' ? bx + 14 : bx + 78; k.disc(x, by + 9, 4, col); if (s.phase === 'watch') k.ring(x, by + 9, 6, C.bad); } }
   }
+  if (ST0 === 'brain' && live && !E.boss) for (const sd of ['L', 'R']) { const o = Math.max(0, ...E.staff.filter(s => s.side === sd).map(omenOf)); // 뉴럴링코 '예감': 곧 돌아볼 쪽부터 시야가 붉게 조여 온다
+    if (o > 0) { const beat = 0.8 + 0.2 * Math.sin(now * 12.6), reach = L.W * (0.16 + 0.26 * o) * beat, x0 = sd === 'L' ? 0 : L.W;
+      hudDraw(k, c => { const g = c.createLinearGradient(x0, 0, sd === 'L' ? reach : L.W - reach, 0); g.addColorStop(0, `rgba(150,8,30,${(0.35 + 0.5 * o) * beat})`); g.addColorStop(0.55, `rgba(150,8,30,${0.22 * o})`); g.addColorStop(1, 'rgba(150,8,30,0)'); c.fillStyle = g; c.fillRect(sd === 'L' ? 0 : L.W - reach, 0, reach, L.H); });
+      k.b.globalAlpha = 0.3 + 0.7 * o; k.b.drawImage(lensGlow(sd, '#ff3a52'), 0, 0); k.b.globalAlpha = 1; } }
   if (pl > 0 && live && E.layout === 'room') {
     for (const sd of ['L', 'R']) {
       const st = E.staff.filter(s => s.side === sd && s.phase !== 'cross' && !s.out && !(s.blink > 0) && !s.fixed);

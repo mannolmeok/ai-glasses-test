@@ -605,7 +605,9 @@ function startExam(ti) {
   return true;
 }
 function WORLD_LAYOUT(T) { return T.room === 'home' ? 'home' : T.layout === 'table' ? 'table' : 'room'; }
-function setPhase(s, ph, dur) { s.phase = ph; s.t = 0; s.dur = dur; }
+const OMEN_T = 0.6;
+function omenOf(s) { return s.pre === true && (s.phase === 'stand' || s.phase === 'walk') && !s.out && !(s.blink > 0) ? clamp(1 - (s.dur - s.t) / OMEN_T, 0, 1) : 0; } // 0~1: 곧 돌아본다는 예감의 세기
+function setPhase(s, ph, dur) { s.phase = ph; s.t = 0; s.dur = dur; s.pre = null; }
 function tellTime(s, T) { return T.tell + G.gear.predict * tune.predict_bonus + (s.type === 'reaper' ? G.gear.candle * tune.candle_bonus : 0); }
 function footstep(s, near1) {
   if (s.type === 'reaper' || s.type === 'omega' || s.type === 'webcam') return; // 저승사자는 발소리가 없다
@@ -680,10 +682,11 @@ function stepStaff(s, T, dt) {
     }
     if (s.stepT >= tune.footstep_gap) { s.stepT = 0; footstep(s); }
   }
+  if ((s.phase === 'stand' || s.phase === 'walk') && s.pre == null && s.dur - s.t <= OMEN_T) s.pre = rng() < (s.phase === 'stand' ? 0.38 : 0.5); // 돌아볼지를 0.6초 먼저 정해 둔다: 뉴럴링코의 '예감'이 이걸 느낀다
   if (s.t < s.dur) return;
-  const r = rng(), tell = tellTime(s, T), warp = T.mech.includes('teleport') && s.type === 'reaper';
+  const pre = s.pre, r0 = rng(), r = s.phase === 'stand' && pre === false ? 0.38 + r0 * 0.62 : r0, tell = tellTime(s, T), warp = T.mech.includes('teleport') && s.type === 'reaper';
   if (s.phase === 'stand') {
-    if (r < 0.38) setPhase(s, 'tell', tell);
+    if (pre != null ? pre : r < 0.38) setPhase(s, 'tell', tell);
     else if (warp) teleport(s, T);
     else if (r < 0.38 + 0.62 * T.cross) { // 가까운 끝(앞·뒤)까지 걸어가서 반대편 통로로 건너간다
       s.from = s.side; s.crossEnd = s.u > 0.42 ? 'front' : 'back';
@@ -692,7 +695,7 @@ function stepStaff(s, T, dt) {
     }
     else { setPhase(s, 'walk', procDur(T.walk)); if (rng() < 0.5) s.dir *= -1; }
   } else if (s.phase === 'walk') {
-    if (r < 0.5) setPhase(s, 'tell', tell);
+    if (pre != null ? pre : r < 0.5) setPhase(s, 'tell', tell);
     else { setPhase(s, 'stand', procDur(T.stand)); s.away = rng() < 0.5; }
   } else if (s.phase === 'tell') {
     if (r < T.feint) { setPhase(s, 'stand', procDur(T.stand) * 0.6); s.away = rng() < 0.5; }
@@ -1034,6 +1037,8 @@ function updateExam(dt) {
   E.timeLeft -= dt * warp; E.clockT += dt;
   if (E.timeLeft <= 0) { E.timeLeft = 0; endPart(false); return; }
   for (const s of E.staff) if (!s.bossCtl) stepStaff(s, T, dt * warp); // 보스가 움직이는 감독관은 보스 쪽에서
+  if (E.ar && !E.boss && !E.dead && hudStage(E) === 'brain') { // 뉴럴링코 '예감': 돌아보기 직전에 심장이 먼저 뛴다
+    if (E.staff.some(s => omenOf(s) > 0)) { E.omenB = (E.omenB || 0) - dt; if (E.omenB <= 0) { E.omenB = 0.5; toneAt(62, 0.1, 'sine', 0.3, 0); toneAt(52, 0.13, 'sine', 0.24, 0.16); } } else E.omenB = 0; }
   if (E.labSay) { E.labSay.t += dt; if (E.labSay.t > 2.2) E.labSay = null; }
   if (E.gasp > 0) E.gasp -= dt;
   if (M_.includes('spin')) E.roll = Math.sin(E.clockT * 0.55) * 0.42 + Math.sin(E.clockT * 1.3) * 0.08; // 회전 장치: 화면이 기운다
