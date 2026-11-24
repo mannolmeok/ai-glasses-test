@@ -514,11 +514,12 @@ window.CONFIG = {
     from: { stand: [1.15, 2.0], walk: [0.75, 1.3], tell: 0.4, watch: 2.9, speed: 0.17, cross: 0.4, feint: 0.42, sus: 1.6 },
     to: { stand: [0.9, 1.6], walk: [0.6, 1.0], tell: 0.32, watch: 3.3, speed: 0.21, cross: 0.45, feint: 0.5, sus: 1.8 },
     add: {
-      mars: { sec: ['cctv'] },                                                   // 기지 감시 카메라
+      galaxy: { staff: [{ type: 'alien', name: '은하 감독관' }] },
+      mars: { sec: ['cctv'], staff: [{ type: 'agent', name: '이주 관리관' }] },                                                   // 기지 감시 카메라
       sea: { staff: [{ type: 'don2', name: '자라 감독관' }] },                     // [용궁] 감독관 하나 더 (전파 장치는 물속 신호와 겹쳐서 뺌)
       dream: { mech: ['mole'], staff: [{ type: 'homeroom', name: '또 한 명의 담임' }] }, // 꿈속: 같은 선생님이 둘
       loop: { sec: ['cctv'], staff: [{ type: 'dean', name: '시험 관리관' }] },
-      multi: { mech: ['drone'] },
+      multi: { mech: ['drone'], staff: [{ type: 'alien', name: '다른 우주의 감독관' }] },
       mirror: { sec: ['cctv'] },
       telepathy: { sec: ['pulse'], staff: [{ type: 'alien', name: '독심 감독관' }] }, // 뇌파 탐지 · 마음 읽는 감독관 하나 더
       aicourt: { mech: ['drone'] },

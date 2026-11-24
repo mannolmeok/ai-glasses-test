@@ -659,6 +659,12 @@ function drawLabFx(k, L, E, now, live) {
   if (Mm.includes('mirror') && live) M('좌우 반전', W / 2, 30, 8, '#ffffff', 'center', 700);
   if (Mm.includes('telepathy') && live) { const on = E.ai && !E.fb; if (on) { const rd = E.mindRead, c = rd ? '#ff6a6a' : '#e0c8ff'; b.globalAlpha = 0.6; R(W / 2 - 96, 50, 192, 20, '#1a1028'); b.globalAlpha = 1; k.frame(W / 2 - 96, 50, 192, 20, c, 1); M(rd ? '생각을 읽히는 중!' : '답을 떠올리는 중 · 보이면 읽힌다', W / 2, 60.5, 8, c, 'center', 700); } }
   if (Mm.includes('warp') && live) { const w = E.warp || 1, c = w > 1.4 ? '#ff6a6a' : w < 0.8 ? '#8fe6ff' : '#ffffff'; M(`시간 ×${w.toFixed(1)}`, W / 2, 30, 11, c, 'center', 700); if (w > 1.4) { b.globalAlpha = 0.1; R(0, 0, W, HH, '#ff5a3a'); b.globalAlpha = 1; } else if (w < 0.8) { b.globalAlpha = 0.12; R(0, 0, W, HH, '#3a8aff'); b.globalAlpha = 1; } }
+  if (E.hz && live) { const h = E.hz, w = h.phase === 'warn', on = h.phase === 'on' || h.phase === 'grab';
+    if (h.kind === 'lift') { if (w) k.SUB('(시험지가 떠오르려 한다…)', W / 2, HH - 70, 12, '#ffffff', 'center'); else if (on) { b.globalAlpha = 0.12; R(0, 0, W, HH, '#8fd0ff'); b.globalAlpha = 1; M(h.phase === 'grab' ? '잡는 중…' : STATE.touchUI ? '시험지가 떠올랐다 · 손을 뗐다가 다시 눌러 잡기' : '시험지가 떠올랐다 · 스페이스를 뗐다가 다시 눌러 잡기', W / 2, 80, 10, '#ffffff', 'center', 700); } }
+    else if (h.kind === 'dead') { if (w || on) { b.globalAlpha = w ? 0.1 + 0.08 * Math.sin(now * 22) : 0.2; R(0, 0, W, HH, '#c8743a'); b.globalAlpha = 1; } if (w) k.SUB('(모래폭풍이 몰려온다…)', W / 2, HH - 70, 12, '#ffffff', 'center'); }
+    else if (h.kind === 'watch') { if (w) M(h.wt, W / 2, 80, 10, '#ffe08a', 'center', 700); else if (on) { b.globalAlpha = 0.1; R(0, 0, W, HH, '#ff5a3a'); b.globalAlpha = 1; M(h.ot, W / 2, 80, 10, '#ff6a6a', 'center', 700); } }
+    else if (h.kind === 'sweep' && (w || on)) { const u = w ? 0.5 * (1 - h.t / h.warn) : 0.5 + 0.5 * (1 - h.t / h.dur), x = Math.round(W * u); b.globalAlpha = 0.16; R(x - 14, 0, 28, HH, '#ff3a3a'); b.globalAlpha = 0.9; R(x - 1, 0, 2, HH, '#ff4a4a'); b.globalAlpha = 1; M(on ? '전수 스캔 통과 중' : '전수 스캔이 다가온다', W / 2, 80, 10, on ? '#ff6a6a' : '#ffe08a', 'center', 700); } }
+  if (Mm.includes('telepathy') && live && E.noise != null) { const x = 20, y = HH - 96, w = 92, v = E.noise, c = v > 0.7 ? '#ff6a6a' : '#e0c8ff'; b.globalAlpha = 0.55; R(x, y, w, 7, '#1a1028'); b.globalAlpha = 1; R(x, y, Math.round(w * v), 7, c); k.frame(x, y, w, 7, c, 1); M('생각 소음', x, y - 7, 7.5, '#ffffff', 'left', 700); }
   if (Mm.includes('spin') && live) { const r = E.roll || 0, cx = 70, cy = HH - 90; b.globalAlpha = 0.5; k.disc(cx, cy, 24, '#061018'); b.globalAlpha = 1; k.ring(cx, cy, 24, '#ffffff'); k.line(cx - Math.cos(r) * 20, cy - Math.sin(r) * 20, cx + Math.cos(r) * 20, cy + Math.sin(r) * 20, Math.abs(r) > 0.25 ? '#ff6a6a' : '#9dff8a', 2); M(`기울기 ${Math.round(Math.abs(r) * 57)}°`, cx, cy + 34, 7.5, '#ffffff', 'center', 700); }
   if (E.labSay && !E.caught) k.SUB(E.labSay.text, W / 2, HH - 94, 12, '#ffffff', 'center');
 }
@@ -669,7 +675,7 @@ function drawDeadHud(k, L, E, now, ST, sec) {
   for (let i = 0; i < 5; i++) { const h = Math.abs(Math.sin(i * 12.9898 + Math.floor(now * 9) * 78.233) * 43758.5453) % 1; b.globalAlpha = 0.18; k.R(0, Math.floor(h * HH), W, 1, '#c9d4e0'); } b.globalAlpha = 1;
   k.SUB(E.finalQ ? '--:--' : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, W - 62, 44, 13, low ? '#ff6a6a' : '#ffffff', 'right'); k.SUB(`${Math.min(E.qi + 1, E.qs.length)} / ${E.qs.length}`, W - 62, 60, 9, '#e8e4da', 'right');
   if (ST === 'brain') { k.SUB('…머릿속이 조용하다.', W / 2, 60, 11, '#f0ece2', 'center'); return; }
-  if (Math.floor(now * 1.5) % 2 === 0) k.M(E.dead === 'water' ? '침수 감지 · 전원 차단' : E.dead === 'bolt' ? '낙뢰 · 재부팅 중' : '— NO SIGNAL —', W / 2, 44, 10, '#ff6a6a', 'center', 700);
+  if (Math.floor(now * 1.5) % 2 === 0) k.M(E.dead === 'water' ? '침수 감지 · 전원 차단' : E.dead === 'storm' ? '모래폭풍 · 전원 차단' : E.dead === 'bolt' ? '낙뢰 · 재부팅 중' : '— NO SIGNAL —', W / 2, 44, 10, '#ff6a6a', 'center', 700);
 }
 function drawCounterFx(k, L, E, now, live) {
   const W = L.W, HH = L.H, b = k.b, T = E.T, p = E.pulse;
@@ -928,7 +934,7 @@ function drawExamOverlays(k, L, E, now, H) {
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
-      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '숨이 막혀 허우적거림', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음', call: '세 번 부를 때까지 돌아보지 않음', ghost: '물이 떨어지는 쪽을 올려다봄' }[E.caughtHow] || `${who.name}에게 걸림`;
+      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', mirror: '거울에 비친 감독관에게 들킴', sweep: '전수 스캔에 걸림', noise: '생각이 새어 나감', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '숨이 막혀 허우적거림', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음', call: '세 번 부를 때까지 돌아보지 않음', ghost: '물이 떨어지는 쪽을 올려다봄' }[E.caughtHow] || `${who.name}에게 걸림`;
     drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
     k.SUB(`${who.name}: ${CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
     k.SUB(why, L.W / 2, L.H - 42, 9, '#e8e4da', 'center');

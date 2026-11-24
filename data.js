@@ -900,7 +900,7 @@ function makeQuestions(rng, tier, part = 0, used = null) {
     if (tier.essay && i === tier.qn - 1) { out.push(essayQ(rng, part)); continue; } // 교시의 마지막 문제는 서술형
     let q = null;
     for (let t = 0; t < 40; t++) { // 한 시험 안에서(교시가 바뀌어도) 같은 문제가 다시 나오지 않게 다시 뽑는다
-      q = tier.listen && n < tier.listen ? GEN.toeicLC(rng) : GEN[tier.gen](rng, false, n);
+      q = tier.listen && n < tier.listen ? GEN.toeicLC(rng) : (tier.mech.includes('human') && n % 2 === 1 ? GEN.mars : GEN[tier.gen])(rng, false, n); // [인간 인증] 한 문제 걸러 사람이 못 푸는 계산 문제
       const ch = q.choices || [], keys = [q.q + '|' + [...ch].map(String).sort().join('/')];
       if (q.answer >= 0 && ch.length) keys.push(q.q + '|' + ch[q.answer]);
       if (!used || q.kind === 'alien' || q.kind === 'captcha' || !keys.some(k => used.has(k))) { if (used) keys.forEach(k => used.add(k)); break; }
