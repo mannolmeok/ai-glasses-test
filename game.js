@@ -605,6 +605,7 @@ function startExam(ti) {
   return true;
 }
 function WORLD_LAYOUT(T) { return T.room === 'home' ? 'home' : T.layout === 'table' ? 'table' : 'room'; }
+const BREATH_BTN = { x: 20, y: 286, w: 92, h: 26 }; // [용궁] 숨쉬기 버튼 (렌즈 화면 좌표)
 const OMEN_T = 0.6;
 function omenOf(s) { return s.pre === true && (s.phase === 'stand' || s.phase === 'walk') && !s.out && !(s.blink > 0) ? clamp(1 - (s.dur - s.t) / OMEN_T, 0, 1) : 0; } // 0~1: 곧 돌아본다는 예감의 세기
 function setPhase(s, ph, dur) { s.phase = ph; s.t = 0; s.dur = dur; s.pre = null; }
@@ -850,6 +851,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
 }
 function markAnswer(i, how) { // 정답인지는 시험이 끝날 때까지 모른다
   if (!E || E.fb || E.caught || E.over || E.start > 0 || E.breakT > 0 || i < 0 || i > 3) return;
+  if (E.breathing) return; /* [용궁] 숨 쉬는 동안은 손이 묶인다 */
   if (E.qs[E.qi].kind === 'essay' && how !== 'essay') return; // 서술형은 다 옮겨 써야 답이 된다
   if (E.qs[E.qi].kind === 'speak' && how !== 'speak') return; // 면접은 끝까지 말해야 답이 된다
   if (how !== 'auto' && how !== 'speak' && (E.view !== 'paper' || E.viewT < 1)) { if (how === 'key' && E.layout !== 'table') setView('paper'); return; } // 시험지를 보고 있어야 마킹 (숫자 키는 먼저 고개를 숙인다)
@@ -1066,7 +1068,7 @@ function updateExam(dt) {
     if (safe) { E.unsafeT = 0; if (E.view === 'front') setView('paper'); } else E.unsafeT += dt;
     autoHold = onPaper && (safe || E.unsafeT < autoDelayAt(g.autoscan));
   }
-  const hold = (manual || autoHold) && !E.ai && !E.fb && !E.dead && !(E.gasp > 0); // 장비가 먹통이면 아무리 눌러도 스캔되지 않는다
+  const hold = (manual || autoHold) && !E.ai && !E.fb && !E.dead && !(E.gasp > 0) && !E.breathing; // 장비가 먹통이면 아무리 눌러도 스캔되지 않는다
   E.tryHold = !!E.dead && manual;
   const essay = q.kind === 'essay', table = E.layout === 'table', blind = table && E.staff.some(s => s.fixed && s.phase === 'watch'); // 면접관이 보는 동안은 읽히지 않는다
   if (essay) { // 서술형: 한 줄 읽기(위험) → 그 줄 옮겨 쓰기(안전). 읽은 줄은 손을 떼고 있으면 잊는다
@@ -1124,7 +1126,14 @@ function updateExam(dt) {
   }
   if (hold && !E.wasHold && M_.includes('lookcount') && !E.ai && !E.fb) { E.looks = (E.looks || 0) + 1; if (E.looks > (T.lookLimit || 10)) { E.sus = 1; E.source = { how: 'looks', by: E.staff[0] }; getCaught(); return; } } // 홈에디션: 고개를 숙일 때마다 시선 이탈 1회. 한도를 넘으면 적발
   if (hold && !E.wasHold && M_.includes('loop')) { const t = E.partT || 0; E.loopNow.push(t); if ((E.loopLog || []).some(a => a.some(v => Math.abs(v - t) < 1.2))) { E.sus = Math.min(1, E.sus + 0.34); E.source = { how: 'loop', by: E.staff[0] }; E.labSay = { text: '담임 선생님: "지난번에도 딱 이때 숙였지."', t: 0 }; sfx.pulse(); } }
-  if (M_.includes('breath')) { E.breath = clamp((E.breath == null ? 1 : E.breath) + (hold ? -dt / 4.5 : dt / 3), 0, 1); if (E.breath <= 0 && hold) { E.breath = 0.25; E.gasp = 1.6; E.sus = Math.min(1, E.sus + 0.3); E.source = { how: 'breath', by: E.staff[0] }; E.labSay = { text: '(숨이 터졌다. 공기 방울이 솟는다!)', t: 0 }; sfx.bubble(); } }
+  if (M_.includes('breath')) { // [용궁] 숨은 시험 내내 줄고 저절로 차지 않는다. 숨 쉬기는 따로 하는 동작이고 그동안은 스캔도 답 표시도 못 한다 → 감독관이 볼 때 숨 쉬고, 안 볼 때 스캔한다
+    if (E.breath == null) E.breath = 1;
+    const BR = BREATH_BTN, want = pressed('KeyB') || taps.some(([x, y]) => x >= BR.x && x <= BR.x + BR.w && y >= BR.y && y <= BR.y + BR.h);
+    if (E.breathing) { E.breathing.t += dt; E.breath = Math.min(1, E.breath + dt / tune.sea_breath_time * (1 - E.breathing.from)); if (E.breathing.t >= tune.sea_breath_time) { E.breath = 1; E.breathing = null; } }
+    else { E.breath = Math.max(0, E.breath - dt / (hold ? tune.sea_breath_scan : tune.sea_breath_idle)); if (want && E.breath < 0.97 && !(E.gasp > 0) && !E.fb) { E.breathing = { t: 0, from: E.breath }; sfx.bubble(); } }
+    E.jam = E.breath < 0.3 ? 1.6 : 1; // 숨이 모자라면 머리가 멍해져 스캔이 느려진다
+    if (E.breath <= 0 && !E.breathing) { E.breath = 0.4; E.gasp = tune.sea_flail; E.sus = Math.min(1, E.sus + 0.15); E.source = { how: 'breath', by: E.staff[0] }; E.labSay = { text: '(숨이 막혀 허우적거린다. 모두가 돌아본다!)', t: 0 }; sfx.bubble();
+      for (const s of E.staff) if (!s.out && !s.fixed && s.phase !== 'check' && s.phase !== 'help' && s.phase !== 'peek') { setPhase(s, 'watch', tune.sea_flail); s.away = false; } } }
   if (M_.includes('helmet')) E.fog = clamp((E.fog || 0) + (hold ? dt / 3.2 : -dt / 2.2), 0, 1);
   const peeker = E.staff.find(s => s.phase === 'peek' && s.peek.stage === 'stare');
   if (E.mole && E.mole.phase === 'look' && E.mole.k > 0.25 && risky) { E.sus = 1; E.source = { how: 'mole', by: E.staff[0] }; getCaught(); return; } // 돌아본 앞자리와 눈이 마주친 채 스캔하면 끝 (책상 밑 감시와 같은 규칙)

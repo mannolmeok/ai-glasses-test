@@ -641,8 +641,13 @@ function drawLabFx(k, L, E, now, live) {
     b.globalAlpha = 0.9; for (const [x, w] of [[0, 26], [W - 26, 26]]) R(x, 0, w, HH, '#1a1410'); R(0, 0, W, 16, '#1a1410'); R(0, HH - 14, W, 14, '#1a1410'); b.globalAlpha = 1; // 헬멧 테두리
     if (live) meter(`헬멧 김 서림 ${Math.round(f * 100)}%`, f, f > 0.6 ? '#ff6a6a' : '#ffffff'); }
   if (Mm.includes('breath')) { b.globalAlpha = 0.2; R(0, 0, W, HH, '#0a6a8a'); b.globalAlpha = 0.07; for (let i = 0; i < 6; i++) R(0, Math.round((now * 14 + i * 60) % HH), W, 10, '#bff4ff'); b.globalAlpha = 1;
-    const n = E.holding ? 5 : E.gasp > 0 ? 26 : 2; for (let i = 0; i < n; i++) { const h = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1, x = (E.gasp > 0 ? W / 2 - 120 + h * 240 : 60 + h * (W - 120)), y = HH - ((now * (40 + h * 60) + h * 400) % (HH + 40)); b.globalAlpha = 0.55; k.ring(x, y, 3 + Math.round(h * 4), '#e8fbff'); } b.globalAlpha = 1;
-    if (live) meter(E.gasp > 0 ? '숨 고르는 중' : `숨 ${Math.round((E.breath == null ? 1 : E.breath) * 100)}%`, E.breath == null ? 1 : E.breath, (E.breath || 1) < 0.3 ? '#ff6a6a' : '#8fe6ff'); }
+    const n = E.breathing ? 14 : E.holding ? 5 : E.gasp > 0 ? 26 : 2; for (let i = 0; i < n; i++) { const h = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1, x = (E.gasp > 0 ? W / 2 - 120 + h * 240 : 60 + h * (W - 120)), y = HH - ((now * (40 + h * 60) + h * 400) % (HH + 40)); b.globalAlpha = 0.55; k.ring(x, y, 3 + Math.round(h * 4), '#e8fbff'); } b.globalAlpha = 1;
+    const br = E.breath == null ? 1 : E.breath;
+    if (br < 0.5) { const d = (0.5 - br) * 2; b.save(); b.setTransform(S, 0, 0, S, 0, 0); const gr = b.createRadialGradient(W / 2, HH * 0.55, Math.max(30, 270 * (1 - d * 0.75)), W / 2, HH * 0.55, 390); gr.addColorStop(0, 'rgba(2,10,22,0)'); gr.addColorStop(1, `rgba(2,10,22,${Math.min(0.97, 0.45 + d * 0.6)})`); b.fillStyle = gr; b.fillRect(0, 0, W, HH); b.restore(); } // 숨이 모자라면 시야가 가장자리부터 좁아진다
+    if (live) { const BR = BREATH_BTN, on = !!E.breathing, low = br < 0.3;
+      meter(E.gasp > 0 ? '허우적거리는 중' : on ? '숨 쉬는 중' : `숨 ${Math.round(br * 100)}%`, br, low ? '#ff6a6a' : '#8fe6ff', BR.x + 2, BR.y - 8, BR.w - 4);
+      b.globalAlpha = on ? 0.9 : 0.6; R(BR.x, BR.y, BR.w, BR.h, on ? '#1d6f8c' : '#06202c'); b.globalAlpha = 1; k.frame(BR.x, BR.y, BR.w, BR.h, low && Math.floor(now * 5) % 2 ? '#ff6a6a' : '#8fe6ff', 1);
+      M(STATE.touchUI ? '숨쉬기' : '숨쉬기  B', BR.x + BR.w / 2, BR.y + BR.h / 2 + 0.5, 9, '#ffffff', 'center', 700); } }
   if (Mm.includes('signal')) drawSeaSignal(k, L, E, now, live, meter); // [용궁] 물속 신호
   if (Mm.includes('dream')) { const t = E.dreamT == null ? 9 : E.dreamT, near = t < 1.4; b.globalAlpha = 0.14 + (near ? 0.16 : 0); R(0, 0, W, HH, '#b48aff'); b.globalAlpha = 1;
     if (near) for (let y = 0; y < HH; y += 6) { b.globalAlpha = 0.25; R(Math.round(Math.sin(now * 9 + y * 0.12) * 10), y, W, 2, '#ffffff'); } b.globalAlpha = 1;
@@ -923,7 +928,7 @@ function drawExamOverlays(k, L, E, now, H) {
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
-      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '공기 방울이 솟음', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음', call: '세 번 부를 때까지 돌아보지 않음', ghost: '물이 떨어지는 쪽을 올려다봄' }[E.caughtHow] || `${who.name}에게 걸림`;
+      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '숨이 막혀 허우적거림', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음', call: '세 번 부를 때까지 돌아보지 않음', ghost: '물이 떨어지는 쪽을 올려다봄' }[E.caughtHow] || `${who.name}에게 걸림`;
     drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
     k.SUB(`${who.name}: ${CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
     k.SUB(why, L.W / 2, L.H - 42, 9, '#e8e4da', 'center');

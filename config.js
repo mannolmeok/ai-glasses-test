@@ -167,6 +167,10 @@ window.CONFIG = {
   call_step_max: { value: 2.4, min: 0.5, max: 5, step: 0.1 },      // [저승] 첫·둘·셋째 부름 사이 최대(초)
   call_tail: { value: 1.1, min: 0.3, max: 3, step: 0.1 },          // [저승] 셋째 부름 뒤 돌아볼 마지막 여유(초)
   call_look: { value: 0.2, min: 0, max: 1, step: 0.05 },           // [저승] 그 사자 쪽을 이만큼 보고 있어야 부름이 끝난다(초)
+  sea_breath_idle: { value: 26, min: 8, max: 90, step: 1 },         // [용궁] 가만히 있을 때 숨이 바닥나기까지(초). 저절로 차지 않는다
+  sea_breath_scan: { value: 9, min: 3, max: 40, step: 0.5 },        // [용궁] 스캔하는 동안 숨이 바닥나기까지(초)
+  sea_breath_time: { value: 1.5, min: 0.5, max: 4, step: 0.1 },     // [용궁] 숨 쉬는 동작의 길이(초). 그동안 스캔·답 표시 불가
+  sea_flail: { value: 3, min: 1, max: 8, step: 0.5 },               // [용궁] 숨이 바닥나 허우적거릴 때 감독관 전원이 나를 보는 시간(초)
   ghost_gap_min: { value: 8, min: 3, max: 40, step: 0.5 },         // [저승] 망자가 다시 내 자리로 오기까지 최소(초)
   ghost_gap_max: { value: 14, min: 3, max: 40, step: 0.5 },        // [저승] 망자가 다시 내 자리로 오기까지 최대(초)
   ghost_stay_min: { value: 2.6, min: 0.5, max: 8, step: 0.1 },     // [저승] 내 자리 위에서 물을 떨어뜨리는 시간 최소(초)
@@ -361,7 +365,7 @@ window.CONFIG = {
     mars: { slot: 20, act: 3, name: '화성 이주 자격시험', subject: '생존 수학', gen: 'mars', qn: 10, time: 120, room: 'mars', sec: [], mech: ['helmet'], staff: [{ type: 'suneung', name: '이주 관리관' }, { type: 'agent', name: '이주 관리관' }], head: ['Mars Settler Qualification', 'Survival Mathematics'], lines: ['화성 이주 자격시험', '헬멧을 벗지 마시오'],
       how: '우주복을 입고 본다 · 숨을 쉴수록 헬멧에 김이 서린다', beat: '스캔하는 동안 김이 서려 느려지고 앞이 안 보인다. 짧게 끊어 읽고, 김이 걷히길 기다린다' },
     sea: { slot: 21, act: 3, name: '용궁 과거시험', subject: '시무책', gen: 'psat', qn: 10, time: 130, room: 'sea', sec: [], mech: ['breath', 'signal'] /* [용궁] 무중력 흔들림 대신 물속 신호 */, staff: [{ type: 'don', name: '거북 감독관' }, { type: 'don2', name: '잉어 감독관' }], head: ['용궁 과거시험', '시무책'], lines: ['용궁 과거시험', '숨은 알아서 참으시오'],
-      how: '물속 · 수면 부표의 AI 신호가 물결 따라 세졌다 약해진다', beat: '신호가 약하면 스캔이 느리고, 해류가 지나가면 끊긴다. 감독관이 안 볼 때와 신호가 좋을 때가 겹칠 때 읽는다. 스캔하는 동안 숨을 쓰니 숨이 바닥나기 전에 쉰다' }, // [용궁]
+      how: '물속 · 수면 부표의 AI 신호가 물결 따라 세졌다 약해진다', beat: '신호가 약하면 스캔이 느리고, 해류가 지나가면 끊긴다. 감독관이 안 볼 때와 신호가 좋을 때가 겹칠 때 읽는다. 숨은 계속 줄고 저절로 차지 않는다. 숨쉬기(B)는 1.5초 걸리고 그동안 스캔을 못 하니, 감독관이 볼 때 숨을 쉬고 안 볼 때 읽는다. 숨이 바닥나면 허우적거려 모두가 돌아본다' }, // [용궁]
     dream: { slot: 21, act: 3, name: '꿈속 시험', subject: '기억나지 않는 과목', gen: 'dream', qn: 8, time: 110, room: 'dream', sec: [], mech: ['dream'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['꿈속 시험', '기억나지 않는 과목'], lines: ['꿈속 시험', '눈을 떼면 바뀐다'],
       how: '보는 사이에 보기 순서가 바뀐다', beat: '화면이 일렁이면 곧 바뀐다. 바뀌기 전에 읽고 바로 마킹한다. 바뀌면 처음부터 다시 읽는다' },
     loop: { slot: 22, act: 3, name: '타임루프 재시험', subject: '어제와 같은 시험', gen: 'psat', qn: 5, time: 60, parts: ['1회차', '2회차', '3회차'], room: 'hs', sec: [], pulse: null, mech: ['loop'], staff: [{ type: 'homeroom', name: '담임 선생님' }], head: ['2026학년도 6월 고3 전국연합학력평가', '국어 영역'], lines: ['6월 모의평가', '…또 6월이다'],

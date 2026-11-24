@@ -190,7 +190,7 @@ BOSS.hle = (() => {
     const H = E.H, R = H.tr, t0 = R.t; R.t += dt; const at = s => t0 < s && R.t >= s;
     if (R.kind === 'shatter') { if (at(0.05)) S.rumble(); if (at(0.4)) S.crack(); if (at(0.75)) S.crack(); if (at(1.05)) S.crack(); if (at(1.3)) { S.crack(); S.crack(); }
       if (at(T_BURST)) { S.shatter(); H.flash = 0.55; } for (let i = 0; i < 5; i++) if (at(T_BURST + 1.6 + i * 0.18)) S.blink(); if (at(T_BURST + 3.0)) S.blink(); }
-    else if (R.kind === 'gather') { if (at(0.05)) S.hum(); if (at(0.3)) S.suck(); if (at(1.7)) { S.pop(); H.flash = 0.3; } if (at(2.3)) H.say = { text: 'Ω: "…이번에는 말로 답하십시오."', t: 0, dur: 1.9 }; if (at(3.3)) S.blink(); }
+    else if (R.kind === 'gather') { if (at(0.05)) S.hum(); if (at(0.3)) S.suck(); if (at(1.2)) { S.pop(); H.flash = 0.25; } if (at(2.3)) H.say = { text: 'Ω: "…이번에는 말로 답하십시오."', t: 0, dur: 1.9 }; if (at(3.3)) S.blink(); }
     else if (R.kind === 'mirror') { if (at(0.05)) S.hum(); if (at(0.6)) S.suck(); if (at(1.85)) { S.pop(); H.flash = 0.85; } if (at(3.7)) sfx.ai(); if (at(4.0)) H.say = { text: '"같이 풀자. 누가 먼저인지."', t: 0, dur: 2.4 }; }
     else if (R.kind === 'end') { if (at(0.1)) { S.crack(); H.mirCrack = 1; } if (at(1.3)) H.say = { text: '"…그럼, 마지막 문제."', t: 0, dur: 1.9 }; if (at(3.0)) { sfx.warp(); finalNow(); } }
     if (R.t >= R.dur) H.tr = null;
@@ -218,7 +218,7 @@ BOSS.hle = (() => {
   }
 
   // ---- 3D: 눈 · 빔 · 파편 · 거울 속 나 ----
-  const W3 = { sc: null }, SCP = 0.2, SCF = 70; // 대본 단계의 시선: Ω가 화면 위쪽에 오도록 고개를 조금만 든다
+  const W3 = { sc: null }, SCP = 0.5, SCF = 74; // 대본 단계의 시선: Ω가 화면 위쪽에 오도록 고개를 조금만 든다
   function radialTex(Ax, col) { const t = Ax.canvasTex(64, 64, true), g = t.g, gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); t.t.needsUpdate = true; return t.t; }
   function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
   function build(Ax) {
@@ -235,15 +235,24 @@ BOSS.hle = (() => {
       const irisM = Ax.glowMat(0x3a6aff), iris = new THREE.Mesh(irisGeo, irisM); iris.position.z = 0.25; lid.add(iris); const pup = new THREE.Mesh(pupGeo, Ax.glowMat(0x050508)); pup.position.z = 0.256; lid.add(pup);
       const ray = new THREE.Mesh(cg, beamMat(0xff2a3a)); ray.visible = false; ray.frustumCulled = false; sc.add(ray);
       g.visible = false; W3.eyes.push({ g, lid, irisM, ray, home: g.position.clone(), a, open: 0, aim: new THREE.Vector3(MY.x, 0.75, MY.z || 0), ph: rnd() * 6.28, sp: (0.5 + rnd() * 0.7) * (i % 2 ? 1 : -1), rho: 1.3 + rnd() * 1.3, tum: [rnd() * 8 - 4, rnd() * 8 - 4] }); }
-    { // 대본 단계의 면접관: 눈 열여섯 개가 쏜 빛이 겹쳐 그려 내는 거대한 홀로그램 (빛의 혼천의: 수정 심장 · 겹겹이 도는 고리 · 빛기둥)
+    { // 대본 단계의 면접관: 눈 열여섯 개가 쏜 빛이 그려 내는 거대한 석상 홀로그램. 발치에서 올려다본다
       const hm = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }), lm = (c, o) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-      const g = new THREE.Group(); g.visible = false; sc.add(g); const parts = [], add = (m, o) => { m.frustumCulled = false; g.add(m); parts.push({ m, o }); return m; };
-      const core = add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1.0, 0)), lm(0x8fe8ff, 1)), 1), inner = add(new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), hm(0xcff6ff, 0.55)), 0.55), shell = add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1.75, 1)), lm(0x5fc8ff, 0.35)), 0.35);
-      const rings = [2.5, 3.3, 4.2].map((r, j) => { const m = add(new THREE.Mesh(new THREE.TorusGeometry(r, 0.022 + j * 0.006, 4, 72), hm(0x7fe0ff, 0.85)), 0.85); m.rotation.set(0.5 + j * 0.9, j * 1.3, 0); return m; });
-      const tk = []; for (let j = 0; j < 60; j++) { const a = j / 60 * Math.PI * 2, r0 = 5.0, r1 = j % 5 ? 5.18 : 5.5; tk.push(Math.cos(a) * r0, Math.sin(a) * r0, 0, Math.cos(a) * r1, Math.sin(a) * r1, 0); }
-      const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tk), 3)); const ticks = add(new THREE.LineSegments(tg, lm(0x9fe8ff, 0.8)), 0.8);
-      const pillar = add(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.5, 30, 12, 1, true), hm(0x4fb8ff, 0.1)), 0.1);
-      W3.holo = { g, parts, core, inner, shell, rings, ticks, pillar }; }
+      const g = new THREE.Group(); g.visible = false; sc.add(g); const parts = [];
+      const piece = (geo, par, x, y, z, lv, fill = 0.1, line = 0.9) => { const m = new THREE.Mesh(geo, hm(0x7fe0ff, fill)); m.position.set(x, y, z); m.frustumCulled = false; par.add(m); const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), lm(0x9fe8ff, line)); e.frustumCulled = false; m.add(e); parts.push({ m, e, lv, fill, line }); return m; };
+      piece(new THREE.CylinderGeometry(1.0, 2.1, 5.2, 8, 3), g, 0, 2.6, 0, 0);                                   // 옷자락
+      piece(new THREE.CylinderGeometry(1.45, 1.0, 2.3, 8, 1), g, 0, 6.35, 0, 1);                                 // 가슴
+      piece(new THREE.BoxGeometry(4.0, 0.55, 1.3), g, 0, 7.55, 0, 1);                                             // 어깨
+      piece(new THREE.CylinderGeometry(0.32, 0.4, 0.5, 6), g, 0, 8.05, 0, 2);                                     // 목
+      const head = new THREE.Group(); head.position.set(0, 9.3, 0); head.scale.setScalar(1.45); g.add(head);
+      piece(new THREE.IcosahedronGeometry(0.85, 0), head, 0, 0, 0, 2).scale.set(1, 1.25, 1);                      // 얼굴 없는 머리
+      const visor = piece(new THREE.BoxGeometry(1.15, 0.16, 0.25), head, 0, 0.08, 0.72, 2, 0.95, 1);              // 눈 대신 가로로 난 빛의 틈
+      for (let c = 0; c < 5; c++) { const a = (c - 2) * 0.5; piece(new THREE.ConeGeometry(0.13, 0.9 - Math.abs(c - 2) * 0.15, 4), head, Math.sin(a) * 0.62, 1.25 - Math.abs(c - 2) * 0.07, Math.cos(a) * 0.3 - 0.1, 2); } // 관
+      const halo = piece(new THREE.TorusGeometry(1.9, 0.035, 4, 48), g, 0, 9.5, -0.9, 3, 0.9, 0); halo.scale.setScalar(1.4);                 // 머리 뒤의 빛 고리
+      const tk = []; for (let c = 0; c < 48; c++) { const a = c / 48 * Math.PI * 2, r0 = 2.3, r1 = c % 4 ? 2.45 : 2.75; tk.push(Math.cos(a) * r0, Math.sin(a) * r0, 0, Math.cos(a) * r1, Math.sin(a) * r1, 0); }
+      const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tk), 3)); const ticks = new THREE.LineSegments(tg, lm(0x9fe8ff, 0.8)); ticks.position.set(0, 9.5, -0.9); ticks.scale.setScalar(1.4); ticks.frustumCulled = false; g.add(ticks); parts.push({ m: ticks, e: null, lv: 3, fill: 0.8, line: 0 });
+      const arm = sx => { const pv = new THREE.Group(); pv.position.set(sx * 2.0, 7.45, 0); g.add(pv); piece(new THREE.BoxGeometry(0.6, 2.7, 0.6), pv, 0, -1.35, 0, 1); piece(new THREE.BoxGeometry(0.5, 2.3, 0.5), pv, 0, -3.75, 0.1, 1); piece(new THREE.BoxGeometry(0.62, 0.7, 0.3), pv, 0, -5.2, 0.15, 1); return pv; };
+      const armL = arm(-1), armR = arm(1), heart = piece(new THREE.OctahedronGeometry(0.4, 0), g, 0, 6.5, 1.5, 1, 0.8, 1); // 가슴 앞에 뜬 수정: 빛줄기가 모이는 곳
+      W3.holo = { g, parts, head, visor, halo, ticks, armL, armR, heart }; }
     // 큰 눈이 깨질 때: 눈알 위로 번지는 금, 튀는 파편, 충격파
     const om = EX.staff[0]; W3.cr = null;
     if (om && om.head) { const r2 = seeded(31), segs = [], P = new THREE.Vector3(), D = new THREE.Vector3(), N = new THREE.Vector3(), Q = new THREE.Vector3();
@@ -294,19 +303,18 @@ BOSS.hle = (() => {
       if (SC) om.irisMat.color.setHex(mi ? (Math.floor(now * 12) % 2 ? 0x8dffb0 : 0x3a6aff) : !scLive ? 0x3a6aff : SC.st === 'scan' ? (b.k === 2 ? 0xff2e47 : b.k === 1 ? 0xffa030 : 0x3a6aff) : SC.st === 'smash' || SC.st === 'suck' ? 0xff2e47 : SC.st === 'input' && SC.lid > 0.7 ? 0xffa030 : 0x3a6aff);
       if (W3.beam.visible) { const rad = w * 2.1; aimCone(W3.beam, W3.v, W3.v2, rad, (b.k === 2 ? 0.24 : 0.13) * fade); W3.pool.position.set(W3.v2.x, ty + 0.003, tz); W3.pool.scale.setScalar(rad * 1.6); W3.pool.material.opacity = (b.k === 2 ? 1 : 0.75) * fade; }
       if (W3.beamB.visible) { const rad = w * 1.5; W3.v3.set(MX, ty, tz + b2.u * 1.5); aimCone(W3.beamB, W3.v, W3.v3, rad, b2.k === 2 ? 0.26 : 0.14); W3.poolB.position.set(MX, ty + 0.004, W3.v3.z); W3.poolB.scale.setScalar(rad * 1.7); W3.poolB.material.opacity = b2.k === 2 ? 1 : 0.75; } }
-    if (clOn) { const C = W3.cc || (W3.cc = new THREE.Vector3()), Ho = W3.holo; C.set(W3.burst.x, W3.burst.y + 1.3, W3.burst.z - 3.2); /* 홀로그램: 눈들 너머 허공에 거대하게 선다 */
-      const gt = ga ? ga.t - 1.7 : 9, lid = scLive && SC.st === 'input' ? cl(SC.lid, 0, 1) : 0, hot = scLive && ((SC.st === 'scan' && b.k === 2) || SC.st === 'smash' || SC.st === 'suck'), warm = scLive && ((SC.st === 'scan' && b.k === 1) || (SC.st === 'input' && lid > 0.75));
-      let K = 1; if (mi) { const k = ez(cl((mi.t - 0.6) / 1.25, 0, 1)); C.lerp(W3.v2.set(W3.mx, 1.25, W3.mz), k); K = 1 - 0.94 * k; } W3.clK = K;
-      Ho.g.visible = gt >= 0; Ho.g.position.copy(C); Ho.g.scale.setScalar(1.55 * K * (1 + 0.35 * Math.exp(-Math.max(0, gt) * 5) * (ga ? 1 : 0)));
-      const col = hot ? 0xff3a52 : warm ? 0xffb040 : mi ? 0x8dffb0 : 0x7fe0ff, flick = (lid > 0.6 ? 0.55 + 0.45 * Math.sin(now * (20 + lid * 40)) : 1) * (0.9 + 0.1 * Math.sin(now * 3.1)) * (Math.floor(now * 24) % 9 ? 1 : 0.8);
-      const grow = n => ga ? cl((gt - n * 0.28) / 0.35, 0, 1) : 1, left = n => cl((1 - lid) * 5 - (4 - n), 0, 1); /* 시간이 줄수록 바깥 고리부터 하나씩 꺼진다 */
-      Ho.parts.forEach(pp => { pp.m.material.color.setHex(col); });
-      Ho.core.material.opacity = flick; Ho.inner.material.opacity = 0.55 * flick; Ho.shell.material.opacity = 0.35 * flick * grow(1) * left(0.6);
-      Ho.core.rotation.set(now * 0.31, now * 0.47, 0); Ho.inner.rotation.set(-now * 0.9, now * 0.6, 0); Ho.inner.scale.setScalar(1 + 0.18 * Math.sin(now * (hot ? 18 : 2.4))); Ho.shell.rotation.set(now * 0.07, -now * 0.11, 0);
-      Ho.rings.forEach((r, n) => { const v = grow(1 + n) * left(1 + n); r.visible = v > 0.01; r.material.opacity = 0.85 * flick * v; r.rotation.x += (0.006 + n * 0.003) * (n % 2 ? -1 : 1) * (hot ? 4 : 1); r.rotation.y += 0.004 * (hot ? 4 : 1); r.scale.setScalar(0.6 + 0.4 * grow(1 + n)); });
-      { const v = grow(4) * left(4); Ho.ticks.visible = v > 0.01; Ho.ticks.material.opacity = 0.8 * flick * v; Ho.ticks.rotation.z = now * 0.05; Ho.ticks.lookAt(cam.position); Ho.ticks.rotateZ(now * 0.05); }
-      Ho.pillar.material.opacity = (hot ? 0.2 : 0.1) * flick * cl(gt / 0.4, 0, 1);
-      W3.v2.set(MX + b.u * 2.1, ty, tz); if (W3.beam.visible) { const rad = w * 2.1; aimCone(W3.beam, C, W3.v2, rad, b.k === 2 ? 0.24 : 0.13); W3.pool.position.set(W3.v2.x, ty + 0.003, tz); W3.pool.scale.setScalar(rad * 1.6); W3.pool.material.opacity = b.k === 2 ? 1 : 0.75; } }
+    if (clOn) { const C = W3.cc || (W3.cc = new THREE.Vector3()), Ho = W3.holo, HS = 1.9; /* 석상 홀로그램: 눈들 너머에 우뚝 선다. 발은 바닥 아래, 머리는 까마득히 위 */
+      const gt = ga ? ga.t - 1.2 : 9, lid = scLive && SC.st === 'input' ? cl(SC.lid, 0, 1) : 0, watch = scLive && SC.st === 'scan' && b.k === 2, hot = watch || (scLive && (SC.st === 'smash' || SC.st === 'suck')), warm = scLive && ((SC.st === 'scan' && b.k === 1) || (SC.st === 'input' && lid > 0.75));
+      let K = 1; W3.v.set(W3.burst.x, -5.2, W3.burst.z - 3.4); if (mi) { const k = ez(cl((mi.t - 0.6) / 1.25, 0, 1)); W3.v.lerp(W3.v2.set(W3.mx, 1.0, W3.mz), k); K = 1 - 0.97 * k; } W3.clK = K;
+      Ho.g.visible = gt >= 0; Ho.g.position.copy(W3.v); Ho.g.scale.setScalar(HS * K); Ho.g.updateMatrixWorld(true); Ho.heart.getWorldPosition(C);
+      const col = hot ? 0xff3a52 : warm ? 0xffb040 : mi ? 0x8dffb0 : 0x7fe0ff, flick = (lid > 0.6 ? 0.55 + 0.45 * Math.sin(now * (20 + lid * 40)) : 1) * (0.92 + 0.08 * Math.sin(now * 3.1)) * (Math.floor(now * 24) % 11 ? 1 : 0.75);
+      const grow = lv => ga ? cl((gt - lv * 0.45) / 0.5, 0, 1) : 1, left = lv => cl(((1 - lid) - [0.6, 0.35, 0, 0.15][lv]) / 0.15, 0, 1); /* 발치부터 그려지고, 시간이 줄면 옷자락 → 몸 → 빛 고리 → 머리 순으로 꺼진다 */
+      Ho.parts.forEach(pp => { const v = grow(pp.lv) * left(pp.lv) * flick; pp.m.visible = v > 0.01; pp.m.material.color.setHex(col); pp.m.material.opacity = pp.fill * v; if (pp.e) { pp.e.material.color.setHex(col); pp.e.material.opacity = pp.line * v; } });
+      Ho.heart.rotation.set(now * 0.9, now * 1.3, 0); Ho.heart.scale.setScalar(1 + 0.2 * Math.sin(now * (hot ? 18 : 2.4))); Ho.ticks.rotation.z = now * 0.08; Ho.halo.scale.setScalar(1.4 * (1 + 0.03 * Math.sin(now * 1.7)));
+      Ho.head.rotation.x = lerp(Ho.head.rotation.x, scLive && SC.st === 'scan' && !watch ? 0.12 : 0.62, 0.12); Ho.head.rotation.y = lerp(Ho.head.rotation.y, scLive && SC.st === 'scan' && !watch ? cl(b.u, -1.4, 1.4) * 0.55 : 0, 0.12); /* 볼 때는 고개를 숙여 나를 내려다본다 */
+      const sm = scLive && SC.st === 'smash' ? cl(SC.t / 0.16, 0, 1) : 0, up = scLive && SC.st === 'show' ? ez(cl(SC.t / Math.max(0.2, tune.hle_sc_show), 0, 1)) : scLive && SC.st === 'smash' ? 1 - sm : 0; /* 대본이 떠 있는 동안 팔을 치켜들었다가 내리친다 */
+      Ho.armR.rotation.x = lerp(-0.12, -2.7, up) + (sm >= 1 ? -0.5 * Math.max(0, 1 - (SC.t - 0.16) / 0.3) - 0.7 : 0) * (scLive && SC.st === 'smash' ? 1 : 0); Ho.armR.rotation.z = -0.06 - 0.25 * up; Ho.armL.rotation.set(-0.12, 0, 0.06);
+      Ho.head.getWorldPosition(W3.v3); W3.v2.set(MX + b.u * 2.1, ty, tz); if (W3.beam.visible) { const rad = w * 2.1; aimCone(W3.beam, W3.v3, W3.v2, rad, b.k === 2 ? 0.24 : 0.13); W3.pool.position.set(W3.v2.x, ty + 0.003, tz); W3.pool.scale.setScalar(rad * 1.6); W3.pool.material.opacity = b.k === 2 ? 1 : 0.75; } }
     else if (W3.holo) W3.holo.g.visible = false;
     // 금 · 파편 · 충격파
     if (W3.cr) { W3.cr.visible = !!((sh && tau < 0 && sh.t > 0.3) || (SC && omOn)); if (W3.cr.visible) W3.cr.geometry.setDrawRange(0, sh ? 2 * Math.floor(W3.crN * Math.pow(cl((sh.t - 0.3) / (T_BURST - 0.55), 0, 1), 1.6)) : 2 * W3.crN); } /* 다시 뭉친 Ω에는 금이 그대로 남아 있다 */
@@ -317,8 +325,8 @@ BOSS.hle = (() => {
       for (let f = 0; f < S0.n; f++) { C.copy(S0.c[f]).addScaledVector(S0.v[f], drag); C.y -= 0.35 * tau * tau; const ang = S0.w[f] * tau;
         for (let j = 0; j < 3; j++) { const o = f * 9 + j * 3; V.set(S0.base[o] - S0.c[f].x, S0.base[o + 1] - S0.c[f].y, S0.base[o + 2] - S0.c[f].z).applyAxisAngle(S0.ax[f], ang).multiplyScalar(shrink).add(C); a[o] = V.x; a[o + 1] = V.y; a[o + 2] = V.z; } }
       pos.needsUpdate = true; W3.shards.position.copy(W3.burst); W3.shards.scale.setScalar(1.7); W3.shards.material.opacity = cl(1.6 - tau, 0, 1); }
-    const gtau = ga ? ga.t - 1.7 : -9; if (ga && gtau >= 0 && gtau < 0.7) { W3.wave.visible = true; W3.wave.position.copy(W3.burst); W3.wave.lookAt(cam.position); W3.wave.scale.setScalar(1.5 + gtau * 12); W3.wave.material.opacity = 0.7 * (1 - gtau / 0.7); }
-    const wvOn = !!(sh && tau >= 0 && tau < 0.8); if (!ga) W3.wave.visible = wvOn; if (wvOn) { W3.wave.position.copy(W3.burst); W3.wave.lookAt(cam.position); W3.wave.scale.setScalar(1.5 + tau * 16); W3.wave.material.opacity = 0.8 * (1 - tau / 0.8); }
+    const gtau = ga ? ga.t - 1.7 : -9; if (false) { W3.wave.visible = true; W3.wave.position.copy(W3.burst); W3.wave.lookAt(cam.position); W3.wave.scale.setScalar(1.5 + gtau * 12); W3.wave.material.opacity = 0.7 * (1 - gtau / 0.7); }
+    const wvOn = !!(sh && tau >= 0 && tau < 0.8); W3.wave.visible = wvOn; if (wvOn) { W3.wave.position.copy(W3.burst); W3.wave.lookAt(cam.position); W3.wave.scale.setScalar(1.5 + tau * 16); W3.wave.material.opacity = 0.8 * (1 - tau / 0.8); }
     // 눈 열여섯 개: 평소에는 허공을 훑고, 볼 때는 광선이 내 책상으로 모인다
     const eyesOn = !!((E.part === 1 && !(sh && tau < 0)) || clOn), live = E.part === 1 && !R && E.start <= 0 && !E.over;
     let seen = 0, warn = 0;
@@ -326,7 +334,7 @@ BOSS.hle = (() => {
       let st = 0, p = e.home, fly = 1, rays = live;
       if (clOn) { p = e.home; e.g.scale.setScalar(mi ? cl(W3.clK * 1.2, 0, 1) : 1); /* 제자리에 뜬 채 한 점으로 빛을 쏜다: 그 빛이 겹친 곳에 홀로그램이 선다 */
         const shut = scLive && SC.st === 'input' && (NE - 1 - i) < Math.floor(cl(SC.lid, 0, 1) * NE + 0.001); /* 남은 시간: 눈이 하나씩 감기며 빛줄기가 꺼진다 */
-        rays = !shut && (!ga || ga.t > 0.25 + ((i * 5) % NE) * 0.075) && !(mi && mi.t > 1.7);
+        rays = !shut && (!ga || ga.t > 0.2 + ((i * 5) % NE) * 0.06) && !(mi && mi.t > 1.7);
         st = shut ? -1 : !scLive ? 0 : SC.st === 'scan' ? (b.k === 2 ? 3 : b.k === 1 ? 1 : 0) : SC.st === 'smash' || SC.st === 'suck' ? 3 : SC.st === 'input' && SC.lid > 0.75 ? 1 : 0; }
       else if (sh) { const d = (i % 8) * 0.035, q = cl((tau - d) / 1.3, 0, 1); fly = 1 - Math.pow(1 - q, 3); W3.v.copy(W3.burst).lerp(e.home, fly); W3.v.y += Math.sin(fly * Math.PI) * 0.7; p = W3.v; e.g.scale.setScalar(0.35 + 0.65 * fly);
         const o = tau - (1.6 + ((i * 5) % NE) / NE * 0.9); st = fly >= 1 && o > 0 && tau < 3.05 ? 3 : 0; rays = st === 3; } // 자리를 잡으면 차례로 뜬다 → 한꺼번에 감는다
@@ -357,7 +365,7 @@ BOSS.hle = (() => {
     if (R) { let yaw = 0.1, pitch = 0.18, fov = 60;
       if (sh) { if (tau < 0) { const k = cl(sh.t / T_BURST, 0, 1); fov = 60 - 9 * ez(k); pitch = 0.18 + 0.03 * k; } // 천천히 다가간다
         else { const q = ez(cl((tau - 0.9) / 2.3, 0, 1)), jit = Math.max(0, 1 - tau / 0.5) * 0.035; fov = 60 + 8 * Math.exp(-tau * 5) - 9 * Math.exp(-tau * 14); yaw = 0.1 + 0.85 * Math.sin(q * Math.PI * 2) + Math.sin(now * 97) * jit; pitch = 0.2 - 0.1 * Math.sin(q * Math.PI) + Math.sin(now * 113) * jit; } } // 충격으로 흔들리고, 흩어진 눈들을 따라 좌우를 본다
-      else if (ga) { const k = ez(cl(ga.t / 1.7, 0, 1)); fov = 60 - 5 * Math.sin(k * Math.PI) + 5 * Math.exp(-Math.max(0, gtau) * 6) * (gtau >= 0 ? 1 : 0); yaw = 0.1 + 0.45 * Math.sin(k * Math.PI * 2) * (1 - k); const k2 = ez(cl((ga.t - 2.3) / 1.7, 0, 1)); pitch = lerp(0.18, SCP, k2); fov = lerp(fov, SCF, k2); }
+      else if (ga) { const k = ez(cl(ga.t / 1.7, 0, 1)); fov = 60 - 5 * Math.sin(k * Math.PI) + 5 * Math.exp(-Math.max(0, gtau) * 6) * (gtau >= 0 ? 1 : 0); yaw = 0.1 + 0.45 * Math.sin(k * Math.PI * 2) * (1 - k); const k2 = ez(cl((ga.t - 1.0) / 2.6, 0, 1)); /* 석상이 발치부터 그려지는 것을 따라 고개가 들린다 */ pitch = lerp(0.18, SCP, k2); fov = lerp(fov, SCF, k2); }
       else if (R.kind === 'mirror') { const k = ez(cl((R.t - 0.4) / 1.6, 0, 1)); pitch = lerp(SC ? SCP : 0.18, -0.02, k); yaw = lerp(0.1, 0, k); fov = lerp(SC ? SCF : 60, 54, k); }
       else { pitch = -0.02; yaw = 0; fov = 50 + (1 - cl(R.t / 2.5, 0, 1)) * 4; }
       cam.rotation.set(pitch, yaw, 0, 'YXZ'); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); } }
