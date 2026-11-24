@@ -14,7 +14,7 @@
   // ---- 5) 자막 글씨: 넷플릭스(OTT) 모양이 기본. ?sub=orig 원래 자막, ?sub=film|docu|tv|vhs|scope 다른 시안 ----
   const GOTHIC = FONT_SUB, SERIF = '"Noto Serif KR","AppleMyungjo","Apple Myungjo","Noto Serif CJK KR","Batang","바탕",serif';
   const SUBS = { // sh: [x, y, 번짐, 색] (화면 1칸 단위)
-    ott: { font: '"aig-sub",' + GOTHIC, w: 500, k: 1.02, fill: '#ffffff', stroke: 0.9, sCol: 'rgba(0,0,0,0.9)', sh: [0, 0.8, 2.5, 'rgba(0,0,0,0.8)'] }, // 넷플릭스·OTT: 흰 글자, 얇은 테두리 + 옅은 그림자
+    ott: { font: GOTHIC, web: '"aig-sub",', w: 500, k: 1.02, fill: '#ffffff', stroke: 0.9, sCol: 'rgba(0,0,0,0.9)', sh: [0, 0.8, 2.5, 'rgba(0,0,0,0.8)'] }, // 넷플릭스·OTT: 흰 글자, 얇은 테두리 + 옅은 그림자
     film: { font: GOTHIC, w: 400, k: 1.0, fill: '#f2eee4', sp: 0.06, sh: [0, 1, 5, 'rgba(0,0,0,0.95)'], twice: true }, // 극장 영화: 가는 글자, 자간 넓게, 테두리 없이 번진 그림자
     docu: { font: SERIF, w: 500, k: 1.0, fill: '#ffffff', sp: 0.03, sh: [0, 1, 4, 'rgba(0,0,0,0.9)'], twice: true, name: true }, // 다큐: 명조, 말하는 사람 이름은 작게 회색
     tv: { font: GOTHIC, w: 700, k: 0.92, fill: '#ffffff', box: 'rgba(0,0,0,0.66)', pad: [7, 3] }, // 방송 자막: 글자에 맞춘 반투명 검은 상자
@@ -22,17 +22,19 @@
     scope: { font: GOTHIC, w: 500, k: 0.98, fill: '#f6f6f6', band: 'rgba(0,0,0,0.9)' }, // 레터박스: 화면 아래 검은 띠 안에 흰 글자
   };
   const QSUB = Q.get('sub'), SUB = QSUB === 'orig' ? null : SUBS[QSUB] ? QSUB : 'ott';
-  if (SUB === 'ott') { // 자막 글꼴: Pretendard Medium(자주 쓰는 한글 묶음, OFL). 다 받기 전에는 기기 글꼴로 그리고, 받으면 자막만 다시 그린다
-    const css = document.createElement('style');
-    css.textContent = '@font-face{font-family:"aig-sub";src:url(assets/fonts/Pretendard-Medium.subset.woff2?v=1) format("woff2");font-weight:500;font-style:normal;font-display:swap}';
-    document.head.appendChild(css);
-    if (document.fonts && document.fonts.load) document.fonts.load('500 16px "aig-sub"', '자막').then(() => { for (const k of Array.from(TEXT_CACHE.keys())) if (String(k).startsWith('sub2|')) TEXT_CACHE.delete(k); }).catch(() => {});
+  // 자막 글꼴 Pretendard Medium(자주 쓰는 한글 묶음, OFL)은 다 받은 '뒤에만' 쓴다. 아이폰(사파리)은 받는 중인 글꼴로 캔버스에 쓴 글자를
+  // 빈칸으로 그리는데, 그 빈 그림이 글자 캐시에 남으면 그 문구가 계속 안 보인다. 받기 전에는 기기 글꼴로 그리고, 다 받으면 자막만 새로 그린다
+  const SUBF = { ok: false };
+  if (SUBS[SUB] && SUBS[SUB].web && typeof FontFace === 'function' && document.fonts) {
+    const ff = new FontFace('aig-sub', 'url(assets/fonts/Pretendard-Medium.subset.woff2?v=1) format("woff2")', { weight: '500', style: 'normal', display: 'swap' });
+    document.fonts.add(ff);
+    ff.load().then(() => { SUBF.ok = true; for (const k of Array.from(TEXT_CACHE.keys())) if (String(k).startsWith('sub2|')) TEXT_CACHE.delete(k); }).catch(() => {});
   }
   function subCanvas(str, size, col, S, st) {
     const px = size * st.k * S, m = document.createElement('canvas'), g = m.getContext('2d');
     const white = /^#(fff|ffffff|f4f1e8|f2f5ee)$/i.test(col), fill = white ? st.fill : col; // 흰 자막만 시안의 색으로 (빨강·회색처럼 뜻이 있는 색은 그대로)
     let name = null, body = str; if (st.name) { const mm = /^([^:"]{1,12}):\s*(.+)$/.exec(str); if (mm) { name = mm[1]; body = mm[2]; } }
-    const f1 = `${st.w} ${px}px ${st.font}`, f2 = `${st.w} ${px * 0.78}px ${st.font}`;
+    const fam = (st.web && SUBF.ok ? st.web : '') + st.font, f1 = `${st.w} ${px}px ${fam}`, f2 = `${st.w} ${px * 0.78}px ${fam}`;
     const setF = f => { g.font = f; if ('letterSpacing' in g) g.letterSpacing = st.sp ? (st.sp * px).toFixed(1) + 'px' : '0px'; };
     setF(f1); const bw = g.measureText(body).width; let nw = 0; if (name) { setF(f2); nw = g.measureText(name).width + px * 0.45; }
     const tw = Math.ceil(nw + bw), sh = st.sh || [0, 0, 0, 'transparent'], padX = Math.ceil(((st.stroke || 0) + sh[2] + Math.abs(sh[0]) + 2 + (st.box ? st.pad[0] : 0)) * S), padY = Math.ceil(((st.stroke || 0) + sh[2] + Math.abs(sh[1]) + 2 + (st.box ? st.pad[1] : 0)) * S), h = Math.ceil(px * 1.35);
