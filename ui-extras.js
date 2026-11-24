@@ -30,7 +30,7 @@
     K.SUB = function (str, x, y, size, col = '#ffffff', align = 'center') {
       if (CONFIG.sub_style !== 'film') return orig(str, x, y, size, col, align); // 검은 띠 자막은 원래대로 (도트 글꼴)
       str = String(str); size += 2;
-      const S = K.S || HUD_SCALE, dp = size >= 20 ? S : Math.max(1, Math.round(S / 2)), g = S / dp, key = 'subpx|' + str + '|' + size + '|' + col + '|' + S; // 점 하나 = 화면 픽셀 dp개. 큰 자막은 게임 화면 점과 같은 크기, 작은 자막은 그 반쯤
+      const S = K.S || HUD_SCALE, dp = Math.max(1, Math.round(S / 2)), g = S / dp, key = 'subpx|' + str + '|' + size + '|' + col + '|' + S; // 점 하나 = 화면 픽셀 dp개 (게임 화면 점의 반: 도트 느낌은 나고 한글 받침이 뭉개지지 않는 크기)
       let c = TEXT_CACHE.get(key);
       if (!c) { c = subPixel(str, size, col, g); if (TEXT_CACHE.size > 900) TEXT_CACHE.clear(); TEXT_CACHE.set(key, c); }
       const w = c.width / g, h = c.height / g, pd = c.pad / g, q = v => Math.round(v * g) / g; // 점 칸에 맞춰 놓아야 점이 고르게 보인다
