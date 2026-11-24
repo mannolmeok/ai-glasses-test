@@ -119,7 +119,10 @@ window.CONFIG = {
   ib1_time: { value: 75, min: 30, max: 180, step: 1 },             // [해외 보스 1] 제한 시간(초)
   ib1_acc: { value: 0.85, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 1] 통과 정확도
   ib1_stack: { value: 12, min: 6, max: 20, step: 1 },              // [해외 보스 1] 쌓이는 칸 수. 넘치면 맨 아래가 떨어진다
-  ib2_pass: { value: 0.8, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 2] 리듬 면접 통과 정확도
+  ib2_q: { value: 8, min: 3, max: 16, step: 1 },                   // [해외 보스 2] 서류 훔쳐보기: 질문 수
+  ib2_life: { value: 9, min: 4, max: 20, step: 0.5 },              // [해외 보스 2] 첫 질문의 제한 시간(초). 마지막은 70%
+  ib2_scan: { value: 0.9, min: 0.2, max: 3, step: 0.05 },          // [해외 보스 2] 서류 한 장을 읽는 시간(초)
+  ib2_pass: { value: 0.75, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 2] 리듬 면접 통과 정확도
   ib2_window: { value: 0.13, min: 0.05, max: 0.3, step: 0.01 },    // [해외 보스 2] 박자 판정 폭(± 초)
   ib3_q: { value: 18, min: 6, max: 40, step: 1 },                  // [해외 보스 3] 질문 수 (함정 포함)
   ib3_life: { value: 8, min: 3, max: 20, step: 0.5 },              // [해외 보스 3] 첫 질문의 제한 시간(초). 갈수록 짧아진다

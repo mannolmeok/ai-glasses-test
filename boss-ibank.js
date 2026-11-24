@@ -4,7 +4,7 @@
 // 해외 마지막 시험(월가 투자은행 최종 면접)의 3페이즈 보스전. 렌즈 화면·규칙·3D 연출을 이 파일이 맡는다.
 //   1페이즈 프롬프터 속사: 면접관이 고개를 숙인 틈에 길게 눌러 답변 한 문장(블록 8~12개)을 스캔해 채우고(못 읽은 건 ?), 나를 볼 때 와다다 말한다(?는 셋 중 찍기). 보는 중에 스캔을 쥐고 있으면 들킨다
 //   전환: 전무가 일어나 "숫자로 얘기해 보죠." → 조명이 죽고 벽이 시세판으로 켜지며 카메라가 옆으로 빠진다
-//   2페이즈 리듬 면접: 박자에 맞춰 내려오는 노트를 판정선에서. 맞췄나 / 못 맞췄나 둘 중 하나. 면접관이 보는 구간(빨간 띠)은 누르지 않는다
+//   2페이즈 서류 훔쳐보기: 전무가 숫자를 묻고, 답 조각은 세 면접관 앞 서류에 하나씩. 지금 나를 안 보는 사람의 서류를 골라 길게 스캔해 셋을 모은다. 보는 사람을 스캔하면 들킨다
 //   전환: 음악이 끊기고 내가 일어나 발표 화면 앞에 선다 → 카메라가 면접관들 등 뒤로 돈다
 //   3페이즈 질문 공방: 짧은 발표 뒤 질문이 사방에서 생긴다. 안경이 질문을 하나씩 읽어 답변 블록을 만든다.
 //                     답변과 질문을 짝지어(어느 쪽을 먼저 눌러도 됨) 질문의 시간이 다 하기 전에 지운다. 함정 질문에는 아무것도 붙이지 않는다
@@ -15,7 +15,7 @@ window.BOSS = window.BOSS || {};
 BOSS.ibank = (() => {
   const lerp = (a, b, k) => a + (b - a) * k, ez = k => k * k * (3 - 2 * k), cl = (v, a, b) => Math.max(a, Math.min(b, v));
   const KEYS = [['KeyA', 'KeyJ', 'ArrowLeft', 'Digit1'], ['KeyS', 'KeyK', 'ArrowDown', 'Digit2'], ['KeyD', 'KeyL', 'ArrowRight', 'Digit3']];
-  const NAMES = ['프롬프터 속사', '리듬 면접', '질문 공방'];
+  const NAMES = ['프롬프터 속사', '서류 훔쳐보기', '질문 공방'];
   const INKS = { used: '#74ff8e', proto: '#7fe9ff', mil: '#ffb23a', contact: '#7fe9ff', brain: '#ffd678' };
   const RED = '#ff5a5a', AMB = '#ffcf5a', WH = '#f4f8ff';
   const IB_QA = [ // [안경이 붙이는 꼬리표, 질문, 안경이 만든 답]
@@ -118,25 +118,16 @@ BOSS.ibank = (() => {
     P.fx = P.fx.filter(f => (f.t += dt) < 0.5);
   }
 
-  // ---- 2페이즈: 리듬 면접 ----
+  // ---- 2페이즈: 서류 훔쳐보기 ----
+  // 전무가 숫자를 묻는다. 답 조각은 세 면접관 앞 서류에 하나씩. 세 사람은 저마다 서류를 보다가(틈) 고개를 들어 나를 본다.
+  // 지금 나를 안 보는 사람을 골라(왼쪽·가운데·오른쪽을 길게) 그 서류를 스캔한다. 보는 사람을 스캔하면 들킨다. 조각 셋을 모으면 답하고 다음 질문.
+  function fragsOf(it) { let t = it[2].replace(/·/g, ' ').split(/\s+/).filter(Boolean); while (t.length > 3) { t[t.length - 2] += ' ' + t.pop(); } while (t.length < 3) t.unshift(it[0]); return t; }
   function newP2() {
-    const secs = [{ bpm: 96, bars: 8, win: [[5, 1]] }, { bpm: 120, bars: 12, win: [[2, 1], [6, 1], [9, 2]] }, { bpm: 144, bars: 14, win: [[1, 1], [4, 2], [8, 1], [11, 2]] }];
-    const beats = [], notes = [], wins = [], barStart = []; let t = 0, abs = 0;
-    for (let k = 0; k < 4; k++) { beats.push({ t, sec: -1, bar: -1, k, bpm: 96, abs: -1 }); t += 60 / 96; } // 한 마디 세기
-    secs.forEach((Sx, si) => { barStart[si] = []; const bl = 60 / Sx.bpm; for (let bar = 0; bar < Sx.bars; bar++) { barStart[si][bar] = t; for (let k = 0; k < 4; k++) { beats.push({ t, sec: si, bar, k, bpm: Sx.bpm, abs }); t += bl; } abs++; } barStart[si][Sx.bars] = t; });
-    const end = t;
-    let last = [-1, -1]; const lane = () => { for (let n = 0; n < 9; n++) { const v = Math.floor(rng() * 3); if (!(v === last[0] && v === last[1])) { last = [v, last[0]]; return v; } } last = [(last[0] + 1) % 3, last[0]]; return last[0]; };
-    const add = tt => notes.push({ t: tt, lane: lane(), red: false, hit: false, gone: false });
-    for (const b of beats) { if (b.sec < 0) continue; const bl = 60 / b.bpm, lastBar = b.bar === secs[b.sec].bars - 1, r = rng();
-      if (lastBar && b.k === 3) continue; // 구간 끝 마디의 마지막 박은 쉰다 (빨라지기 전 숨)
-      if (b.sec === 0) { if (r < 0.88) add(b.t); if (b.k === 2 && rng() < 0.3) add(b.t + bl / 2); }
-      else if (b.sec === 1) { if (r < 0.58) add(b.t); else if (r < 0.88) { add(b.t); add(b.t + bl / 2); } }
-      else { if (r < 0.75) add(b.t); if (rng() < 0.66) add(b.t + bl / 2); } }
-    secs.forEach((Sx, si) => Sx.win.forEach(([bar, len]) => wins.push({ t0: barStart[si][bar], t1: barStart[si][Math.min(Sx.bars, bar + len)], who: Math.floor(rng() * 3), tell: 60 / Sx.bpm })));
-    for (const n of notes) n.red = wins.some(w => n.t >= w.t0 - 1e-6 && n.t < w.t1 - 1e-6);
-    return { t: 0, beats, notes, wins, end, sched: 0, hit: 0, miss: 0, off: 0, strikes: 0, seen: 0, combo: 0, best: 0, normal: notes.filter(n => !n.red).length, fx: [], lastBeat: -9, beatK: 0, sec: -1, bpm: 96, win: null, tellWin: null, secFlash: 0 };
+    const NQ = Math.round(tune.ib2_q), pool = shuffle(IB_QA.slice()).slice(0, NQ);
+    const qs = pool.map((it, i) => ({ q: it[1], fr: fragsOf(it), prog: [0, 0, 0], who: (i % 2 ? 1 : 0), life: lerp(tune.ib2_life, tune.ib2_life * 0.7, i / Math.max(1, NQ - 1)) }));
+    const gz = [0, 1, 2].map(i => ({ ph: 'idle', t: 0, dur: 0.8 + i * 0.7 }));
+    return { t: 0, qs, NQ, qi: -1, qt: 0, gapT: 1.2, done: 0, lost: 0, strikes: 0, seen: 0, gz, tgt: -1, heldBad: 0, win: null, order: [0, 1, 2], fx: [], said: null, lastBeat: -9, beatN: 0, secFlash: 0, bpm: 108 };
   }
-  function acc2(P, fin) { return P.hit / Math.max(1, (fin ? P.normal : P.hit + P.miss) + P.off); }
   function musicBeat(b, d) {
     const bl = 60 / b.bpm, on = CONFIG.sound.music;
     if (b.sec < 0) { toneAt(b.k === 0 ? 1760 : 1320, 0.03, 'square', 0.04, d); return; }
@@ -148,22 +139,31 @@ BOSS.ibank = (() => {
     toneAt(ch[0], bl * 0.42, 'sawtooth', 0.045, d); toneAt(ch[0] * (b.k % 2 ? 2 : 1), bl * 0.38, 'sawtooth', 0.035, d + bl / 2);
     if (b.k === 0) { [ch[1], ch[2], ch[1] * 2].forEach(f => toneAt(f, bl * 0.9, 'triangle', 0.03, d)); if (b.bar === 0) crashAt(d); }
   }
+  function p2Target(B, P) { // 누구의 서류를 스캔 중인가: 키(왼·가운데·오른쪽) 또는 그 사람 얼굴을 길게 누르기
+    for (let l = 0; l < 3; l++) if (KEYS[l].some(k => down.has(k))) return P.order[l];
+    let best = -1, bd = 80; for (const pt of ptrs.values()) B.heads.forEach((h, i) => { if (!h) return; const d = Math.hypot(pt.x - h.x, pt.y - (h.y + 10)); if (d < bd) { bd = d; best = i; } }); return best;
+  }
   function stepP2(dt, taps) {
-    const B = E.B, P = B.p2, W = tune.ib2_window; P.t += dt;
-    while (P.sched < P.beats.length && P.beats[P.sched].t <= P.t + 0.1) { const b = P.beats[P.sched++]; musicBeat(b, b.t - P.t); }
-    for (const b of P.beats) { if (b.t > P.t) break; if (b.t > P.lastBeat) { P.lastBeat = b.t; P.beatK = b.k; if (b.sec !== P.sec) { P.sec = b.sec; if (b.sec > 0) P.secFlash = 1; } P.bpm = b.bpm; } }
-    P.win = P.wins.find(w => P.t >= w.t0 && P.t < w.t1) || null; P.tellWin = P.win ? null : P.wins.find(w => P.t >= w.t0 - w.tell && P.t < w.t0) || null;
-    E.staff.forEach((s, i) => { s.phase = P.win && P.win.who === i ? 'watch' : P.tellWin && P.tellWin.who === i ? 'tell' : 'stand'; });
-    for (const n of P.notes) { if (n.hit || n.gone || n.t > P.t - W) continue; n.gone = true; if (!n.red) { P.miss++; P.combo = 0; P.fx.push({ k: 'miss', lane: n.lane, t: 0 }); } } // 판정선을 지나간 노트
-    for (const l of lanesPressed(taps, B.zones)) {
-      if (P.win) { expose(); if (E.caught) return; continue; } // 면접관이 보는 동안은 누르지 않는다
-      let best = null; for (const n of P.notes) { if (n.lane !== l || n.hit || n.gone) continue; const d = Math.abs(n.t - P.t); if (d <= W && (!best || d < Math.abs(best.t - P.t))) best = n; if (n.t > P.t + W) break; }
-      if (best && best.red) { best.gone = true; expose(); if (E.caught) return; continue; }
-      if (best) { best.hit = true; P.hit++; P.combo++; P.best = Math.max(P.best, P.combo); P.fx.push({ k: 'hit', lane: l, t: 0 }); S.hit(l, 0); }
-      else { P.off++; P.combo = 0; P.fx.push({ k: 'off', lane: l, t: 0 }); } // 박자에 안 맞았다
-    }
-    P.secFlash = Math.max(0, P.secFlash - dt * 2); P.fx = P.fx.filter(f => (f.t += dt) < 0.4); if (B.shieldT > 0) B.shieldT -= dt;
-    if (P.t > P.end + 1.2) { crashAt(0, 0.09); endPhase(1, acc2(P, true), 1); }
+    const B = E.B, P = B.p2; P.t += dt;
+    const bl = 60 / P.bpm; while (P.lastBeat + bl <= P.t) { P.lastBeat = P.lastBeat < 0 ? P.t : P.lastBeat + bl; musicBeat({ sec: 1, k: P.beatN % 4, bar: Math.floor(P.beatN / 4) % 8 ? 1 : 0, abs: Math.floor(P.beatN / 4), bpm: P.bpm }, 0); P.beatN++; }
+    const hs = B.heads.map((h, i) => [h ? h.x : i * 100, i]).sort((x, y) => x[0] - y[0]); P.order = hs.map(x => x[1]); // 화면에서 왼쪽부터
+    const prog = cl(P.qi / Math.max(1, P.NQ - 1), 0, 1), nW = P.gz.filter(g => g.ph !== 'idle').length;
+    P.gz.forEach((g, i) => { g.t += dt; // 저마다: 서류를 본다(idle) → 고개를 든다(tell) → 나를 본다(watch)
+      if (g.ph === 'idle' && g.t >= g.dur) { if (nW >= (prog > 0.45 ? 2 : 1) + (prog > 0.85 ? 1 : 0)) g.dur += 0.25; else { g.ph = 'tell'; g.t = 0; g.dur = 0.4; } }
+      else if (g.ph === 'tell' && g.t >= g.dur) { g.ph = 'watch'; g.t = 0; g.dur = between(0.8, 1.5); }
+      else if (g.ph === 'watch' && g.t >= g.dur) { g.ph = 'idle'; g.t = 0; g.dur = between(1.1, 2.3) * lerp(1, 0.6, prog); }
+      const s = E.staff[i]; if (s) { s.phase = g.ph === 'idle' ? 'stand' : g.ph; s.t = g.t; s.dur = g.dur; } });
+    if (P.said) { P.said.t += dt; if (P.said.t > 1.5) P.said = null; }
+    P.fx = P.fx.filter(f => (f.t += dt) < 0.5); if (B.shieldT > 0) B.shieldT -= dt;
+    if (P.qi < 0 || P.gapT > 0) { P.gapT -= dt; P.tgt = -1; if (P.gapT <= 0) { if (P.qi + 1 >= P.NQ) { crashAt(0, 0.09); endPhase(1, P.done / P.NQ, 1); return; } P.qi++; P.qt = 0; S.pop(); } return; }
+    const Q = P.qs[P.qi]; P.qt += dt;
+    const t = p2Target(B, P); P.tgt = t;
+    if (t >= 0) { const g = P.gz[t];
+      if (g.ph === 'watch') { P.heldBad += dt; if (P.heldBad > 0.16) { P.heldBad = -0.7; P.win = { who: t }; expose(); P.win = null; if (E.caught) return; } } // 보는 사람의 서류를 훔쳐봤다
+      else { P.heldBad = Math.min(0, P.heldBad + dt); if (Q.prog[t] < 1) { const b4 = Q.prog[t]; Q.prog[t] = Math.min(1, Q.prog[t] + dt / tune.ib2_scan); if (Math.floor(Q.prog[t] * 4) > Math.floor(b4 * 4)) sfx.scan(); if (Q.prog[t] >= 1) { S.read(); P.fx.push({ k: 'got', who: t, t: 0 }); } } } }
+    else P.heldBad = Math.min(0, P.heldBad + dt);
+    if (Q.prog.every(v => v >= 1)) { P.done++; P.said = { text: Q.fr.join(' · ') + '입니다.', t: 0 }; S.sent(); P.gapT = 1.1; }
+    else if (P.qt >= Q.life) { P.lost++; P.said = { text: '"…확인해 보겠습니다."', t: 0, bad: true }; S.lapse(); B.flash = 0.3; P.gapT = 1.1; }
   }
 
   // ---- 3페이즈: 질문 공방 ----
@@ -209,7 +209,7 @@ BOSS.ibank = (() => {
   // ---- 페이즈 끝 · 전환 ----
   function endPhase(ph, score, left, lost) {
     const B = E.B; if (B.res[ph]) return;
-    const need = [tune.ib1_acc, tune.ib2_pass, 0][ph], ok = !lost && (ph === 2 ? B.p3.strikes < tune.ib_strikes : score >= need - 1e-9);
+    const need = [tune.ib1_acc, Math.ceil(tune.ib2_q * tune.ib2_pass - 1e-9) / tune.ib2_q, 0][ph], ok = !lost && (ph === 2 ? B.p3.strikes < tune.ib_strikes : score >= need - 1e-9);
     B.res[ph] = { score, ok }; E.done.push(...(ok ? (score >= 0.95 ? [{ r: 'O' }, { r: 'O' }] : [{ r: 'O' }, { r: 'X', part: 0.5 }]) : [{ r: 'X' }, { r: 'X' }]));
     E.leftSum += cl(left || 0, 0, 1) * E.timeTotal / 3;
     events.push({ type: 'bossPhase', boss: 'ibank', ph, score: +score.toFixed(3), ok });
@@ -240,14 +240,14 @@ BOSS.ibank = (() => {
     const B = E.B; if (!B || !s.fixed) return p;
     const at = (x, z) => Math.atan2(x - p.x, z - p.z);
     if (B.tr && B.tr.kind === 12 && i === 0) { const t = B.tr.t, up = ez(cl(t / 0.55, 0, 1)) * (1 - ez(cl((t - 2.5) / 0.5, 0, 1))); return Object.assign({}, p, { sit: 1 - up, seated: up < 0.5, yaw: at(0, 0.9), headPitch: 0.05 }); }
-    if (B.ph === 1 || (B.tr && B.tr.kind === 23)) { const P = B.p2, k = nod(P); return Object.assign({}, p, { yaw: at(0, 0.9), headPitch: s.phase === 'watch' ? -0.02 : s.phase === 'tell' ? 0.05 : 0.06 + k * 0.22 }); }
+    if (B.ph === 1 || (B.tr && B.tr.kind === 23)) { const P = B.p2, k = nod(P); return Object.assign({}, p, { yaw: at(0, 0.9), headPitch: s.phase === 'watch' ? -0.04 : s.phase === 'tell' ? 0.12 : 0.34 + k * 0.05 }); } // 서류를 내려다보다가 고개를 든다
     if (B.ph === 2) { const P = B.p3; const ask = !!P && P.t - P.raise[i] < 0.7; return Object.assign({}, p, { yaw: at(-0.55, 1.38) + (ask ? Math.sin((P.t - P.raise[i]) * 18) * 0.06 : 0), headPitch: ask ? -0.2 : -0.12 }); } // 묻는 사람은 고개를 들썩인다
     return p;
   }
 
   // ---- 3D: 카메라 · 나 · 시세판 · 발표 화면 ----
   const W3 = { sc: null };
-  const FP = { yaw: -0.12, pitch: -0.07, fov: 62 }, P2C = { p: [2.1, 0.95, 0.85], t: [-0.4, 1.06, -0.9], fov: 58 }, P3C = { p: [0.3, 1.84, -2.14], t: [-0.25, 1.22, 1.3], fov: 54 };
+  const FP = { yaw: -0.12, pitch: -0.07, fov: 62 }, P2C = { p: [1.0, 1.36, 1.3], t: [-0.12, 1.1, -0.95], fov: 50 }, P3C = { p: [0.3, 1.84, -2.14], t: [-0.25, 1.22, 1.3], fov: 54 };
   const TICK = ['MSFT ▲0.92', 'NVDA ▲4.82', 'GS ▼1.05', 'JPM ▲0.37', 'TSLA ▼3.10', 'AAPL ▲1.24', 'MS ▲1.47', 'BAC ▲0.18', 'XOM ▲0.81', 'META ▼0.64', 'AMZN ▲2.11', 'KO ▼0.22', 'C ▲0.55', 'WFC ▼0.41'];
   function tickerTex(Ax, seed) {
     const t = Ax.canvasTex(1024, 64, false), g = t.g; g.fillStyle = '#020406'; g.fillRect(0, 0, 1024, 64);
@@ -315,8 +315,8 @@ BOSS.ibank = (() => {
       r.mesh.visible = on > 0; if (!on) return; r.tex.offset.x = (r.tex.offset.x + r.sp * 0.016) % 1;
       const fl = (B.tr && B.tr.kind === 12 && B.tr.t < 1.45 + j * 0.09) ? (Math.floor(now * 30) % 2 ? 0.4 : 1) : 1; r.m.color.setScalar(fl * (0.62 + 0.3 * pulse + 0.5 * (P2 ? P2.secFlash : 0))); });
     W3.tl.intensity = stage === 1 ? 1.8 + 2.4 * pulse : 0;
-    const dim = B.tr && B.tr.kind === 12 ? lerp(1, 0.6, ez(cl((B.tr.t - 0.9) / 0.5, 0, 1))) : B.tr && B.tr.kind === 23 ? lerp(0.6, 1, ez(cl(B.tr.t / 1.2, 0, 1))) : B.ph === 1 ? 0.6 : 1;
-    W3.key.intensity = stage === 1 ? 2.2 : stage === 2 ? 2.6 : 0; if (stage === 2) W3.key.position.set(-0.4, 2.4, 0.4); else W3.key.position.set(1.6, 2.3, 0.4);
+    const dim = B.tr && B.tr.kind === 12 ? lerp(1, 0.6, ez(cl((B.tr.t - 0.9) / 0.5, 0, 1))) : B.tr && B.tr.kind === 23 ? lerp(0.6, 1, ez(cl(B.tr.t / 1.2, 0, 1))) : B.ph === 1 ? 0.75 : 1;
+    W3.key.intensity = stage === 1 ? 3.4 : stage === 2 ? 2.6 : 0; if (stage === 2) W3.key.position.set(-0.4, 2.4, 0.4); else W3.key.position.set(0.6, 2.3, 0.6);
     W3.lights.forEach(([l, v]) => { l.intensity = v * dim; });
     const showFront = B.ph === 2 || (B.tr && B.tr.kind === 23 && B.tr.t > 0.4); W3.front.visible = W3.screen.visible = !!showFront;
     if (showFront) { const P = B.p3, n = !P || P.t >= P.intro - 0.5 ? 3 : Math.min(2, Math.floor(P.t / 1.5)); if (n !== W3.slideN) { W3.slideN = n; slideTex(W3.slide.g, n); W3.slide.t.needsUpdate = true; }
@@ -384,36 +384,28 @@ BOSS.ibank = (() => {
     if (live && P.cut > 0) k.SUB('"어… 그러니까…"', L.W / 2, 198, 11, '#ffd0d0', 'center');
     else if (live && P.said.length && P.saidT < 1.6) k.SUB(P.said.slice(-7).join(' '), L.W / 2, 198, 11, '#ffffff', 'center');
   }
-  function hudP2(k, L, E, now, col) {
-    const B = E.B, P = B.p2, c = k.b, live = !E.over && !E.caught && !B.tr, VX = 320, VY = 64, J = 300, LX = [185, 275, 365, 455], D = 3.1, lead = cl(1.55 * 96 / P.bpm, 1.05, 1.6), tch = !!STATE.touchUI;
-    B.zones = [{ i: 0, x0: 0, x1: 640 / 3, y0: 0, y1: 360 }, { i: 1, x0: 640 / 3, x1: 1280 / 3, y0: 0, y1: 360 }, { i: 2, x0: 1280 / 3, x1: 640, y0: 0, y1: 360 }];
-    const yAt = z => VY + (J - VY) / (1 + Math.max(0, z) * D), xAt = (xj, y) => VX + (xj - VX) * (y - VY) / (J - VY), yTop = yAt(1), watched = !!P.win;
-    head(k, E, 1, col); meter(k, 24, 52, 118, P.hit + P.miss + P.off ? acc2(P, false) : null, tune.ib2_pass, col, 'SYNC'); if (P.combo >= 8) k.M(`STREAK ${P.combo}`, 24, 106, 7.5, rgba(WH, 0.85), 'left', 700);
-    k.M(`♩${P.bpm}`, 616, 28, 16, WH, 'right', 700);
-    for (let i = 0; i < 3; i++) { c.fillStyle = i === P.sec ? col : i < P.sec ? rgba(col, 0.45) : 'rgba(255,255,255,0.2)'; c.fillRect(556 + i * 21, 42, 17, 2.5); }
-    strikesUi(k, P.strikes, 616, 58, col, 'EXPOSED'); if (B.shield > 0 || B.shieldT > 0) k.M(B.shield > 0 ? 'GUARD ◆' : 'GUARD ◇', 616, 72, 7, B.shield > 0 ? col : AMB, 'right', 700);
+  function hudP2(k, L, E, now, col) { // 서류 훔쳐보기: 면접관 얼굴마다 표적(색 = 왼·가운데·오른쪽), 아래에 모은 답 조각 셋
+    const B = E.B, P = B.p2, c = k.b, live = !E.over && !E.caught && !B.tr, tch = !!STATE.touchUI, Q = P.qi >= 0 ? P.qs[P.qi] : null, on = live && Q && P.gapT <= 0;
+    B.zones = [];
+    head(k, E, 1, col); const need = Math.ceil(P.NQ * tune.ib2_pass - 1e-9);
+    k.M(`ANSWERED ${String(P.done).padStart(2, '0')}/${P.NQ}`, 24, 54, 7.5, rgba(WH, 0.85), 'left', 700); k.M(`통과 ${need}`, 24, 66, 7, rgba(col, 0.8), 'left', 700); if (P.lost) k.M(`MISSED ${P.lost}`, 96, 54, 7.5, AMB, 'left', 700);
+    strikesUi(k, P.strikes, 616, 28, col, 'EXPOSED'); if (B.shield > 0 || B.shieldT > 0) k.M(B.shield > 0 ? 'GUARD ◆' : 'GUARD ◇', 616, 42, 7, B.shield > 0 ? col : AMB, 'right', 700);
     hudDraw(k, c => {
-      const seg = (z0, z1, fill) => { const y0 = yAt(z1), y1 = yAt(z0); c.beginPath(); c.moveTo(xAt(LX[0], y0), y0); c.lineTo(xAt(LX[3], y0), y0); c.lineTo(xAt(LX[3], y1), y1); c.lineTo(xAt(LX[0], y1), y1); c.closePath(); c.fillStyle = fill; c.fill(); };
-      seg(0, 1, 'rgba(3,8,12,0.22)');
-      for (const w of P.wins) { const z0 = (w.t0 - P.t) / lead, z1 = (w.t1 - P.t) / lead; if (z1 < 0 || z0 > 1) continue; seg(Math.max(0, z0), Math.min(1, z1), rgba(RED, 0.13)); } // 면접관이 볼 구간: 빨간 띠가 내려온다
-      for (const b of P.beats) { const z = (b.t - P.t) / lead; if (z < 0) continue; if (z > 1) break; const y = yAt(z); c.fillStyle = rgba(WH, b.k === 0 ? 0.28 : 0.1); c.fillRect(xAt(LX[0], y), y, xAt(LX[3], y) - xAt(LX[0], y), b.k === 0 ? 1.2 : 0.8); }
-      for (let i = 0; i < 4; i++) { const g = c.createLinearGradient(0, yTop, 0, J); g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(watched ? RED : col, i === 0 || i === 3 ? 0.75 : 0.35)); c.strokeStyle = g; c.lineWidth = i === 0 || i === 3 ? 1.2 : 0.8; c.beginPath(); c.moveTo(xAt(LX[i], yTop), yTop); c.lineTo(LX[i], J + 10); c.stroke(); }
-      for (const n of P.notes) { const tau = n.t - P.t; if (tau > lead) break; if (n.hit || tau < -0.3) continue; if (n.gone && n.red) continue;
-        const y = tau >= 0 ? yAt(tau / lead) : J + (-tau) * 140, f = (y - VY) / (J - VY), x0 = xAt(LX[n.lane], y), x1 = xAt(LX[n.lane + 1], y), w = (x1 - x0) * 0.82, h = 3 + 6 * f, x = (x0 + x1) / 2 - w / 2;
-        c.globalAlpha = tau < 0 ? Math.max(0, 1 + tau / 0.3) * 0.5 : Math.min(1, 0.35 + f);
-        if (n.red) { c.strokeStyle = RED; c.lineWidth = 1.2; c.strokeRect(x, y - h / 2, w, h); c.save(); c.beginPath(); c.rect(x, y - h / 2, w, h); c.clip(); c.strokeStyle = rgba(RED, 0.7); c.lineWidth = 1; c.beginPath(); for (let s = -h; s < w; s += 5) { c.moveTo(x + s, y + h / 2); c.lineTo(x + s + h, y - h / 2); } c.stroke(); c.restore(); }
-        else { c.fillStyle = n.gone ? 'rgba(150,160,170,0.6)' : rgba(col, 0.85); c.fillRect(x, y - h / 2, w, h); c.fillStyle = WH; c.fillRect(x, y - h / 2, w, Math.max(1, h * 0.25)); }
-        c.globalAlpha = 1; }
-      for (let i = 0; i < 3; i++) { const x0 = LX[i] + 7, w = LX[i + 1] - LX[i] - 14, f = P.fx.filter(f => f.lane === i).pop(), hitF = f && f.k === 'hit' ? 1 - f.t / 0.25 : 0, bad = f && (f.k === 'miss' || f.k === 'off') && f.t < 0.25;
-        const cc = bad ? RED : watched ? RED : hitF > 0 ? WH : col; brk(c, x0, J - 8, w, 16, 7, cc, 1.5);
-        if (hitF > 0) { c.fillStyle = rgba(WH, 0.35 * hitF); c.fillRect(x0, J - 8, w, 16); const g = c.createLinearGradient(0, J - 120, 0, J); g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(col, 0.4 * hitF)); c.fillStyle = g; c.fillRect(x0 + 4, J - 120, w - 8, 112); }
-        if (bad) { c.strokeStyle = rgba(RED, 0.9); c.lineWidth = 1.4; c.beginPath(); c.moveTo(x0 + w / 2 - 4, J - 4); c.lineTo(x0 + w / 2 + 4, J + 4); c.moveTo(x0 + w / 2 + 4, J - 4); c.lineTo(x0 + w / 2 - 4, J + 4); c.stroke(); }
-        if (tch) { c.fillStyle = rgba(cc, 0.6); c.beginPath(); c.arc(x0 + w / 2, J + 20, 2.2, 0, 7); c.fill(); } }
+      c.fillStyle = 'rgba(2,6,10,0.72)'; c.fillRect(190, 18, 260, 34);
+      P.order.forEach((si, l) => { const h = B.heads[si]; if (!h) return; const g = P.gz[si], w = g.ph === 'watch', tl = g.ph === 'tell', lc = LANE_C[l], cc = w ? RED : tl ? AMB : lc, r = Math.max(15, h.s * 1.3), pr = Q ? Q.prog[si] : 0, tg = P.tgt === si && on;
+        brk(c, h.x - r, h.y - r, r * 2, r * 2, 6, cc, tg ? 2 : 1.3);
+        if (w) { c.fillStyle = rgba(RED, 0.16); c.fillRect(h.x - r, h.y - r, r * 2, r * 2); }
+        const bx = h.x - r, by = h.y + r + 5, bw = r * 2; c.fillStyle = 'rgba(3,8,12,0.6)'; c.fillRect(bx, by, bw, 5); c.fillStyle = pr >= 1 ? WH : lc; c.fillRect(bx, by, bw * pr, 5); c.strokeStyle = rgba(lc, 0.9); c.lineWidth = 1; c.strokeRect(bx + 0.5, by + 0.5, bw - 1, 4); // 그 사람 서류를 얼마나 읽었나
+        if (tg && !w) { c.strokeStyle = rgba(lc, 0.75); c.lineWidth = 1; c.setLineDash([3, 3]); c.lineDashOffset = -now * 40; c.beginPath(); c.moveTo(230 + l * 90, 296); c.lineTo(h.x, by + 6); c.stroke(); c.setLineDash([]); } });
+      if (Q) { const kx = cl(1 - P.qt / Q.life, 0, 1), warn = kx < 0.3; c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(215, 46, 210, 2); c.fillStyle = warn ? (Math.floor(now * 8) % 2 ? RED : AMB) : col; c.fillRect(215, 46, 210 * (P.gapT > 0 ? 0 : kx), 2); // 이 질문의 남은 시간
+        for (let l = 0; l < 3; l++) { const si = P.order[l], x = 187 + l * 90, y = 298, pr = Q.prog[si], lc = LANE_C[l]; c.fillStyle = pr >= 1 ? rgba(lc, 0.3) : 'rgba(3,8,12,0.6)'; c.fillRect(x, y, 86, 22); c.strokeStyle = lc; c.lineWidth = pr >= 1 ? 1.5 : 1; if (pr < 1) c.setLineDash([2, 2]); c.strokeRect(x + 0.5, y + 0.5, 85, 21); c.setLineDash([]);
+          if (pr > 0 && pr < 1) { c.fillStyle = rgba(lc, 0.35); c.fillRect(x, y, 86 * pr, 22); } } }
     });
-    if (!tch) for (let i = 0; i < 3; i++) k.M('ASD'[i], (LX[i] + LX[i + 1]) / 2, J + 22, 7, rgba(WH, 0.6), 'center', 700);
-    if (watched && live) k.M('EYES ON · HOLD', VX, J + 38, 7.5, RED, 'center', 700);
-    if (live) eyesOn(k, E, now, col);
-    if (P.t < 2.4 && live) k.M(['4', '3', '2', '1'][Math.min(3, Math.floor(P.t / 0.625))], VX, 150, 22, rgba(WH, 0.85), 'center', 700); // 한 마디 세기
+    P.order.forEach((si, l) => { const h = B.heads[si]; if (!h) return; const g = P.gz[si], r = Math.max(15, h.s * 1.3); k.M(g.ph === 'watch' ? 'EYES ON' : g.ph === 'tell' ? 'TURNING' : tch ? '●' : 'ASD'[l], h.x, h.y - r - 7, g.ph === 'idle' ? 8 : 6.5, g.ph === 'watch' ? RED : g.ph === 'tell' ? AMB : LANE_C[l], 'center', 800); });
+    if (Q) { for (let l = 0; l < 3; l++) { const si = P.order[l], pr = Q.prog[si]; if (pr >= 1) k.T(Q.fr[si], 230 + l * 90, 309.5, k.TW(Q.fr[si], 8.5, 700) > 80 ? 7 : 8.5, WH, 'center', 700); else k.M('?', 230 + l * 90, 309.5, 9, rgba(LANE_C[l], 0.8), 'center', 700); }
+      if (live) k.SUB(`${E.T.staff[0].name}: "${Q.q}"`, L.W / 2, 30, 10.5, '#ffffff', 'center'); }
+    if (on && P.tgt >= 0 && P.gz[P.tgt].ph === 'watch' && Math.floor(now * 10) % 2) k.M('손 떼기', L.W / 2, 286, 8, RED, 'center', 700);
+    if (live && P.said) k.SUB(P.said.text, L.W / 2, 340, 11, P.said.bad ? '#ffd0d0' : '#ffffff', 'center');
   }
   function hudP3(k, L, E, now, col) {
     const B = E.B, P = B.p3, c = k.b, live = !E.over && !E.caught && !B.tr, T = P.t - P.intro, hits = []; B.hits = hits;
