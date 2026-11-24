@@ -304,7 +304,8 @@ function hudSet() { const h = PAL.hud; return { c: h, c2: mix(h, '#0d0b13', 0.3)
 
 // ---- 전체 화면: PC·안드로이드는 첫 입력에, 아이폰은 홈 화면 앱으로 ----------------------------
 const fsRoot = document.documentElement;
-function canFullscreen() { return !!(fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen) && !STATE.standalone; }
+function fsDisplay() { try { return !!(window.matchMedia && matchMedia('(display-mode: fullscreen)').matches); } catch (_) { return false; } } // 설치한 앱이 이미 전체 화면으로 열렸는가
+function canFullscreen() { return !!(fsRoot.requestFullscreen || fsRoot.webkitRequestFullscreen) && !fsDisplay() && !navigator.standalone; } // 설치한 앱이 상태 표시줄이 남는 '독립 창'으로 열렸으면(일부 안드로이드) 거기서도 전체 화면을 청한다
 function isFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function enterFullscreen() {
   try {
