@@ -79,14 +79,15 @@ function syncGear() { // 세 줄의 사다리(안경·보조 장비·위장)에�
 function gearName(id, lv) { const d = gearDef(id); return d.ladder ? d.ladder[clamp(lv, 1, d.ladder.length) - 1] : d.name; }
 function botName(n) { let name = CONFIG.bot_names[0][1]; for (const [m, nm] of CONFIG.bot_names) if (n >= m) name = nm; return name; }
 function bestReward() { let r = 0; G.cleared.forEach((c, i) => { if (c) r = Math.max(r, TIERS[i].reward); }); return r * tune.reward_scale; }
+function costFix(ti) { const f = CONFIG.cost_fix && CONFIG.cost_fix[ti]; return f || 1; } // [돈 밸런스] 시험별 가격 보정
 function gearCost(id, lv = G.gear[id]) {
   const d = gearDef(id);
-  if (d.at) return Math.ceil(d.mult * TIERS[Math.min(LAST, d.at[Math.min(lv, d.at.length - 1)])].base * tune.reward_scale * tune.cost_scale);
+  if (d.at) { const at = d.at[Math.min(lv, d.at.length - 1)]; return Math.ceil(d.mult * TIERS[Math.min(LAST, at)].base * tune.reward_scale * tune.cost_scale * costFix(at)); }
   if (d.kind === 'count') return Math.ceil(tune.bot_cost * TIERS[Math.max(0, d.unlock)].reward * tune.reward_scale * Math.pow(tune.bot_grow, lv) * tune.cost_scale); // 첫 가격은 가게에 처음 뜬 때로 고정, 살 때만 오른다
   return Math.ceil(d.mult * rewardAt(d.unlock + d.step * lv) * tune.cost_scale);
 }
 function modelOpen(i) { const m = CONFIG.models[i]; return !!m && (m.rel < 0 || !!G.cleared[m.rel]); }
-function modelCost(i) { return Math.ceil(tune.model_cost * TIERS[Math.min(LAST, CONFIG.models[i].rel + 1)].base * tune.cost_scale); }
+function modelCost(i) { return Math.ceil(tune.model_cost * TIERS[Math.min(LAST, CONFIG.models[i].rel + 1)].base * tune.cost_scale * costFix(CONFIG.models[i].rel + 1)); }
 function examFee(tier) { return Math.round((tier.fee != null ? tier.fee : tier.reward * tier.qn * (tier.parts ? tier.parts.length : 1) * tune.fee_ratio) * tune.fee_scale); }
 function scanSecondsAt(lv) { return tune.scan_time / (1 + tune.lens_bonus * lv); }
 function botMult(lv) { return Math.pow(2, CONFIG.bot_milestones.filter(m => lv >= m).length); }
@@ -1331,7 +1332,7 @@ function leaveTitle(T0) { if (!CHECKED && netOn()) runPending(1); /* 첫 시험�
 }
 function goHub(view) { scene = 'hub'; const hv = STATE.hv; hv.view = 'room'; hv.target = 'room'; hv.zoom = 0; hv.bpage = null; if (view) enterView(view, true); }
 function tgHas(id) { return !!(G.tg && G.tg[id]); }
-function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].base * tune.reward_scale * tune.cost_scale); }
+function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].base * tune.reward_scale * tune.cost_scale * costFix(h.tier)); }
 function helperOpen() { return CONFIG.helper.filter(h => G.unlocked - 1 >= h.tier); } // 그 시험이 일정표에 열리면 연락이 온다
 function helperPending() { return helperOpen().filter(h => !tgHas(h.id)).pop() || null; }
 function helperLast() { return helperOpen().pop() || null; }
