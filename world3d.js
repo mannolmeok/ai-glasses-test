@@ -988,7 +988,7 @@ const WORLD = (() => {
     draw(EX.scene, cam, now);
   }
   let BAPI = null;
-  function bossApi() { return BAPI || (BAPI = { THREE, EX, bx, pivot, plane, glowMat, mat, ownMat, makeHuman, poseModel, canvasTex, batch, psx, RW, RH, clamp, lerp, ease, angTo }); } // 보스 연출이 쓰는 3D 도구
+  function bossApi() { return BAPI || (BAPI = { THREE, EX, bx, pivot, plane, glowMat, mat, ownMat, makeHuman, poseModel, canvasTex, batch, psx, RW, RH, clamp, lerp, ease, angTo, renderer: () => renderer }); } // 보스 연출이 쓰는 3D 도구
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   function pickChoice(x, y) { // 화면(640x360 좌표)에서 톡 친 자리 → 시험지 보기 번호
     if (!W.ok || !EX.scene || !EX.paper) return -1;
