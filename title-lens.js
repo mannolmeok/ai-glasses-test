@@ -261,7 +261,7 @@
   let T0 = 0, lastNow = -9, firstSeen = -1, curV = 0;
   const ready = () => loaded(poster) && (fontOk() || (firstSeen >= 0 && lastNow - firstSeen > 2.5));
   function lensTitle(k, L, now, hasSave, info) {
-    if (posterBad) return OLD_TITLE(k, L, now, hasSave, info);
+    if (posterBad) return OLD_TITLE(k, L, now, hasSave, Object.assign({}, info, { best: null })); // 테스트판 타이틀에는 '내 최고 기록' 줄을 띄우지 않는다
     const b = k.b, S = k.S || HUD_SCALE, RK = info.rank || { k: 0, rows: [] }, rk = RK.k, btns = [];
     if (now - lastNow > 0.5 || now < lastNow) { T0 = now; rewind(); } lastNow = now; if (firstSeen < 0) firstSeen = now;
     const ok = ready(); if (!ok) T0 = now; // 그림과 글꼴이 오기 전에는 켜지는 연출을 시작하지 않는다
@@ -284,7 +284,6 @@
         deco(b, al); art(k, A.title, TBOX, al, P.logo >= 1 ? P.jit : 0, tm); b.restore();
       }
       if (ua > 0 && rk <= 0 && P.logo >= 1) {
-        if (info.best) { b.globalAlpha = ua; k.M(`내 최고 기록 ${info.best}`, 621, 214, 8.5, CREAM, 'right', 700); }
         if (info.ios) { b.globalAlpha = 0.85 * ua; k.M('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', 621, 282, 7.5, CREAM, 'right', 500); }
         b.globalAlpha = 1;
       }
