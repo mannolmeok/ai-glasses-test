@@ -127,8 +127,8 @@
     const b = k.b, W = L.W, R = k.R, G1 = '#74ff8e', RD = '#ff6a6a', btns = [];
     drawLensScreen(k, L, now, { col: G1, glow: '#0a4018', tint: '#061e0e', big: '일시정지', y: 150, lines: o.exam ? ['LENS-OS 0.9b', '시험 ......... 멈춤', '감독관 ....... 멈춤'] : ['LENS-OS 0.9b', '고시원 ....... 멈춤'] });
     const text = (str, x, y, size, col, glow) => { b.font = `400 ${size * BOOT_K}px ${BOOT_FONT}`; b.textAlign = 'center'; b.textBaseline = 'alphabetic'; b.shadowColor = glow || 'transparent'; b.shadowBlur = glow ? 4 * (k.S || HUD_SCALE) : 0; b.fillStyle = col; b.fillText(str, x, y); b.shadowBlur = 0; b.shadowColor = 'transparent'; };
-    const armed = o.exam && o.arm > 0, defs = [['▶ 계속하기', 'P', 'resume'], [o.bgm ? '배경음 켜짐' : '배경음 꺼짐', 'B', 'bgm'], [o.sfx ? '효과음 켜짐' : '효과음 꺼짐', 'S', 'sfx'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']];
-    const bw = 138, bh = 30, gap = 10, x0 = W / 2 - (bw * defs.length + gap * (defs.length - 1)) / 2, by = 196;
+    const armed = o.exam && o.arm > 0, PM = Q.get('pm') === 'br' || Q.get('pm') === 'tr' ? Q.get('pm') : null, defs = PM ? [['▶ 계속하기', 'P', 'resume'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']] : [['▶ 계속하기', 'P', 'resume'], [o.bgm ? '배경음 켜짐' : '배경음 꺼짐', 'B', 'bgm'], [o.sfx ? '효과음 켜짐' : '효과음 꺼짐', 'S', 'sfx'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']];
+    const bw = PM ? 170 : 138, bh = 30, gap = 10, x0 = W / 2 - (bw * defs.length + gap * (defs.length - 1)) / 2, by = 196;
     defs.forEach(([label, keyName, key], i) => {
       const bx = x0 + i * (bw + gap), red = key === 'title' && armed, col = red ? RD : G1, hot = !!o.hover && o.hover[0] >= bx && o.hover[0] <= bx + bw && o.hover[1] >= by && o.hover[1] <= by + bh;
       const off = (key === 'bgm' && !o.bgm) || (key === 'sfx' && !o.sfx);
@@ -138,6 +138,14 @@
       btns.push({ x: bx, y: by, w: bw, h: bh, key });
     });
     if (armed) { b.globalAlpha = 0.72; R(W / 2 - 190, by + bh + 9, 380, 18, '#1a0606'); b.globalAlpha = 1; text(`이번 시험은 0점 처리되고, 낸 응시료는 돌아오지 않아요 · ${Math.ceil(o.arm)}`, W / 2, by + bh + 22, 11, '#ffb0b0', null); }
+    if (PM) { const iy = PM === 'br' ? 292 : 62, ix = W - 62 - 56; [['bgm', o.bgm, '배경음', 'B'], ['sfx', o.sfx, '효과음', 'S']].forEach(([key, on, name, kn], i) => { // 작은 아이콘 둘: 음표 · 스피커
+        const x = ix + i * 56, y = iy, hot = !!o.hover && o.hover[0] >= x - 14 && o.hover[0] < x + 38 && o.hover[1] >= y - 6 && o.hover[1] < y + 40;
+        b.globalAlpha = hot ? 0.3 : 0.14; R(x, y, 24, 24, G1); b.globalAlpha = on ? 1 : 0.5; k.frame(x, y, 24, 24, G1, 1.5);
+        if (key === 'bgm') { R(x + 9, y + 6, 2, 11, G1); R(x + 15, y + 5, 2, 10, G1); R(x + 9, y + 5, 8, 2, G1); R(x + 6, y + 15, 5, 4, G1); R(x + 12, y + 13, 5, 4, G1); }
+        else { R(x + 5, y + 10, 4, 5, G1); k.poly([[x + 9, y + 10], [x + 13, y + 6], [x + 13, y + 19], [x + 9, y + 15]], G1); if (on) { R(x + 16, y + 10, 1.5, 5, G1); R(x + 19, y + 8, 1.5, 9, G1); } }
+        if (!on) { b.save(); b.strokeStyle = RD; b.lineWidth = 2; b.beginPath(); b.moveTo(x + 4, y + 20); b.lineTo(x + 20, y + 4); b.stroke(); b.restore(); }
+        b.globalAlpha = on ? 0.95 : 0.6; text(name, x + 12, y + 35, 9.5, on ? G1 : '#9fd4ae', null); b.globalAlpha = 1;
+        btns.push({ x: x - 14, y: y - 6, w: 52, h: 46, key }); }); }
     text(o.touch ? '빈 곳을 누르면 계속' : '빈 곳 클릭 · P · Esc로 계속', W / 2, 286, 10.5, G1, '#0a4018');
     b.textAlign = 'left';
     return btns;
@@ -222,10 +230,49 @@
       const gd = E0 && E0.guide;
       if (!gd || gd.k === 'end' || Q.get('guide') === 'old') return origOv.apply(this, arguments);
       E0.guide = null; try { origOv.apply(this, arguments); } finally { E0.guide = gd; }
-      if (!E0.caught && !E0.over && E0.start <= 0) (STATE.touchUI ? touchGuide : keyGuide)(k, L, gd, now0);
+      if (!E0.caught && !E0.over && E0.start <= 0) { if (GS) altGuide(k, L, gd, now0, STATE.touchUI); else (STATE.touchUI ? touchGuide : keyGuide)(k, L, gd, now0); }
     };
   }
   const HG = '#74ff8e', HD = '#04160c', HHI = '#c8ffd8';
+  // 시안: 첫 시험은 아직 안경이 없으니 안경 HUD 대신 시험장 물건 같은 안내. pen 빨간 색연필 동그라미 · note 포스트잇 · slip 수험표 같은 흰 딱지
+  const GS = ({ pen: 'pen', note: 'note', slip: 'slip' })[Q.get('gs')] || null, PEN = '#d2352b', NAVY = '#22407a', INK2 = '#1c1c1c', YEL = '#f4e27a';
+  const jit = (i, s) => { const v = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return (v - Math.floor(v)) - 0.5; };
+  function handLoop(b, cx, cy, rx, ry, seed, col, lw) { // 손으로 그린 동그라미: 조금 찌그러지고 끝이 겹친다
+    b.save(); b.strokeStyle = col; b.lineWidth = lw; b.lineCap = 'round'; b.lineJoin = 'round'; b.beginPath();
+    for (let i = 0; i <= 26; i++) { const a = -2.2 + i / 24 * Math.PI * 2, g = 1 + 0.07 * jit(i, seed) + 0.04 * (i / 26), x = cx + Math.cos(a) * rx * g, y = cy + Math.sin(a) * ry * g; if (i) b.lineTo(x, y); else b.moveTo(x, y); }
+    b.stroke(); b.restore(); }
+  function strokeArrow(b, cx, cy, dir, col, lw) { const d = dir === 'up' ? [0, -1] : dir === 'left' ? [-1, 0] : [1, 0], n = [-d[1], d[0]];
+    b.save(); b.strokeStyle = col; b.lineWidth = lw; b.lineCap = 'round'; b.lineJoin = 'round'; b.beginPath(); b.moveTo(cx - d[0] * 9, cy - d[1] * 9); b.lineTo(cx + d[0] * 9, cy + d[1] * 9);
+    b.moveTo(cx + d[0] * 9, cy + d[1] * 9); b.lineTo(cx + d[0] * 2 + n[0] * 6, cy + d[1] * 2 + n[1] * 6); b.moveTo(cx + d[0] * 9, cy + d[1] * 9); b.lineTo(cx + d[0] * 2 - n[0] * 6, cy + d[1] * 2 - n[1] * 6); b.stroke(); b.restore(); }
+  function card(k, str, cx, cy, fill, ink, band, rot) { // 작은 종이 쪽지 (그림자 한 겹)
+    const b = k.b, w = Math.ceil(k.TW(str, 9, 700)) + 16, h = band ? 20 : 17; b.save(); b.translate(cx, cy); b.rotate(rot || 0);
+    b.globalAlpha = 0.35; b.fillStyle = '#000000'; b.fillRect(-w / 2 + 1.5, -h / 2 + 2, w, h); b.globalAlpha = 1; b.fillStyle = fill; b.fillRect(-w / 2, -h / 2, w, h);
+    if (band) { b.fillStyle = band; b.fillRect(-w / 2, -h / 2, w, 4); }
+    b.restore(); const dy = band ? 2 : 0.5; if (rot) { b.save(); b.translate(cx, cy); b.rotate(rot); k.M(str, 0, dy, 9, ink, 'center', 700); b.restore(); } else k.M(str, cx, cy + dy, 9, ink, 'center', 700); }
+  function altSpot(k, cx, cy, t, label, glyph, on, keyCap) { // 누를 자리(또는 키) 하나
+    const b = k.b, seed = Math.floor(t * 3), pulse = on ? 0 : 1.5 + 1.5 * Math.sin(t * 5), kw = keyCap ? Math.max(30, Math.ceil(k.TW(keyCap, 10, 700)) + 22) : 0, ly = keyCap ? (cy > 180 ? cy - 27 : cy + 30) : cy + 40;
+    if (GS === 'pen') {
+      if (keyCap) { b.globalAlpha = 0.92; k.R(cx - kw / 2, cy - 12, kw, 24, '#fbf8ef'); b.globalAlpha = 1; if (keyCap.length > 1) k.M(keyCap, cx, cy + 0.5, 10, on ? PEN : INK2, 'center', 700); else strokeArrow(b, cx, cy, glyph, on ? PEN : INK2, 2.2); handLoop(b, cx, cy, kw / 2 + 9 + pulse, 19 + pulse * 0.6, seed, PEN, 2.4); }
+      else { if (on) { b.globalAlpha = 0.16; b.fillStyle = PEN; b.beginPath(); b.arc(cx, cy, 24, 0, 7); b.fill(); b.globalAlpha = 1; } else if (glyph !== 'hold') { b.globalAlpha = 0.9; b.fillStyle = '#fbf8ef'; b.beginPath(); b.arc(cx, cy, 20, 0, 7); b.fill(); b.globalAlpha = 1; }
+        handLoop(b, cx, cy, 25 + pulse, 23 + pulse, seed, PEN, 2.6); if (glyph !== 'hold') strokeArrow(b, cx, cy, glyph, PEN, 2.6); }
+      card(k, label, cx, ly, '#fbf8ef', PEN, null, -0.03);
+    } else if (GS === 'note') {
+      if (keyCap) { b.globalAlpha = 0.9; k.R(cx - kw / 2, cy - 12, kw, 24, on ? YEL : '#fbf8ef'); b.globalAlpha = 1; k.frame(cx - kw / 2, cy - 12, kw, 24, INK2, 1.5); if (keyCap.length > 1) k.M(keyCap, cx, cy + 0.5, 10, INK2, 'center', 700); else strokeArrow(b, cx, cy, glyph, INK2, 2.2); }
+      else { b.save(); b.globalAlpha = on ? 0.5 : 0.28; b.fillStyle = YEL; b.beginPath(); b.arc(cx, cy, 24 + pulse, 0, 7); b.fill(); b.globalAlpha = 1; b.setLineDash([5, 4]); b.lineDashOffset = -t * 14; b.strokeStyle = '#ffffff'; b.lineWidth = 3.4; b.beginPath(); b.arc(cx, cy, 24 + pulse, 0, 7); b.stroke(); b.strokeStyle = INK2; b.lineWidth = 1.6; b.beginPath(); b.arc(cx, cy, 24 + pulse, 0, 7); b.stroke(); b.restore(); if (glyph !== 'hold') strokeArrow(b, cx, cy, glyph, INK2, 2.6); }
+      card(k, label, cx, ly + 1, YEL, INK2, null, 0.045);
+    } else { // slip
+      if (keyCap) { b.globalAlpha = 0.95; k.R(cx - kw / 2, cy - 12, kw, 24, on ? '#dfe8fa' : '#ffffff'); b.globalAlpha = 1; k.R(cx - kw / 2, cy - 12, kw, 4, NAVY); k.frame(cx - kw / 2, cy - 12, kw, 24, NAVY, 1.5); if (keyCap.length > 1) k.M(keyCap, cx, cy + 2, 10, NAVY, 'center', 700); else strokeArrow(b, cx, cy + 2, glyph, NAVY, 2.2); }
+      else { b.save(); b.globalAlpha = on ? 0.85 : 0.7; b.fillStyle = on ? '#dfe8fa' : '#ffffff'; b.beginPath(); b.arc(cx, cy, 21, 0, 7); b.fill(); b.globalAlpha = 1; b.strokeStyle = NAVY; b.lineWidth = 2.4; b.beginPath(); b.arc(cx, cy, 21, 0, 7); b.stroke(); b.globalAlpha = on ? 0 : 0.55 - pulse * 0.12; b.lineWidth = 1.4; b.beginPath(); b.arc(cx, cy, 26 + pulse * 2, 0, 7); b.stroke(); b.restore();
+        if (glyph === 'hold') { b.fillStyle = NAVY; b.beginPath(); b.arc(cx, cy, on ? 7 : 4.5, 0, 7); b.fill(); } else strokeArrow(b, cx, cy, glyph, NAVY, 2.6); }
+      card(k, label, cx, ly + 1, '#ffffff', NAVY, NAVY, 0);
+    }
+  }
+  function altGuide(k, L, gd, t, touch) {
+    const W = L.W, HH = L.H, held = c => down.has(c), cap = s => k.SUB(s, W / 2, HH - 30, 22, '#ffffff', 'center');
+    if (gd.k === 'hold') { if (touch) altSpot(k, 372, 196, t, gd.on ? '읽는 중' : '꾹 누르기', 'hold', gd.on); else altSpot(k, W / 2, HH - 64, t, gd.on ? '읽는 중' : '꾹 누르기', 'hold', gd.on, 'SPACE'); cap(touch ? '책상을 꾹 누르면 카메라가 문제를 읽는다' : 'Space를 꾹 누르면 카메라가 문제를 읽는다'); }
+    else if (gd.k === 'up') { altSpot(k, W / 2, touch ? 46 : 40, t, '정면 보기', 'up', !touch && (held('ArrowUp') || held('KeyW')), touch ? null : '↑'); cap(touch ? '화면 위쪽을 누르면 정면을 본다' : '↑ 키를 누르면 정면을 본다'); }
+    else if (gd.k === 'sides') { altSpot(k, 51, 173, t, '왼쪽 보기', 'left', !touch && (held('ArrowLeft') || held('KeyA')), touch ? null : '←'); altSpot(k, W - 51, 173, t, '오른쪽 보기', 'right', !touch && (held('ArrowRight') || held('KeyD')), touch ? null : '→'); cap(touch ? '양옆을 누르면 그쪽으로 고개를 돌린다' : '← → 키를 누르면 그쪽으로 고개를 돌린다'); }
+  }
   function brackets(k, x, y, w, h, p, col) { // 네 모서리 꺾쇠. p만큼 바깥으로 숨 쉬듯 벌어진다
     const R = k.R, n = 8, t = 2, x0 = x - p, y0 = y - p, x1 = x + w + p, y1 = y + h + p;
     R(x0, y0, n, t, col); R(x0, y0, t, n, col); R(x1 - n, y0, n, t, col); R(x1 - t, y0, t, n, col);
