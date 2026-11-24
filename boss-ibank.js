@@ -2,7 +2,7 @@
 // Question: 감독관 눈치를 보며 AI 안경으로 스캔하는 긴장감이, 장비와 시험이 함께 커지는 성장과 맞물려 엔딩까지 재밌나?
 // Date: 2026-11-23
 // 해외 마지막 시험(월가 투자은행 최종 면접)의 3페이즈 보스전. 렌즈 화면·규칙·3D 연출을 이 파일이 맡는다.
-//   1페이즈 블록 러시: 쉬지 않고 쌓이는 답변 블록을 면접관이 안 볼 때 정확하게 입력. 보는 중에 누르면 '들킨 입력'
+//   1페이즈 프롬프터 속사: 면접관이 고개를 숙인 틈에 안경이 띄운 답변 한 문장(블록 8~12개)을 와다다 쳐 낸다. 못 끝내면 말이 끊기고, 보는 중에 누르면 '들킨 입력'
 //   전환: 전무가 일어나 "숫자로 얘기해 보죠." → 조명이 죽고 벽이 시세판으로 켜지며 카메라가 옆으로 빠진다
 //   2페이즈 리듬 면접: 박자에 맞춰 내려오는 노트를 판정선에서. 맞췄나 / 못 맞췄나 둘 중 하나. 면접관이 보는 구간(빨간 띠)은 누르지 않는다
 //   전환: 음악이 끊기고 내가 일어나 발표 화면 앞에 선다 → 카메라가 면접관들 등 뒤로 돈다
@@ -15,7 +15,7 @@ window.BOSS = window.BOSS || {};
 BOSS.ibank = (() => {
   const lerp = (a, b, k) => a + (b - a) * k, ez = k => k * k * (3 - 2 * k), cl = (v, a, b) => Math.max(a, Math.min(b, v));
   const KEYS = [['KeyA', 'KeyJ', 'ArrowLeft', 'Digit1'], ['KeyS', 'KeyK', 'ArrowDown', 'Digit2'], ['KeyD', 'KeyL', 'ArrowRight', 'Digit3']];
-  const NAMES = ['블록 러시', '리듬 면접', '질문 공방'];
+  const NAMES = ['프롬프터 속사', '리듬 면접', '질문 공방'];
   const INKS = { used: '#74ff8e', proto: '#7fe9ff', mil: '#ffb23a', contact: '#7fe9ff', brain: '#ffd678' };
   const RED = '#ff5a5a', AMB = '#ffcf5a', WH = '#f4f8ff';
   const IB_QA = [ // [안경이 붙이는 꼬리표, 질문, 안경이 만든 답]
@@ -66,27 +66,21 @@ BOSS.ibank = (() => {
       if (J >= 3) { B.res[1] = { score: 1, ok: true }; E.done.push({ r: 'O' }, { r: 'O' }); B.ph = 2; B.p3 = newP3(); } }
   }
 
-  // ---- 1페이즈: 블록 러시 ----
+  // ---- 1페이즈: 프롬프터 속사 ----
+  // 면접관이 고개를 숙이면(틈) 안경이 답변 한 문장을 통째로 띄운다. 고개를 들기 전에 그 문장의 블록을 와다다 다 쳐 낸다.
+  // 못 끝낸 블록은 '말이 끊긴' 것(놓침). 보는 동안 누르면 들킨 입력. gz.ph: watch(본다) → idle(틈) → tell(고개 드는 중, 아직 칠 수 있다) → watch
+  const TELL1 = 0.45;
   function newP1(E) {
-    const N = Math.round(tune.ib1_blocks), qs = E.qs.filter(q => q.lines).slice(0, 4), per = Math.ceil(N / Math.max(1, qs.length)), lanes = [];
-    while (lanes.length < N) { const m = lanes.length, r = rng();
-      if (r < 0.1) { lanes.push(...(rng() < 0.5 ? [0, 1, 2] : [2, 1, 0])); continue; } // 계단
-      if (r < 0.17) { const a = rng() < 0.5 ? 0 : 2; lanes.push(a, 2 - a, a, 2 - a); continue; } // 양쪽 번갈아
-      const v = Math.floor(rng() * 3); if (m >= 2 && lanes[m - 1] === v && lanes[m - 2] === v) continue; lanes.push(v); }
-    lanes.length = N;
-    const words = qs.map(q => q.lines.join(' ').split(' '));
-    const blocks = lanes.map((lane, k) => { const qi = Math.min(qs.length - 1, Math.floor(k / per)), wl = words[qi] || ['…']; return { lane, qi, wi: Math.min(wl.length - 1, Math.floor((k - qi * per) * wl.length / per)), born: 0 }; });
-    const pre = 3, lastAt = tune.ib1_time - 8, raw = []; for (let k = pre; k < N; k++) raw.push(0.55 + 0.75 * (1 - (k - pre) / Math.max(1, N - pre))); // 갈수록 빨리 쌓인다
-    const sc = lastAt / raw.reduce((a, b) => a + b, 0), at = []; for (let k = 0; k < pre; k++) at.push(0); let t = 0; raw.forEach(v => { t += v * sc; at.push(t); });
-    return { t: 0, N, blocks, at, next: 0, stack: [], hit: 0, miss: 0, drop: 0, seen: 0, strikes: 0, combo: 0, qs, words, gz: { who: -1, ph: 'idle', t: 0, dur: 3.2 }, fx: [], slide: 0, shake: 0, qShow: -1, qT: 0, say: null };
+    const NS = Math.round(tune.ib1_sent), pool = [].concat(...E.qs.filter(q => q.lines).map(q => q.lines.join(' ').split(' '))); if (!pool.length) pool.push('…');
+    const sents = []; let pi = 0, N = 0;
+    for (let si = 0; si < NS; si++) { const n = Math.round(lerp(8, 12, si / Math.max(1, NS - 1))), bl = [];
+      while (bl.length < n) { const m = bl.length, r = rng(); let v;
+        if (r < 0.14 && m + 3 <= n) { (rng() < 0.5 ? [0, 1, 2] : [2, 1, 0]).forEach(l => bl.push({ lane: l })); continue; } // 계단
+        v = Math.floor(rng() * 3); if (m >= 2 && bl[m - 1].lane === v && bl[m - 2].lane === v) continue; bl.push({ lane: v }); }
+      bl.forEach(x => { x.w = pool[pi++ % pool.length]; }); sents.push(bl); N += n; }
+    return { t: 0, sents, NS, N, si: -1, stack: [], hit: 0, miss: 0, drop: 0, seen: 0, strikes: 0, combo: 0, gz: { who: 0, ph: 'watch', t: 0, dur: 1.3 }, gap: 1, fx: [], shake: 0, said: [], saidT: 9, cut: 0, slide: 0 };
   }
   function acc1(P) { return P.hit / Math.max(1, P.hit + P.miss + P.drop + 3 * P.seen); }
-  function gaze(g, dt, prog, longOk) { // 한 번에 한 명이 고개를 든다: 쉼 → 드는 중(예고) → 본다. 가끔 들다 마는 척, 40초부터 전무의 긴 응시
-    g.t += dt;
-    if (g.ph === 'idle') { if (g.t >= g.dur) { const w = Math.floor(rng() * 3); g.who = w === g.who && rng() < 0.6 ? (w + 1) % 3 : w; g.ph = 'tell'; g.t = 0; g.dur = 0.55; g.feint = rng() < 0.16; g.long = longOk && g.who === 0 && rng() < 0.4; } }
-    else if (g.ph === 'tell') { if (g.t >= g.dur) { g.t = 0; if (g.feint) { g.ph = 'idle'; g.dur = between(0.5, 0.9); } else { g.ph = 'watch'; g.dur = g.long ? 3.0 : between(1.0, 1.5); } } }
-    else if (g.ph === 'watch' && g.t >= g.dur) { g.ph = 'idle'; g.t = 0; g.dur = lerp(3.0, 1.5, prog) * between(0.8, 1.2); }
-  }
   function lanesPressed(taps, zones) {
     const out = []; for (let l = 0; l < 3; l++) if (KEYS[l].some(c => pressed(c))) out.push(l);
     for (const [x, y] of taps) { const z = zones.find(z => x >= z.x0 && x < z.x1 && y >= z.y0 && y <= z.y1); if (z) out.push(z.i); }
@@ -100,22 +94,23 @@ BOSS.ibank = (() => {
     if (P.strikes >= tune.ib_strikes) { E.sus = 1; E.staff.forEach((s, i) => { s.phase = i === Math.max(0, who) ? 'watch' : 'stand'; }); getCaught(); }
   }
   function stepP1(dt, taps) {
-    const B = E.B, P = B.p1; P.t += dt; E.timeLeft = Math.max(0, tune.ib1_time - P.t);
-    while (P.next < P.N && P.at[P.next] <= P.t) { const b = P.blocks[P.next++]; b.born = P.t;
-      if (P.stack.length >= tune.ib1_stack) { const d = P.stack.shift(); P.drop++; P.combo = 0; P.slide = 1; P.fx.push({ k: 'drop', lane: d.lane, t: 0 }); S.drop(); } // 넘치면 맨 아래가 떨어진다
-      P.stack.push(b); }
-    const cur0 = P.stack[0]; if (cur0 && cur0.qi !== P.qShow) { P.qShow = cur0.qi; P.qT = 0; } P.qT += dt;
-    gaze(P.gz, dt, cl(P.t / tune.ib1_time, 0, 1), P.t > 40);
-    E.staff.forEach((s, i) => { const on = i === P.gz.who && P.gz.ph !== 'idle'; s.phase = on ? P.gz.ph : 'stand'; s.t = on ? P.gz.t : 0; s.dur = on ? P.gz.dur : 1; });
+    const B = E.B, P = B.p1, g = P.gz; P.t += dt; g.t += dt; E.timeLeft = E.timeTotal;
+    if (g.ph === 'watch' && g.t >= g.dur) { // 고개를 숙인다: 다음 문장이 통째로 뜬다
+      if (P.si + 1 >= P.NS) { endPhase(0, acc1(P), 0.5); return; }
+      P.si++; P.stack = P.sents[P.si].slice(); P.said = []; P.cut = 0; g.ph = 'idle'; g.t = 0; g.dur = P.stack.length * tune.ib1_rate * lerp(1, 0.82, P.si / P.NS) + 0.3; P.gap = g.dur + TELL1; S.pop(); }
+    else if (g.ph === 'idle') { if (!P.stack.length && g.dur - g.t > 0.25) g.t = g.dur - 0.25; // 다 쳤으면 곧 고개를 든다 (빨리 칠수록 판이 빨리 돈다)
+      if (g.t >= g.dur) { g.ph = 'tell'; g.t = 0; g.dur = TELL1; g.who = (g.who + 1 + Math.floor(rng() * 2)) % 3; } }
+    else if (g.ph === 'tell' && g.t >= g.dur) { g.ph = 'watch'; g.t = 0; g.dur = between(1.0, 1.7);
+      if (P.stack.length) { P.drop += P.stack.length; P.combo = 0; P.cut = 1.4; P.stack = []; S.drop(); } } // 말이 끊겼다
+    E.staff.forEach((s, i) => { const on = i === g.who && g.ph !== 'idle'; s.phase = on ? g.ph : 'stand'; s.t = on ? g.t : 0; s.dur = on ? g.dur : 1; });
     for (const l of lanesPressed(taps, B.zones)) {
-      if (P.gz.ph === 'watch') { expose(); if (E.caught) return; continue; }
+      if (g.ph === 'watch') { expose(); if (E.caught) return; continue; }
       const cur = P.stack[0]; if (!cur) continue;
-      if (cur.lane === l) { P.stack.shift(); P.hit++; P.combo++; P.slide = 1; P.fx.push({ k: 'hit', lane: l, t: 0 }); P.say = { qi: cur.qi, wi: cur.wi, t: 0 }; S.hit(l, P.combo); G.hints.iv = true; }
+      if (cur.lane === l) { P.stack.shift(); P.hit++; P.combo++; P.slide = 1; P.fx.push({ k: 'hit', lane: l, t: 0 }); P.said.push(cur.w); P.saidT = 0; S.hit(l, P.combo); G.hints.iv = true; }
       else { P.miss++; P.combo = 0; P.shake = 0.2; P.fx.push({ k: 'bad', lane: l, t: 0 }); S.bad(); }
     }
-    P.slide = Math.max(0, P.slide - dt / 0.08); P.shake = Math.max(0, P.shake - dt); if (P.say) P.say.t += dt;
+    P.slide = Math.max(0, P.slide - dt / 0.07); P.shake = Math.max(0, P.shake - dt); P.saidT += dt; P.cut = Math.max(0, P.cut - dt);
     P.fx = P.fx.filter(f => (f.t += dt) < 0.5);
-    if ((P.next >= P.N && !P.stack.length) || P.t >= tune.ib1_time) { if (P.stack.length) { P.drop += P.stack.length; P.stack = []; } endPhase(0, acc1(P), 1 - P.t / tune.ib1_time); }
   }
 
   // ---- 2페이즈: 리듬 면접 ----
@@ -353,39 +348,35 @@ BOSS.ibank = (() => {
       brk(c, h.x - r, h.y - r, r * 2, r * 2, 6, cc, 1.4); if (w) { c.strokeStyle = rgba(RED, 0.35); c.lineWidth = 1; c.beginPath(); c.moveTo(h.x - r - 6, h.y); c.lineTo(h.x - r + 2, h.y); c.moveTo(h.x + r - 2, h.y); c.lineTo(h.x + r + 6, h.y); c.stroke(); }
       k.M(w ? 'EYES ON' : 'TURNING', h.x, h.y - r - 7, 6.5, cc, 'center', 700); });
   }
-  function hudP1(k, L, E, now, col) {
-    const B = E.B, P = B.p1, c = k.b, watched = P.gz.ph === 'watch', tell = P.gz.ph === 'tell', live = E.start <= 0 && !E.over && !E.caught;
-    const X0 = 462, LW = 52, ROW = 19, Y0 = 292, N = tune.ib1_stack, top = Y0 - (N - 1) * ROW - 12, lc = watched ? RED : col, tch = !!STATE.touchUI;
-    B.zones = [{ i: 0, x0: 432, x1: X0 + LW, y0: 40, y1: 360 }, { i: 1, x0: X0 + LW, x1: X0 + LW * 2, y0: 40, y1: 360 }, { i: 2, x0: X0 + LW * 2, x1: 640, y0: 40, y1: 360 }];
+  function hudP1(k, L, E, now, col) { // 프롬프터: 안경이 눈앞에 띄운 대본 한 줄. 맨 왼쪽(커서) 블록부터 친다
+    const B = E.B, P = B.p1, c = k.b, g = P.gz, watched = g.ph === 'watch', live = E.start <= 0 && !E.over && !E.caught, tch = !!STATE.touchUI;
+    const X0 = 70, X1 = 570, Y = 244, CH = 24, CX = X0 + 26, lc = watched ? RED : col;
+    B.zones = [{ i: 0, x0: 0, x1: 640 / 3, y0: 0, y1: 360 }, { i: 1, x0: 640 / 3, x1: 1280 / 3, y0: 0, y1: 360 }, { i: 2, x0: 1280 / 3, x1: 640, y0: 0, y1: 360 }];
     head(k, E, 0, col); meter(k, 24, 52, 118, P.hit + P.miss + P.drop + P.seen ? acc1(P) : null, tune.ib1_acc, col, 'ACC');
-    const left = P.N - P.hit - P.drop; k.M(`BLK ${String(left).padStart(2, '0')}/${P.N}`, 24, 106, 7.5, rgba(WH, 0.85), 'left', 700); if (P.drop) k.M(`DROP ${P.drop}`, 92, 106, 7.5, AMB, 'left', 700);
-    const sec = Math.ceil(E.timeLeft), low = sec <= 10 && Math.floor(now * 4) % 2; k.M(`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, 616, 28, 17, low ? RED : WH, 'right', 700);
+    k.M(`LINE ${String(Math.max(1, P.si + 1)).padStart(2, '0')}/${P.NS}`, 24, 106, 7.5, rgba(WH, 0.85), 'left', 700); if (P.drop) k.M(`CUT ${P.drop}`, 92, 106, 7.5, AMB, 'left', 700);
+    if (P.combo >= 10) k.M(`×${P.combo}`, 616, 28, 15, WH, 'right', 700);
     strikesUi(k, P.strikes, 616, 48, col, 'EXPOSED');
-    hudDraw(k, c => { // 쌓이는 열: 가는 레일, 위쪽 한계선, 블록, 받침
-      c.fillStyle = 'rgba(3,8,12,0.28)'; c.fillRect(X0 - 4, top - 4, LW * 3 + 8, Y0 - top + 38);
-      brk(c, X0 - 8, top - 8, LW * 3 + 16, Y0 - top + 46, 8, rgba(lc, 0.9), 1.2);
-      c.setLineDash([1.5, 4]); c.strokeStyle = rgba(lc, 0.3); c.lineWidth = 1; c.beginPath(); for (let i = 1; i < 3; i++) { c.moveTo(X0 + i * LW, top); c.lineTo(X0 + i * LW, Y0 + 12); } c.stroke();
-      const hot = P.stack.length >= N - 2; c.strokeStyle = hot && Math.floor(now * 6) % 2 ? RED : rgba(RED, 0.55); c.beginPath(); c.moveTo(X0 - 2, top - 2); c.lineTo(X0 + LW * 3 + 2, top - 2); c.stroke(); c.setLineDash([]);
-      for (let r = Math.min(P.stack.length, N) - 1; r >= 0; r--) { const b = P.stack[r], cur = r === 0, drop = Math.max(0, 0.16 - (P.t - b.born)) / 0.16;
-        const x = X0 + b.lane * LW + 5 + (cur && P.shake > 0 ? Math.sin(now * 90) * 2.5 * (P.shake / 0.2) : 0), y = Y0 - (r + P.slide) * ROW - drop * 26 - 7, w = LW - 10, h = 13;
-        const a = watched ? 0.35 : cur ? 1 : Math.max(0.3, 0.9 - r * 0.05), cc = cur && !watched ? WH : lc;
-        c.globalAlpha = a; c.fillStyle = rgba(lc, cur ? 0.32 : 0.14); c.fillRect(x, y, w, h); c.strokeStyle = cc; c.lineWidth = cur ? 1.3 : 0.9; c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-        c.fillStyle = cc; c.fillRect(x + 4, y + 4, 2, 5); c.fillRect(x + 9, y + 4, w - 22 - (r * 7) % 9, 1); c.fillRect(x + 9, y + 8, w - 16 - (r * 5) % 11, 1);
-        if (cur && !watched) { c.globalAlpha = 0.45 + 0.3 * Math.sin(now * 9); brk(c, x - 3, y - 3, w + 6, h + 6, 4, WH, 1); } c.globalAlpha = 1; }
-      for (let i = 0; i < 3; i++) { const x = X0 + i * LW + 5, w = LW - 10, y = Y0 + 12, f = P.fx.find(f => f.lane === i && f.k !== 'drop' && f.t < 0.18);
-        c.strokeStyle = f && f.k === 'bad' ? RED : rgba(lc, watched ? 0.8 : 0.75); c.lineWidth = 1.2; c.beginPath(); c.moveTo(x, y); c.lineTo(x, y + 5); c.lineTo(x + w, y + 5); c.lineTo(x + w, y); c.stroke();
-        if (f && f.k === 'hit') { const g = c.createLinearGradient(0, y - 70, 0, y + 5); g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(WH, 0.5 * (1 - f.t / 0.18))); c.fillStyle = g; c.fillRect(x, y - 70, w, 75); }
-        if (tch) { c.fillStyle = rgba(lc, 0.7); c.beginPath(); c.arc(x + w / 2, y + 14, 2.2, 0, 7); c.fill(); } }
-      for (const f of P.fx) if (f.k === 'drop') { const x = X0 + f.lane * LW + 5, y = Y0 + 4 + f.t * 90; c.globalAlpha = Math.max(0, 1 - f.t / 0.5); c.strokeStyle = RED; c.strokeRect(x + 0.5, y + 0.5, LW - 11, 12); c.globalAlpha = 1; }
+    const chips = []; let x = CX + (P.shake > 0 ? Math.sin(now * 90) * 3 * (P.shake / 0.2) : 0);
+    for (let i = 0; i < P.stack.length; i++) { const w = Math.max(30, k.TW(P.stack[i].w, 9, 700) + 14); if (i === 0) x += P.slide * 14; if (x + w > X1 - 6) break; chips.push({ b: P.stack[i], x, w, i }); x += w + 5; }
+    hudDraw(k, c => {
+      c.fillStyle = watched ? 'rgba(30,4,8,0.5)' : 'rgba(3,8,12,0.5)'; c.fillRect(X0, Y - 18, X1 - X0, CH + 24); brk(c, X0 - 4, Y - 22, X1 - X0 + 8, CH + 32, 8, rgba(lc, 0.9), 1.2);
+      c.fillStyle = rgba(lc, 0.9); c.fillRect(X0 + 12, Y - 14, 1.5, CH + 16); // 커서
+      const hf = P.fx.find(f => f.k === 'hit' && f.t < 0.14); if (hf) { c.fillStyle = rgba(WH, 0.45 * (1 - hf.t / 0.14)); c.fillRect(X0 + 4, Y - 16, 60, CH + 20); }
+      for (const ch of chips) { const cur = ch.i === 0, a = cur ? 1 : Math.max(0.35, 0.9 - ch.i * 0.07); c.globalAlpha = a;
+        c.fillStyle = rgba(col, cur ? 0.3 : 0.12); c.fillRect(ch.x, Y, ch.w, CH); c.strokeStyle = cur ? WH : rgba(col, 0.8); c.lineWidth = cur ? 1.4 : 0.9; c.strokeRect(ch.x + 0.5, Y + 0.5, ch.w - 1, CH - 1);
+        for (let l = 0; l < 3; l++) { const dx = ch.x + ch.w / 2 - 14 + l * 10; if (l === ch.b.lane) { c.fillStyle = cur ? WH : col; c.fillRect(dx, Y - 11, 8, 6); } else { c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 0.8; c.strokeRect(dx + 0.5, Y - 10.5, 7, 5); } } // 어느 칸인가: 왼쪽 · 가운데 · 오른쪽
+        c.globalAlpha = 1; }
+      if (!watched && P.si >= 0) { const left = g.ph === 'tell' ? g.dur - g.t : g.dur - g.t + TELL1, kx = cl(left / P.gap, 0, 1); // 고개를 들 때까지 남은 시간
+        c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(X0, Y + CH + 12, X1 - X0, 2); c.fillStyle = g.ph === 'tell' ? (Math.floor(now * 12) % 2 ? RED : AMB) : col; c.fillRect(X0, Y + CH + 12, (X1 - X0) * kx, 2); }
+      for (let i = 0; i < 3; i++) { const zx = 640 / 3 * i + 640 / 6, f = P.fx.find(f => f.lane === i && f.t < 0.16), cc = f && f.k === 'bad' ? RED : f ? WH : rgba(lc, 0.55); c.fillStyle = cc; c.fillRect(zx - 9, 336, 18, f ? 3 : 1.5); }
     });
-    if (!tch) for (let i = 0; i < 3; i++) k.M('ASD'[i], X0 + i * LW + LW / 2, Y0 + 30, 7, rgba(WH, 0.6), 'center', 700);
-    if (P.fx.some(f => f.k === 'drop' && f.t < 0.5)) k.M('DROP', X0 + LW * 1.5, top - 14, 7, RED, 'center', 700);
-    if (watched && live) k.M('LOCK', X0 + LW * 1.5, Y0 + (tch ? 40 : 42), 7.5, RED, 'center', 700);
+    for (const ch of chips) { k.b.globalAlpha = ch.i === 0 ? 1 : Math.max(0.4, 0.9 - ch.i * 0.07); k.T(ch.b.w, ch.x + ch.w / 2, Y + CH / 2 + 0.5, 9, ch.i === 0 ? WH : rgba(WH, 0.9), 'center', 700); } k.b.globalAlpha = 1;
+    if (!tch) for (let i = 0; i < 3; i++) k.M('ASD'[i], 640 / 3 * i + 640 / 6, 346, 7, rgba(WH, 0.55), 'center', 700);
+    if (watched && live) k.M(P.si < 0 ? 'STANDBY' : 'LOCK · 손 떼기', (X0 + X1) / 2, Y + CH / 2 - 4, 9, RED, 'center', 700);
+    else if (!P.stack.length && live && P.si >= 0) k.M('LINE CLEAR', (X0 + X1) / 2, Y + CH / 2 - 4, 9, col, 'center', 700);
     if (live) eyesOn(k, E, now, col);
-    const q = P.qs[P.qShow]; if (q && P.qT < 3.2 && live) k.SUB(`${E.staff[P.qShow % 3].name}: "${q.q}"`, 250, 34, 10, '#ffffff', 'center');
-    if (P.say && P.say.t < 2.2 && live) { const wl = P.words[P.say.qi] || [], ln = P.qs[P.say.qi].lines, cut = []; let n = 0, text = '';
-      for (const l of ln) { const w = l.split(' '); if (P.say.wi < n + w.length) { text = w.slice(0, P.say.wi - n + 1).join(' '); break; } n += w.length; }
-      if (text) k.SUB(text, 236, L.H - 26, 12, '#ffffff', 'center'); }
+    if (live && P.cut > 0) k.SUB('"어… 그러니까…"', L.W / 2, 204, 11, '#ffd0d0', 'center');
+    else if (live && P.said.length && P.saidT < 1.6) k.SUB(P.said.slice(-7).join(' '), L.W / 2, 204, 11, '#ffffff', 'center');
   }
   function hudP2(k, L, E, now, col) {
     const B = E.B, P = B.p2, c = k.b, live = !E.over && !E.caught && !B.tr, VX = 320, VY = 64, J = 300, LX = [185, 275, 365, 455], D = 3.1, lead = cl(1.55 * 96 / P.bpm, 1.05, 1.6), tch = !!STATE.touchUI;

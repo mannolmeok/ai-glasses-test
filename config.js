@@ -113,6 +113,8 @@ window.CONFIG = {
   omega_floor: { value: 0.4, min: 0, max: 1, step: 0.05 },         // Ω: 엇박자 칩을 다 달아도 남는 비율
   ib_strikes: { value: 3, min: 1, max: 9, step: 1 },               // [해외 보스] 페이즈마다 이만큼 들키거나(1·2) 놓치면(3) 끝
   ib1_blocks: { value: 72, min: 20, max: 160, step: 2 },           // [해외 보스 1] 블록 러시: 입력할 블록 수
+  ib1_sent: { value: 12, min: 4, max: 24, step: 1 },                // [해외 보스 1] 프롬프터 속사: 문장 수 (문장마다 블록 8~12개)
+  ib1_rate: { value: 0.24, min: 0.1, max: 0.6, step: 0.01 },       // [해외 보스 1] 블록 하나에 주는 시간(초). 뒤로 갈수록 18% 짧아진다
   ib1_time: { value: 75, min: 30, max: 180, step: 1 },             // [해외 보스 1] 제한 시간(초)
   ib1_acc: { value: 0.85, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 1] 통과 정확도
   ib1_stack: { value: 12, min: 6, max: 20, step: 1 },              // [해외 보스 1] 쌓이는 칸 수. 넘치면 맨 아래가 떨어진다
