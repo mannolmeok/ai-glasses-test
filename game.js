@@ -140,7 +140,7 @@ function backupSave() { try { const raw = localStorage.getItem(SAVE_KEY); if (ra
 function hasBackup() { try { return !!localStorage.getItem(BAK_KEY); } catch (_) { return false; } }
 function newGame() {
   const gear = { model: 0 }; for (const g of CONFIG.gear) gear[g.id] = 0;
-  return { v: 4, heat: 0, lamps: 0, audit: null, tv: [], tvSeen: 0, lastPass: null, black: null, money: 0, gear, unlocked: 1, cleared: TIERS.map(() => false), best: TIERS.map(() => 0),
+  return { v: 5, heat: 0, lamps: 0, audit: null, tv: [], tvSeen: 0, lastPass: null, black: null, money: 0, gear, unlocked: 1, cleared: TIERS.map(() => false), best: TIERS.map(() => 0),
     ended: false, endSeen: false, stats: { exams: 0, caught: 0, passes: 0, fails: 0, tops: 0, selfQ: 0, aiQ: 0, playT: 0, earned: 0, fees: 0, scans: 0 },
     hints: {}, flags: {}, pending: 0, mail: null, fresh: {}, news: [], seen: 0, run: { t: 0, splits: [], done: false, rec: 0 }, opts: { timer: false }, last: 0 };
 }
@@ -156,7 +156,10 @@ function adopt(s) { // 저장된 값을 새 게임 틀에 얹는다 (빠진 칸�
   return g;
 }
 function save() { if (NOSAVE) return; try { G.last = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (_) { } }
-function load() { try { const raw = localStorage.getItem(SAVE_KEY); return raw ? adopt(JSON.parse(raw)) : null; } catch (_) { return null; } }
+function load() { try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return null; const s = JSON.parse(raw);
+    if ((Number(s.v) || 0) < 5 && !/\/ai-glasses-test(\/|$)/.test(location.pathname)) { // 예전 판(시즌 1)의 저장: 시험·장비 구성이 달라 이어 쓸 수 없다. 한 벌 따로 남겨 두고 처음부터
+      try { if (!localStorage.getItem(SAVE_KEY + '-s1')) localStorage.setItem(SAVE_KEY + '-s1', raw); localStorage.removeItem(SAVE_KEY); } catch (_) { } STATE.oldSave = (s.stats && s.stats.exams > 0) || false; return null; }
+    const g = adopt(s); g.v = 5; return g; } catch (_) { return null; } }
 function awayEarnings() { // 저장해 둔 마지막 시각과 지금의 차이만큼 대리 응시가 번 돈 (불러올 때 한 번)
   if (!G.last || !(G.gear.bot > 0)) return;
   const secs = clamp((Date.now() - G.last) / 1000, 0, tune.away_cap);
@@ -595,6 +598,8 @@ function startExam(ti) {
   E.stickerSlow = 1; E.dead = null; E.deadNext = null; E.intro = null; E.wetT = 0; // 단추 스티커는 이제 느려지는 게 아니라 아예 가려진다 (E.dead)
   // 입실 검사: 시작부터 의심을 안고 들어간다
   const stealth = Math.pow(1 - tune.stealth_cut, g.stealth), N = E.startNotes;
+  if (ti === 0 && !(G.stats.exams > 0)) { for (const k of ['scan', 'pick', 'front', 'look', 'end', 'desk', 'back', 'tell']) delete G.hints[k]; } // 첫 시험 조작 안내는 늘 처음부터
+  if (STATE.oldSave && ti === 0) { N.push({ text: '새 시즌이 시작되어 처음부터 진행합니다 · 지난 기록은 석차표의 지난 시즌에 남아 있습니다', col: PAL.warn }); STATE.oldSave = false; }
   { const ed = E.edge = T.boss ? { lens: 0, cover: 0, model: 0 } : gearEdge(ti); E.edgeScan = Math.pow(1 - tune.edge_lens, ed.lens) * Math.pow(1 - tune.edge_model, ed.model); E.edgeSus = Math.pow(1 - tune.edge_cover, ed.cover);
     const a = []; if (E.edgeScan < 0.999) a.push(`스캔 ${Math.round((1 - E.edgeScan) * 100)}% 빠름`); if (ed.cover > 0) a.push(`의심 ${Math.round((1 - E.edgeSus) * 100)}% 덜 오름`); if (ed.model > 0) a.push('AI 정답률 99%'); if (a.length) N.push({ text: '장비가 이 시험장을 앞선다 · ' + a.join(' · '), col: PAL.good }); }
   const glassOn = R === 'room' && g.lens >= tune.glass_level && g.lens <= 5, camOn = g.lens < tune.glass_level; // 안경을 쓰고 있나 · 단추 카메라를 쓰고 있나
