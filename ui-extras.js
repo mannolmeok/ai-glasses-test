@@ -4,47 +4,67 @@
 //  2) 뒤로 가기: 게임 중에는 일시정지 창을 열고, 창에서 다시 누르면 닫는다. 타이틀에서는 원래대로 사이트를 나간다
 //  3) 일시정지 창: 계속하기 · 소리 · 타이틀로. 시험 중에 타이틀로 가려면 두 번 눌러야 하고, 그 시험은 포기(점수 없음, 낸 응시료는 그대로)
 //  4) PC(키보드·마우스)에서는 첫 시험 조작 안내와 힌트를 '화면 어디를 누르기' 대신 '어느 키'로 보여 준다
-//  5) 자막 글꼴은 그대로 두고, 게임 화면 점 칸으로 찍어 테두리·그림자까지 점으로 그린다 (HUD의 도트 느낌과 맞춘다)
+//  5) 자막 글씨 시안 고르는 중: 주소에 ?sub=ott|film|docu|tv|vhs|scope 를 붙이면 그 모양으로 (없으면 원래 자막)
 'use strict';
 (function () {
   if (typeof scenes === 'undefined' || typeof makeKit !== 'function' || !scenes.pause) return;
   const Q = new URLSearchParams(location.search);
 
-  // ---- 5) 점 자막 ----
-  function subPixel(str, size, col, g) { // 자막 글꼴을 점 칸(g = 화면 1칸에 점 몇 개)으로 찍고, 점 하나 굵기 검은 테두리 + 아래 그림자
-    const px = Math.round(size * g), pad = 3, f = `700 ${px}px ${FONT_SUB}`, m = document.createElement('canvas'), mg = m.getContext('2d'); mg.font = f;
-    const tw = Math.ceil(mg.measureText(str).width), h = Math.ceil(px * 1.45);
-    m.width = tw + pad * 2; m.height = h + pad * 2; mg.font = f; mg.textBaseline = 'middle'; mg.fillStyle = '#ffffff'; mg.fillText(str, pad, pad + h / 2);
-    const id = mg.getImageData(0, 0, m.width, m.height), d = id.data, thr = g === 1 ? 100 : 110; // 반투명 가장자리를 없애 점만 남긴다 (가는 획이 끊기지 않게 문턱은 낮게)
-    for (let i = 3; i < d.length; i += 4) d[i] = d[i] >= thr ? 255 : 0;
-    mg.putImageData(id, 0, 0);
-    const tint = c2 => { const t = document.createElement('canvas'); t.width = m.width; t.height = m.height; const tg = t.getContext('2d'); tg.drawImage(m, 0, 0); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = c2; tg.fillRect(0, 0, t.width, t.height); return t; };
-    const o = document.createElement('canvas'); o.width = m.width; o.height = m.height; const og = o.getContext('2d');
-    og.globalAlpha = 0.55; og.drawImage(tint('#000000'), 0, 2); og.globalAlpha = 1;
-    const e = tint('#0b0a10'); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [1, -1], [-1, 1]]) og.drawImage(e, dx, dy);
-    og.drawImage(tint(col), 0, 0); o.pad = pad; return o;
+  // ---- 5) 자막 글씨 시안 (고르는 중): ?sub=ott|film|docu|tv|vhs|scope 로 미리 본다. 주소에 없으면 원래 자막 그대로 ----
+  const GOTHIC = FONT_SUB, SERIF = '"Noto Serif KR","AppleMyungjo","Apple Myungjo","Noto Serif CJK KR","Batang","바탕",serif';
+  const SUBS = { // sh: [x, y, 번짐, 색] (화면 1칸 단위)
+    ott: { font: GOTHIC, w: 500, k: 1.02, fill: '#ffffff', stroke: 0.9, sCol: 'rgba(0,0,0,0.9)', sh: [0, 0.8, 2.5, 'rgba(0,0,0,0.8)'] }, // 넷플릭스·OTT: 흰 글자, 얇은 테두리 + 옅은 그림자
+    film: { font: GOTHIC, w: 400, k: 1.0, fill: '#f2eee4', sp: 0.06, sh: [0, 1, 5, 'rgba(0,0,0,0.95)'], twice: true }, // 극장 영화: 가는 글자, 자간 넓게, 테두리 없이 번진 그림자
+    docu: { font: SERIF, w: 500, k: 1.0, fill: '#ffffff', sp: 0.03, sh: [0, 1, 4, 'rgba(0,0,0,0.9)'], twice: true, name: true }, // 다큐: 명조, 말하는 사람 이름은 작게 회색
+    tv: { font: GOTHIC, w: 700, k: 0.92, fill: '#ffffff', box: 'rgba(0,0,0,0.66)', pad: [7, 3] }, // 방송 자막: 글자에 맞춘 반투명 검은 상자
+    vhs: { font: GOTHIC, w: 800, k: 1.0, fill: '#ffe14d', stroke: 1.8, sCol: '#000000', sh: [1, 1.5, 0, 'rgba(0,0,0,0.85)'] }, // 비디오 자막: 노란 굵은 글자 + 검은 테두리
+    scope: { font: GOTHIC, w: 500, k: 0.98, fill: '#f6f6f6', band: 'rgba(0,0,0,0.9)' }, // 레터박스: 화면 아래 검은 띠 안에 흰 글자
+  };
+  const SUB = SUBS[Q.get('sub')] ? Q.get('sub') : null;
+  function subCanvas(str, size, col, S, st) {
+    const px = size * st.k * S, m = document.createElement('canvas'), g = m.getContext('2d');
+    const white = /^#(fff|ffffff|f4f1e8|f2f5ee)$/i.test(col), fill = white ? st.fill : col; // 흰 자막만 시안의 색으로 (빨강·회색처럼 뜻이 있는 색은 그대로)
+    let name = null, body = str; if (st.name) { const mm = /^([^:"]{1,12}):\s*(.+)$/.exec(str); if (mm) { name = mm[1]; body = mm[2]; } }
+    const f1 = `${st.w} ${px}px ${st.font}`, f2 = `${st.w} ${px * 0.78}px ${st.font}`;
+    const setF = f => { g.font = f; if ('letterSpacing' in g) g.letterSpacing = st.sp ? (st.sp * px).toFixed(1) + 'px' : '0px'; };
+    setF(f1); const bw = g.measureText(body).width; let nw = 0; if (name) { setF(f2); nw = g.measureText(name).width + px * 0.45; }
+    const tw = Math.ceil(nw + bw), sh = st.sh || [0, 0, 0, 'transparent'], padX = Math.ceil(((st.stroke || 0) + sh[2] + Math.abs(sh[0]) + 2 + (st.box ? st.pad[0] : 0)) * S), padY = Math.ceil(((st.stroke || 0) + sh[2] + Math.abs(sh[1]) + 2 + (st.box ? st.pad[1] : 0)) * S), h = Math.ceil(px * 1.35);
+    m.width = tw + padX * 2; m.height = h + padY * 2;
+    const cy = m.height / 2;
+    if (st.box) { const bx = padX - st.pad[0] * S, by = cy - h / 2 - st.pad[1] * S + px * 0.06, bw2 = tw + st.pad[0] * 2 * S, bh = h + st.pad[1] * 2 * S - px * 0.12; g.fillStyle = st.box; g.beginPath(); if (g.roundRect) g.roundRect(bx, by, bw2, bh, 2 * S); else g.rect(bx, by, bw2, bh); g.fill(); }
+    g.textBaseline = 'middle'; g.lineJoin = 'round';
+    const run = (txt, x, f, c) => {
+      setF(f);
+      if (st.stroke) { g.strokeStyle = st.sCol; g.lineWidth = st.stroke * 2 * S; g.strokeText(txt, x, cy); }
+      g.shadowColor = sh[3]; g.shadowOffsetX = sh[0] * S; g.shadowOffsetY = sh[1] * S; g.shadowBlur = sh[2] * S; g.fillStyle = c; g.fillText(txt, x, cy); if (st.twice) g.fillText(txt, x, cy);
+      g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetX = 0; g.shadowOffsetY = 0;
+    };
+    if (name) run(name, padX, f2, '#c9c9c9');
+    run(body, padX + nw, f1, fill);
+    m.padX = padX; m.tw = tw; return m;
   }
-  function pixelSub(K) {
-    if (!K || K.__px) return K; K.__px = true;
-    const orig = K.SUB, b = K.b;
+  const BANDS = { t: -1, s: new Set() };
+  function styledSub(K) {
+    if (!K || K.__sub || !SUB) return K; K.__sub = true;
+    const orig = K.SUB, b = K.b, st = SUBS[SUB];
     K.SUB = function (str, x, y, size, col = '#ffffff', align = 'center') {
-      if (CONFIG.sub_style !== 'film') return orig(str, x, y, size, col, align); // 검은 띠 자막은 원래대로 (도트 글꼴)
+      if (CONFIG.sub_style !== 'film') return orig(str, x, y, size, col, align);
       str = String(str); size += 2;
-      const S = K.S || HUD_SCALE, dp = Math.max(1, Math.round(S / 2)), g = S / dp, key = 'subpx|' + str + '|' + size + '|' + col + '|' + S; // 점 하나 = 화면 픽셀 dp개 (게임 화면 점의 반: 도트 느낌은 나고 한글 받침이 뭉개지지 않는 크기)
+      const S = K.S || HUD_SCALE, key = 'sub2|' + SUB + '|' + str + '|' + size + '|' + col + '|' + S;
       let c = TEXT_CACHE.get(key);
-      if (!c) { c = subPixel(str, size, col, g); if (TEXT_CACHE.size > 900) TEXT_CACHE.clear(); TEXT_CACHE.set(key, c); }
-      const w = c.width / g, h = c.height / g, pd = c.pad / g, q = v => Math.round(v * g) / g; // 점 칸에 맞춰 놓아야 점이 고르게 보인다
-      const sm = b.imageSmoothingEnabled; b.imageSmoothingEnabled = false;
-      b.drawImage(c, q(align === 'center' ? x - w / 2 : align === 'right' ? x - w + pd : x - pd), q(y - h / 2), w, h);
-      b.imageSmoothingEnabled = sm;
-      return w - pd * 2;
+      if (!c) { c = subCanvas(str, size, col, S, st); if (TEXT_CACHE.size > 900) TEXT_CACHE.clear(); TEXT_CACHE.set(key, c); }
+      const w = c.width / S, h = c.height / S, pd = c.padX / S, tw = c.tw / S;
+      const dx = align === 'center' ? x - w / 2 : align === 'right' ? x - w + pd : x - pd;
+      if (st.band && str.length > 1) { const bk = now + '|' + Math.round(y); if (BANDS.t !== now) { BANDS.t = now; BANDS.s.clear(); } if (!BANDS.s.has(bk)) { BANDS.s.add(bk); b.save(); b.fillStyle = st.band; b.fillRect(0, Math.round(y - size * 0.95), b.canvas.width / S, Math.round(size * 1.9)); b.restore(); } } // 레터박스 띠 (같은 줄에 자막이 여럿이면 띠는 한 번만)
+      b.drawImage(c, Math.round(dx * S) / S, Math.round((y - h / 2) * S) / S, w, h);
+      return st.box ? tw + st.pad[0] * 2 : tw;
     };
     return K;
   }
   const origMakeKit = makeKit;
-  window.makeKit = function (b) { return pixelSub(origMakeKit(b)); };
-  if (typeof BUF !== 'undefined' && BUF) pixelSub(BUF.k);
-  if (typeof KITS !== 'undefined') for (const id in KITS) pixelSub(KITS[id]);
+  window.makeKit = function (b) { return styledSub(origMakeKit(b)); };
+  if (typeof BUF !== 'undefined' && BUF) styledSub(BUF.k);
+  if (typeof KITS !== 'undefined') for (const id in KITS) styledSub(KITS[id]);
 
   // ---- 1) 소리 끔 기억 ----
   const MK = 'ai-glasses-muted';
