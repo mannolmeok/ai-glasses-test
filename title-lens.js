@@ -217,6 +217,17 @@
     const span = pw - 18, hx = ((tm * 70) % (span + 24)) - 24, x0 = Math.max(0, hx), x1 = Math.min(span, hx + 24); if (x1 > x0) k.R(px + 9 + x0, py + 33, x1 - x0, 2, G_HI); // 다 찬 막대 위로 밝은 마디가 흐른다
     b.globalAlpha = 1;
   }
+  const NB = { x: 452, y: 272, w: 169, h: 20 }; // 새로 하기 버튼 (저장이 있을 때만, 시작 창 바로 아래)
+  const NEW_OK = (() => { try { return String(scenes.title.update).indexOf("'new'") >= 0; } catch (e) { return false; } })(); // 게임 쪽이 '새로 하기'를 받을 때만 버튼을 띄운다 (예전 game.js가 캐시에 남아 있으면 안 띄움)
+  function newButton(k, arm, a, tm) { // 테두리만 있는 작은 HUD 버튼. 한 번 누르면 3초 동안 빨갛게 '한 번 더'를 기다린다
+    const b = k.b, { x, y, w, h } = NB, on = arm > 0, blink = on && Math.floor(tm * 4) % 2 === 0;
+    b.save(); b.globalAlpha = a; b.fillStyle = on ? 'rgba(60,8,10,0.78)' : 'rgba(4,22,12,0.45)'; b.fillRect(x, y, w, h);
+    b.globalAlpha = a * (on ? (blink ? 1 : 0.6) : 0.7); b.strokeStyle = on ? RED : G1; b.lineWidth = 1; b.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); b.restore();
+    b.globalAlpha = a;
+    if (on) { k.T(`한 번 더 누르면 처음부터 · ${Math.ceil(arm)}`, x + 9, y + h / 2, 8.5, '#ffd6da', 'left', 700); k.M('저장만 지워요 · 석차표 기록은 남아요', x + w, y + h + 9, 7, CREAM, 'right', 500); }
+    else { k.T('↺ 새로 하기', x + 9, y + h / 2, 8.5, G1, 'left', 700); k.T('N', x + w - 7, y + h / 2, 6.5, '#cfe9d8', 'right', 500); }
+    b.globalAlpha = 1;
+  }
   const TWID = new Map();
   function ticker(k, str, a, tm) { // 화면 맨 아래 흐르는 석차 줄 (기존 타이틀과 같은 모양): 누르면 석차표가 열린다
     const b = k.b, ty = 323, tl = 24, tr = W - 24, lab = '석차표', lw = k.TW(lab, 9, 700) + 12;
@@ -284,10 +295,11 @@
         deco(b, al); art(k, A.title, TBOX, al, P.logo >= 1 ? P.jit : 0, tm); b.restore();
       }
       if (ua > 0 && rk <= 0 && P.logo >= 1) {
-        if (info.ios) { b.globalAlpha = 0.85 * ua; k.M('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', 621, 282, 7.5, CREAM, 'right', 500); }
+        if (info.ios) { b.globalAlpha = 0.85 * ua; k.M('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', 621, hasSave && NEW_OK ? 312 : 282, 7.5, CREAM, 'right', 500); }
         b.globalAlpha = 1;
       }
       if (P.btn > 0 && ua > 0) startPanel(k, hasSave ? '이어서 하기' : '시험 시작', P.btn * ua, tm);
+      if (hasSave && NEW_OK && P.btn > 0 && ua > 0 && rk <= 0) { newButton(k, info.newArm || 0, P.btn * ua, tm); btns.push({ x: NB.x - 4, y: NB.y - 4, w: NB.w + 8, h: NB.h + 8, key: 'new' }); } // 저장이 있으면 '새로 하기'도 (화면 아무 데나 누르기는 그대로 이어서 하기)
       if (P.tick > 0 && ua > 0) {
         const rows = RK.rows || [], str = rows.length ? rows.slice(0, 10).map((r, i) => `${i + 1}등 ${r.name} ${fmtRunT(r.t)}`).join('   ·   ') + '   ·   ' : '아직 기록이 없습니다 · 엔딩을 보면 석차표에 오릅니다   ·   ';
         ticker(k, str, Math.round(P.tick * ua * 4) / 4, tm);
