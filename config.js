@@ -152,6 +152,10 @@ window.CONFIG = {
   earbud_delay: { value: 0.35, min: 0, max: 2, step: 0.05 },       // 이어폰이 답을 대신 내기까지(초)
   autoscan_delay: { value: 0.35, min: 0, max: 1.5, step: 0.05 },   // 자동 스캔 칩 1단계의 반응 지연(초), 단계마다 절반
   jam_cut: { value: 0.6, min: 0, max: 1, step: 0.05 },             // 재머 1단계가 줄이는 비율 (최고 단계면 완전 차단)
+  edge_cap: { value: 2, min: 0, max: 4, step: 1 },                 // [장비 우위] 시험보다 앞선 단계를 최대 몇 단계까지 쳐 주나
+  edge_lens: { value: 0.25, min: 0, max: 0.6, step: 0.05 },        // 안경이 한 단계 앞설 때마다 스캔 시간 -
+  edge_cover: { value: 0.3, min: 0, max: 0.6, step: 0.05 },        // 위장이 한 단계 앞설 때마다 의심 오르는 속도 -
+  edge_model: { value: 0.15, min: 0, max: 0.6, step: 0.05 },       // AI 모델이 한 단계 앞설 때마다 스캔 시간 -
   gear_cut: { value: 0.5, min: 0, max: 1, step: 0.05 },            // 시험 전용 장비 단계당 그 장치 효과 감소 (2단계면 무력화)
   taste_bonus: { value: 0.12, min: 0, max: 0.4, step: 0.01 },      // AI 미각 센서 단계당 테이스팅 정답률 +
   taste_need: { value: 0.25, min: 0, max: 0.6, step: 0.01 },       // 미각 센서가 없을 때 테이스팅 AI 정답률 -

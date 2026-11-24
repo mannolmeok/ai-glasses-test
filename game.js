@@ -95,6 +95,9 @@ function botRate() { return botRateAt(G.gear.bot); }
 function earbudNeedAt(lv) { return Math.max(50, tune.earbud_threshold - tune.earbud_step * (lv - 1)); }
 function autoDelayAt(lv) { return tune.autoscan_delay / Math.pow(2, Math.max(0, lv - 1)); }
 function jamFactor(lv, max) { return lv <= 0 ? 1 : lv >= max ? 0 : (1 - tune.jam_cut) * (max - lv) / Math.max(1, max - 1); }
+function gearEdge(ti) { // [장비 우위] 이 시험이 열릴 때의 최신 장비보다 내 장비가 몇 단계 앞서 있나 (줄마다, 최대 edge_cap단계)
+  const need = id => { let lv = 0; (gearDef(id).at || []).forEach((t, i) => { if (t <= ti) lv = i + 1; }); return lv; }; let mneed = 0; CONFIG.models.forEach((m, i) => { if (m.rel + 1 <= ti) mneed = i; });
+  const c = v => clamp(v, 0, tune.edge_cap); return { lens: c((G.gear.lens || 0) - need('lens')), cover: c((G.gear.cover || 0) - need('cover')), model: c((G.gear.model || 0) - mneed) }; }
 function gearCut(lv) { return Math.max(0, 1 - lv * tune.gear_cut); } // 시험 전용 장비: 그 장치가 남는 비율
 function coachMult(lv = G.gear.coach) { return 1 + lv * tune.coach_bonus; }
 function aiAccuracyAt(tier, model) { return clamp(tune.ai_base - tune.ai_drop * Math.max(0, tier.ai - model), tune.ai_floor, 0.99); }
@@ -532,6 +535,7 @@ function say(text, col) { if (E) E.say = { text, t: 0, col }; } // 화면 아래
 function assignAI(qs, firstEver) { // AI의 판단: 맞으면 정답, 틀리면 오답 하나. 스캔 중에 지우는 두 보기는 언제나 오답
   let p = aiAccuracy(E.T);
   if (E.adaptHard) p = clamp(p - tune.adaptive_drop, tune.ai_floor, 0.99);
+  if (E.edge && E.edge.model > 0 && !E.T.mech.includes('human')) p = Math.max(p, 0.99); // [장비 우위] 모델이 시험을 앞서면 거의 틀리지 않는다
   for (const q of qs) {
     const right = firstEver || rng() < (E.T.mech.includes('human') && !q.human ? aiAccuracyAt(E.T, G.gear.model) : p), wrongs = [0, 1, 2, 3].filter(i => i !== q.answer);
     q.aiPick = right ? q.answer : wrongs[Math.floor(rng() * 3)];
@@ -586,6 +590,8 @@ function startExam(ti) {
   E.stickerSlow = 1; E.dead = null; E.deadNext = null; E.intro = null; E.wetT = 0; // 단추 스티커는 이제 느려지는 게 아니라 아예 가려진다 (E.dead)
   // 입실 검사: 시작부터 의심을 안고 들어간다
   const stealth = Math.pow(1 - tune.stealth_cut, g.stealth), N = E.startNotes;
+  { const ed = E.edge = T.boss ? { lens: 0, cover: 0, model: 0 } : gearEdge(ti); E.edgeScan = Math.pow(1 - tune.edge_lens, ed.lens) * Math.pow(1 - tune.edge_model, ed.model); E.edgeSus = Math.pow(1 - tune.edge_cover, ed.cover);
+    const a = []; if (E.edgeScan < 0.999) a.push(`스캔 ${Math.round((1 - E.edgeScan) * 100)}% 빠름`); if (ed.cover > 0) a.push(`의심 ${Math.round((1 - E.edgeSus) * 100)}% 덜 오름`); if (ed.model > 0) a.push('AI 정답률 99%'); if (a.length) N.push({ text: '장비가 이 시험장을 앞선다 · ' + a.join(' · '), col: PAL.good }); }
   const glassOn = R === 'room' && g.lens >= tune.glass_level && g.lens <= 5, camOn = g.lens < tune.glass_level; // 안경을 쓰고 있나 · 단추 카메라를 쓰고 있나
   if (T.mech.includes('metal')) { E.sus = tune.metal_sus * stealth; E.intro = { kind: 'metal', t: 0, dur: 3.8 }; N.push({ text: `탐지봉이 울렸다. 의심 ${Math.round(E.sus * 100)}%에서 시작`, col: PAL.bad }); }
   if (T.mech.includes('glasscheck')) { // 안경을 물에 담근다: 방수가 아니면 그 시험 내내 먹통
@@ -854,7 +860,7 @@ function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔
   if (T.mech.includes('telepathy') && E.ai && !E.fb && E.staff.some(s => !s.out && s.phase === 'watch')) { idle += base * 1.3; E.mindRead = true; } else if (E) E.mindRead = false; // 독심: 답을 떠올리고 있는 동안 보면 읽힌다
   if (E.hz && E.hz.kind === 'watch' && E.hz.phase === 'on') add(base * 1.3, E.T.id === 'dream' ? 'watch' : 'mirror', E.T.id === 'dream' ? E.staff[0] : null); // [거울 나라] 거울에 비친 감독관도 본다
   if (E.cctv && E.cctv.on) add(base * tune.cctv_rate * (tgHas('cctvmap') ? 0.5 : 1) * jamFactor(g.cctvjam, 3), 'cctv', null);
-  r *= Math.pow(1 - tune.stealth_cut, g.stealth); idle *= Math.pow(1 - tune.stealth_cut, g.stealth);
+  r *= Math.pow(1 - tune.stealth_cut, g.stealth) * (E.edgeSus || 1); idle *= Math.pow(1 - tune.stealth_cut, g.stealth) * (E.edgeSus || 1);
   if (E.pulse && E.pulse.active > 0 && T.pulse !== 'alert') { const v = tune.pulse_rate * E.pulseCut; r += v; if (v > 0 && (!src || v > src.v)) src = { v, how: T.pulse || 'pulse', by: null }; }
   return { r, idle, src };
 }
@@ -1168,7 +1174,7 @@ function updateExam(dt) {
     if (table) G.hints.iv = true;
     const before = Math.floor(E.scan * 3 + 1e-6);
     const labSlow = (M_.includes('spin') ? 1 + 2.2 * Math.abs(E.roll || 0) : 1) * (M_.includes('helmet') ? 1 + 2.5 * (E.fog || 0) : 1) * (M_.includes('mirror') ? 1.6 : 1);
-    const secs = scanSecondsAt(Math.max(3, g.lens - (E.omegaDown || 0))) * (E.jam || 1) * labSlow * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
+    const secs = scanSecondsAt(Math.max(3, g.lens - (E.omegaDown || 0))) * (E.jam || 1) * (E.edgeScan || 1) * labSlow * E.stickerSlow * (T.mech.includes('long') ? tune.long_scan : 1) * (T.mech.includes('fatigue') ? 1 + tune.fatigue_step * E.part * gearCut(g.eyedrop) : 1);
     E.scan += dt / secs * (1 - tune.float_wobble * (g.floaty ? 0.4 : 1) * E.float) * (E.sigRate == null ? 1 : E.sigRate); // [용궁] 신호가 약하면 느리게
     E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); }
     if (E.scan >= 1) completeScan();
