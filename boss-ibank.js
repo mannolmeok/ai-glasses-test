@@ -2,7 +2,7 @@
 // Question: 감독관 눈치를 보며 AI 안경으로 스캔하는 긴장감이, 장비와 시험이 함께 커지는 성장과 맞물려 엔딩까지 재밌나?
 // Date: 2026-11-23
 // 해외 마지막 시험(월가 투자은행 최종 면접)의 3페이즈 보스전. 렌즈 화면·규칙·3D 연출을 이 파일이 맡는다.
-//   1페이즈 프롬프터 속사: 면접관이 고개를 숙인 틈에 안경이 띄운 답변 한 문장(블록 8~12개)을 와다다 쳐 낸다. 못 끝내면 말이 끊기고, 보는 중에 누르면 '들킨 입력'
+//   1페이즈 프롬프터 속사: 면접관이 고개를 숙인 틈에 길게 눌러 답변 한 문장(블록 8~12개)을 스캔해 채우고(못 읽은 건 ?), 나를 볼 때 와다다 말한다(?는 셋 중 찍기). 보는 중에 스캔을 쥐고 있으면 들킨다
 //   전환: 전무가 일어나 "숫자로 얘기해 보죠." → 조명이 죽고 벽이 시세판으로 켜지며 카메라가 옆으로 빠진다
 //   2페이즈 리듬 면접: 박자에 맞춰 내려오는 노트를 판정선에서. 맞췄나 / 못 맞췄나 둘 중 하나. 면접관이 보는 구간(빨간 띠)은 누르지 않는다
 //   전환: 음악이 끊기고 내가 일어나 발표 화면 앞에 선다 → 카메라가 면접관들 등 뒤로 돈다
@@ -67,9 +67,10 @@ BOSS.ibank = (() => {
   }
 
   // ---- 1페이즈: 프롬프터 속사 ----
-  // 면접관이 고개를 숙이면(틈) 안경이 답변 한 문장을 통째로 띄운다. 고개를 들기 전에 그 문장의 블록을 와다다 다 쳐 낸다.
-  // 못 끝낸 블록은 '말이 끊긴' 것(놓침). 보는 동안 누르면 들킨 입력. gz.ph: watch(본다) → idle(틈) → tell(고개 드는 중, 아직 칠 수 있다) → watch
-  const TELL1 = 0.45;
+  // 틈(면접관이 고개를 숙임): 길게 눌러 스캔 → 안경이 답변 블록을 왼쪽부터 하나씩 읽어 낸다. 시간 안에 못 읽은 블록은 ?로 남는다.
+  // 본다(면접관이 나를 봄): 그 문장을 와다다 말한다(블록마다 왼쪽·가운데·오른쪽). ?는 셋 중 하나를 찍어야 한다. 시간 안에 못 말한 블록은 말이 끊긴 것.
+  // 보는 동안 스캔을 누르고 있으면 들킨다. gz.ph: idle(틈·스캔) → tell(고개 드는 중) → watch(말하기)
+  const TELL1 = 0.45, LANE_C = ['#ffd24a', '#5fe08a', '#ff7ad9']; // 왼쪽 노랑 · 가운데 초록 · 오른쪽 분홍
   function newP1(E) {
     const NS = Math.round(tune.ib1_sent), pool = [].concat(...E.qs.filter(q => q.lines).map(q => q.lines.join(' ').split(' '))); if (!pool.length) pool.push('…');
     const sents = []; let pi = 0, N = 0;
@@ -77,10 +78,13 @@ BOSS.ibank = (() => {
       while (bl.length < n) { const m = bl.length, r = rng(); let v;
         if (r < 0.14 && m + 3 <= n) { (rng() < 0.5 ? [0, 1, 2] : [2, 1, 0]).forEach(l => bl.push({ lane: l })); continue; } // 계단
         v = Math.floor(rng() * 3); if (m >= 2 && bl[m - 1].lane === v && bl[m - 2].lane === v) continue; bl.push({ lane: v }); }
-      bl.forEach(x => { x.w = pool[pi++ % pool.length]; }); sents.push(bl); N += n; }
-    return { t: 0, sents, NS, N, si: -1, stack: [], hit: 0, miss: 0, drop: 0, seen: 0, strikes: 0, combo: 0, gz: { who: 0, ph: 'watch', t: 0, dur: 1.3 }, gap: 1, fx: [], shake: 0, said: [], saidT: 9, cut: 0, slide: 0 };
+      bl.forEach(x => { x.w = pool[pi++ % pool.length]; x.known = false; }); sents.push(bl); N += n; }
+    const P = { t: 0, sents, NS, N, si: -1, line: [], stack: [], scan: 0, read: 0, hold: false, heldW: 0, hit: 0, miss: 0, drop: 0, seen: 0, strikes: 0, combo: 0, blind: 0, gz: { who: 0, ph: 'watch', t: 0, dur: 0.01 }, gap: 1, fx: [], shake: 0, said: [], saidT: 9, cut: 0, slide: 0 };
+    return P;
   }
   function acc1(P) { return P.hit / Math.max(1, P.hit + P.miss + P.drop + 3 * P.seen); }
+  function openLine(P) { const g = P.gz; P.si++; P.line = P.sents[P.si]; P.stack = []; P.read = 0; P.scan = 0; P.said = []; P.cut = 0; g.ph = 'idle'; g.t = 0;
+    g.dur = Math.max(0.5, P.line.length * tune.ib1_scan * lerp(1.12, 0.8, P.si / Math.max(1, P.NS - 1)) + 0.25 - TELL1); P.gap = g.dur + TELL1; S.pop(); } // 뒤로 갈수록 다 읽기 전에 고개를 든다
   function lanesPressed(taps, zones) {
     const out = []; for (let l = 0; l < 3; l++) if (KEYS[l].some(c => pressed(c))) out.push(l);
     for (const [x, y] of taps) { const z = zones.find(z => x >= z.x0 && x < z.x1 && y >= z.y0 && y <= z.y1); if (z) out.push(z.i); }
@@ -94,21 +98,22 @@ BOSS.ibank = (() => {
     if (P.strikes >= tune.ib_strikes) { E.sus = 1; E.staff.forEach((s, i) => { s.phase = i === Math.max(0, who) ? 'watch' : 'stand'; }); getCaught(); }
   }
   function stepP1(dt, taps) {
-    const B = E.B, P = B.p1, g = P.gz; P.t += dt; g.t += dt; E.timeLeft = E.timeTotal;
-    if (g.ph === 'watch' && g.t >= g.dur) { // 고개를 숙인다: 다음 문장이 통째로 뜬다
-      if (P.si + 1 >= P.NS) { endPhase(0, acc1(P), 0.5); return; }
-      P.si++; P.stack = P.sents[P.si].slice(); P.said = []; P.cut = 0; g.ph = 'idle'; g.t = 0; g.dur = P.stack.length * tune.ib1_rate * lerp(1, 0.82, P.si / P.NS) + 0.3; P.gap = g.dur + TELL1; S.pop(); }
-    else if (g.ph === 'idle') { if (!P.stack.length && g.dur - g.t > 0.25) g.t = g.dur - 0.25; // 다 쳤으면 곧 고개를 든다 (빨리 칠수록 판이 빨리 돈다)
-      if (g.t >= g.dur) { g.ph = 'tell'; g.t = 0; g.dur = TELL1; g.who = (g.who + 1 + Math.floor(rng() * 2)) % 3; } }
-    else if (g.ph === 'tell' && g.t >= g.dur) { g.ph = 'watch'; g.t = 0; g.dur = between(1.0, 1.7);
-      if (P.stack.length) { P.drop += P.stack.length; P.combo = 0; P.cut = 1.4; P.stack = []; S.drop(); } } // 말이 끊겼다
-    E.staff.forEach((s, i) => { const on = i === g.who && g.ph !== 'idle'; s.phase = on ? g.ph : 'stand'; s.t = on ? g.t : 0; s.dur = on ? g.dur : 1; });
-    for (const l of lanesPressed(taps, B.zones)) {
-      if (g.ph === 'watch') { expose(); if (E.caught) return; continue; }
-      const cur = P.stack[0]; if (!cur) continue;
-      if (cur.lane === l) { P.stack.shift(); P.hit++; P.combo++; P.slide = 1; P.fx.push({ k: 'hit', lane: l, t: 0 }); P.said.push(cur.w); P.saidT = 0; S.hit(l, P.combo); G.hints.iv = true; }
-      else { P.miss++; P.combo = 0; P.shake = 0.2; P.fx.push({ k: 'bad', lane: l, t: 0 }); S.bad(); }
-    }
+    const B = E.B, P = B.p1, g = P.gz; P.t += dt; g.t += dt; E.timeLeft = E.timeTotal; P.hold = down.has('Space') || ptrs.size > 0; // 스캔: 스페이스 또는 화면 아무 데나 길게
+    if (P.si < 0) { if (g.t >= g.dur) openLine(P); return; }
+    if (g.ph === 'idle' || g.ph === 'tell') { // 틈: 누르고 있는 동안 왼쪽부터 한 블록씩 읽는다
+      if (P.hold && P.read < P.line.length) { P.scan += dt / tune.ib1_scan; while (P.scan >= 1 && P.read < P.line.length) { P.scan -= 1; P.line[P.read++].known = true; S.read(); } }
+      if (g.ph === 'idle' && g.t >= g.dur) { g.ph = 'tell'; g.t = 0; g.dur = TELL1; g.who = (g.who + 1 + Math.floor(rng() * 2)) % 3; }
+      else if (g.ph === 'tell' && g.t >= g.dur) { g.ph = 'watch'; g.t = 0; P.stack = P.line.slice(); P.blind += P.line.length - P.read; P.heldW = 0; P.carry = P.hold;
+        g.dur = P.line.length * tune.ib1_rate * lerp(1, 0.82, P.si / P.NS) + 0.5; P.gap = g.dur; } } // 이제 말할 차례
+    else { // 본다: 말한다. 스캔을 계속 누르고 있으면 들킨다
+      if (!P.hold) P.carry = false; if (P.carry) { P.heldW += dt; if (P.heldW > 0.22) { P.heldW = -0.6; expose(); if (E.caught) return; } } // 스캔하던 손을 안 뗐다
+      for (const l of lanesPressed(taps, B.zones)) { const cur = P.stack[0]; if (!cur) continue;
+        if (cur.lane === l) { P.stack.shift(); P.hit++; P.combo++; P.slide = 1; P.fx.push({ k: 'hit', lane: l, t: 0 }); P.said.push(cur.w); P.saidT = 0; S.hit(l, P.combo); G.hints.iv = true; }
+        else { P.miss++; P.combo = 0; P.shake = 0.2; P.fx.push({ k: 'bad', lane: l, t: 0 }); S.bad(); if (!cur.known) { P.stack.shift(); P.said.push('…'); P.saidT = 0; P.slide = 1; } } } // ?를 잘못 찍으면 그 말은 틀린 채 넘어간다
+      if (!P.stack.length && g.dur - g.t > 0.3) g.t = g.dur - 0.3;
+      if (g.t >= g.dur) { if (P.stack.length) { P.drop += P.stack.length; P.combo = 0; P.cut = 1.2; P.stack = []; S.drop(); }
+        if (P.si + 1 >= P.NS) { endPhase(0, acc1(P), 0.5); return; } openLine(P); } }
+    E.staff.forEach((s, i) => { const on = g.ph === 'watch' || (g.ph === 'tell' && i === g.who); s.phase = on ? g.ph : 'stand'; s.t = on ? g.t : 0; s.dur = on ? g.dur : 1; });
     P.slide = Math.max(0, P.slide - dt / 0.07); P.shake = Math.max(0, P.shake - dt); P.saidT += dt; P.cut = Math.max(0, P.cut - dt);
     P.fx = P.fx.filter(f => (f.t += dt) < 0.5);
   }
@@ -316,7 +321,7 @@ BOSS.ibank = (() => {
     const showFront = B.ph === 2 || (B.tr && B.tr.kind === 23 && B.tr.t > 0.4); W3.front.visible = W3.screen.visible = !!showFront;
     if (showFront) { const P = B.p3, n = !P || P.t >= P.intro - 0.5 ? 3 : Math.min(2, Math.floor(P.t / 1.5)); if (n !== W3.slideN) { W3.slideN = n; slideTex(W3.slide.g, n); W3.slide.t.needsUpdate = true; }
       const drop = B.tr && B.tr.kind === 23 ? 1 - ez(cl((B.tr.t - 0.6) / 1.4, 0, 1)) : 0; W3.screen.position.y = 1.72 + drop * 1.4; W3.sl.intensity = 1.4 * (1 - drop); } else W3.sl.intensity = 0;
-    if (stage > 0) EX.staff.forEach(m => { if (m && m.cone) m.cone.visible = false; });
+    if (stage > 0 || (B.p1 && B.p1.gz.ph === 'watch')) EX.staff.forEach(m => { if (m && m.cone) m.cone.visible = false; }); // 말하는 동안은 셋 다 나를 본다: 시선 원뿔은 감춘다
     if (EX.chairs) EX.chairs.forEach(ch => { const lo = B.ph === 2 || (B.tr && B.tr.kind === 23 && B.tr.t > 1.2) ? 0.42 : 1; ch.scale.y = 0.9 * lo; ch.position.y = 0.45 + 0.45 * lo; }); // 3페이즈: 등 뒤에서 머리가 보이게 등받이를 낮춘다
     // 면접관 머리(와 3페이즈의 내 머리)가 화면에서 있는 자리: 렌즈 화면이 표적을 그린다
     cam.updateMatrixWorld(); EX.scene.updateMatrixWorld();
@@ -348,35 +353,36 @@ BOSS.ibank = (() => {
       brk(c, h.x - r, h.y - r, r * 2, r * 2, 6, cc, 1.4); if (w) { c.strokeStyle = rgba(RED, 0.35); c.lineWidth = 1; c.beginPath(); c.moveTo(h.x - r - 6, h.y); c.lineTo(h.x - r + 2, h.y); c.moveTo(h.x + r - 2, h.y); c.lineTo(h.x + r + 6, h.y); c.stroke(); }
       k.M(w ? 'EYES ON' : 'TURNING', h.x, h.y - r - 7, 6.5, cc, 'center', 700); });
   }
-  function hudP1(k, L, E, now, col) { // 프롬프터: 안경이 눈앞에 띄운 대본 한 줄. 맨 왼쪽(커서) 블록부터 친다
-    const B = E.B, P = B.p1, c = k.b, g = P.gz, watched = g.ph === 'watch', live = E.start <= 0 && !E.over && !E.caught, tch = !!STATE.touchUI;
-    const X0 = 70, X1 = 570, Y = 244, CH = 24, CX = X0 + 26, lc = watched ? RED : col;
+  function hudP1(k, L, E, now, col) { // 프롬프터: 안경이 눈앞에 띄운 대본 한 줄. 틈에는 스캔으로 채우고, 볼 때는 맨 왼쪽부터 말한다
+    const B = E.B, P = B.p1, c = k.b, g = P.gz, speak = g.ph === 'watch', live = E.start <= 0 && !E.over && !E.caught, tch = !!STATE.touchUI;
+    const X0 = 70, X1 = 570, Y = 244, CH = 24, CX = X0 + 26, lc = speak ? WH : col, list = speak ? P.stack : P.line;
     B.zones = [{ i: 0, x0: 0, x1: 640 / 3, y0: 0, y1: 360 }, { i: 1, x0: 640 / 3, x1: 1280 / 3, y0: 0, y1: 360 }, { i: 2, x0: 1280 / 3, x1: 640, y0: 0, y1: 360 }];
     head(k, E, 0, col); meter(k, 24, 52, 118, P.hit + P.miss + P.drop + P.seen ? acc1(P) : null, tune.ib1_acc, col, 'ACC');
     k.M(`LINE ${String(Math.max(1, P.si + 1)).padStart(2, '0')}/${P.NS}`, 24, 106, 7.5, rgba(WH, 0.85), 'left', 700); if (P.drop) k.M(`CUT ${P.drop}`, 92, 106, 7.5, AMB, 'left', 700);
     if (P.combo >= 10) k.M(`×${P.combo}`, 616, 28, 15, WH, 'right', 700);
     strikesUi(k, P.strikes, 616, 48, col, 'EXPOSED');
     const chips = []; let x = CX + (P.shake > 0 ? Math.sin(now * 90) * 3 * (P.shake / 0.2) : 0);
-    for (let i = 0; i < P.stack.length; i++) { const w = Math.max(30, k.TW(P.stack[i].w, 9, 700) + 14); if (i === 0) x += P.slide * 14; if (x + w > X1 - 6) break; chips.push({ b: P.stack[i], x, w, i }); x += w + 5; }
+    for (let i = 0; i < list.length; i++) { const b = list[i], w = b.known ? Math.max(30, k.TW(b.w, 9, 700) + 14) : 30; if (i === 0 && speak) x += P.slide * 14; if (x + w > X1 - 6) break; chips.push({ b, x, w, i }); x += w + 5; }
     hudDraw(k, c => {
-      c.fillStyle = watched ? 'rgba(30,4,8,0.5)' : 'rgba(3,8,12,0.5)'; c.fillRect(X0, Y - 18, X1 - X0, CH + 24); brk(c, X0 - 4, Y - 22, X1 - X0 + 8, CH + 32, 8, rgba(lc, 0.9), 1.2);
-      c.fillStyle = rgba(lc, 0.9); c.fillRect(X0 + 12, Y - 14, 1.5, CH + 16); // 커서
-      const hf = P.fx.find(f => f.k === 'hit' && f.t < 0.14); if (hf) { c.fillStyle = rgba(WH, 0.45 * (1 - hf.t / 0.14)); c.fillRect(X0 + 4, Y - 16, 60, CH + 20); }
-      for (const ch of chips) { const cur = ch.i === 0, a = cur ? 1 : Math.max(0.35, 0.9 - ch.i * 0.07); c.globalAlpha = a;
-        c.fillStyle = rgba(col, cur ? 0.3 : 0.12); c.fillRect(ch.x, Y, ch.w, CH); c.strokeStyle = cur ? WH : rgba(col, 0.8); c.lineWidth = cur ? 1.4 : 0.9; c.strokeRect(ch.x + 0.5, Y + 0.5, ch.w - 1, CH - 1);
-        for (let l = 0; l < 3; l++) { const dx = ch.x + ch.w / 2 - 14 + l * 10; if (l === ch.b.lane) { c.fillStyle = cur ? WH : col; c.fillRect(dx, Y - 11, 8, 6); } else { c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 0.8; c.strokeRect(dx + 0.5, Y - 10.5, 7, 5); } } // 어느 칸인가: 왼쪽 · 가운데 · 오른쪽
+      c.fillStyle = 'rgba(3,8,12,0.55)'; c.fillRect(X0, Y - 18, X1 - X0, CH + 24); brk(c, X0 - 4, Y - 22, X1 - X0 + 8, CH + 32, 8, rgba(lc, 0.9), 1.2);
+      if (speak) { c.fillStyle = WH; c.fillRect(X0 + 12, Y - 14, 1.5, CH + 16); const hf = P.fx.find(f => f.k === 'hit' && f.t < 0.14); if (hf) { c.fillStyle = rgba(LANE_C[hf.lane], 0.5 * (1 - hf.t / 0.14)); c.fillRect(X0 + 4, Y - 16, 60, CH + 20); } }
+      for (const ch of chips) { const cur = speak && ch.i === 0, kn = ch.b.known, lcol = kn ? LANE_C[ch.b.lane] : 'rgba(255,255,255,0.45)', a = !speak ? 1 : cur ? 1 : Math.max(0.4, 0.92 - ch.i * 0.06); c.globalAlpha = a;
+        c.fillStyle = kn ? rgba(LANE_C[ch.b.lane], cur ? 0.38 : 0.2) : 'rgba(255,255,255,0.06)'; c.fillRect(ch.x, Y, ch.w, CH); c.strokeStyle = cur ? WH : lcol; c.lineWidth = cur ? 1.6 : 1; if (!kn) c.setLineDash([2, 2]); c.strokeRect(ch.x + 0.5, Y + 0.5, ch.w - 1, CH - 1); c.setLineDash([]);
+        if (kn) for (let l = 0; l < 3; l++) { const dx = ch.x + ch.w / 2 - 14 + l * 10; if (l === ch.b.lane) { c.fillStyle = LANE_C[l]; c.fillRect(dx, Y - 11, 8, 6); } else { c.strokeStyle = 'rgba(255,255,255,0.3)'; c.lineWidth = 0.8; c.strokeRect(dx + 0.5, Y - 10.5, 7, 5); } } // 어느 칸인가: 자리 + 색
         c.globalAlpha = 1; }
-      if (!watched && P.si >= 0) { const left = g.ph === 'tell' ? g.dur - g.t : g.dur - g.t + TELL1, kx = cl(left / P.gap, 0, 1); // 고개를 들 때까지 남은 시간
-        c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(X0, Y + CH + 12, X1 - X0, 2); c.fillStyle = g.ph === 'tell' ? (Math.floor(now * 12) % 2 ? RED : AMB) : col; c.fillRect(X0, Y + CH + 12, (X1 - X0) * kx, 2); }
-      for (let i = 0; i < 3; i++) { const zx = 640 / 3 * i + 640 / 6, f = P.fx.find(f => f.lane === i && f.t < 0.16), cc = f && f.k === 'bad' ? RED : f ? WH : rgba(lc, 0.55); c.fillStyle = cc; c.fillRect(zx - 9, 336, 18, f ? 3 : 1.5); }
+      if (!speak && P.hold && P.read < chips.length) { const ch = chips[P.read], sx = ch.x + ch.w * cl(P.scan, 0, 1); c.fillStyle = rgba(col, 0.3); c.fillRect(ch.x, Y, sx - ch.x, CH); c.fillStyle = col; c.fillRect(sx, Y - 3, 1.5, CH + 6); } // 스캔 줄
+      if (P.si >= 0) { const left = speak ? g.dur - g.t : g.ph === 'tell' ? g.dur - g.t : g.dur - g.t + TELL1, kx = cl(left / P.gap, 0, 1), hot = g.ph === 'tell' || (speak && left < 0.6);
+        c.fillStyle = 'rgba(255,255,255,0.18)'; c.fillRect(X0, Y + CH + 12, X1 - X0, 2); c.fillStyle = hot ? (Math.floor(now * 12) % 2 ? RED : AMB) : speak ? WH : col; c.fillRect(X0, Y + CH + 12, (X1 - X0) * kx, 2); }
+      for (let i = 0; i < 3; i++) { const zx = 640 / 3 * i + 640 / 6, f = P.fx.find(f => f.lane === i && f.t < 0.16), on = speak; c.globalAlpha = on ? 1 : 0.3; // 누를 자리 셋: 색이 다르다
+        c.fillStyle = rgba(LANE_C[i], f ? 0.9 : 0.3); c.fillRect(zx - 26, 328, 52, 14); c.strokeStyle = f && f.k === 'bad' ? RED : LANE_C[i]; c.lineWidth = 1.2; c.strokeRect(zx - 25.5, 328.5, 51, 13); c.globalAlpha = 1; }
     });
-    for (const ch of chips) { k.b.globalAlpha = ch.i === 0 ? 1 : Math.max(0.4, 0.9 - ch.i * 0.07); k.T(ch.b.w, ch.x + ch.w / 2, Y + CH / 2 + 0.5, 9, ch.i === 0 ? WH : rgba(WH, 0.9), 'center', 700); } k.b.globalAlpha = 1;
-    if (!tch) for (let i = 0; i < 3; i++) k.M('ASD'[i], 640 / 3 * i + 640 / 6, 346, 7, rgba(WH, 0.55), 'center', 700);
-    if (watched && live) k.M(P.si < 0 ? 'STANDBY' : 'LOCK · 손 떼기', (X0 + X1) / 2, Y + CH / 2 - 4, 9, RED, 'center', 700);
-    else if (!P.stack.length && live && P.si >= 0) k.M('LINE CLEAR', (X0 + X1) / 2, Y + CH / 2 - 4, 9, col, 'center', 700);
+    for (const ch of chips) { const cur = speak && ch.i === 0; k.b.globalAlpha = !speak ? 1 : cur ? 1 : Math.max(0.45, 0.92 - ch.i * 0.06); if (ch.b.known) k.T(ch.b.w, ch.x + ch.w / 2, Y + CH / 2 + 0.5, 9, WH, 'center', 700); else k.M('?', ch.x + ch.w / 2, Y + CH / 2 + 0.5, 10, rgba(WH, 0.7), 'center', 700); } k.b.globalAlpha = 1;
+    if (!tch) for (let i = 0; i < 3; i++) k.M('ASD'[i], 640 / 3 * i + 640 / 6, 335, 7.5, speak ? '#0a1016' : rgba(WH, 0.5), 'center', 800);
+    if (live && P.si >= 0) k.M(speak ? 'SPEAK' : P.hold ? 'SCAN' : tch ? 'SCAN · 길게 누르기' : 'SCAN · SPACE 길게', X0 + 2, Y - 29, 7, speak ? WH : col, 'left', 700);
+    if (live && speak && P.carry && Math.floor(now * 10) % 2) k.M('스캔에서 손 떼기', (X0 + X1) / 2, Y - 29, 8, RED, 'center', 700);
     if (live) eyesOn(k, E, now, col);
-    if (live && P.cut > 0) k.SUB('"어… 그러니까…"', L.W / 2, 204, 11, '#ffd0d0', 'center');
-    else if (live && P.said.length && P.saidT < 1.6) k.SUB(P.said.slice(-7).join(' '), L.W / 2, 204, 11, '#ffffff', 'center');
+    if (live && P.cut > 0) k.SUB('"어… 그러니까…"', L.W / 2, 198, 11, '#ffd0d0', 'center');
+    else if (live && P.said.length && P.saidT < 1.6) k.SUB(P.said.slice(-7).join(' '), L.W / 2, 198, 11, '#ffffff', 'center');
   }
   function hudP2(k, L, E, now, col) {
     const B = E.B, P = B.p2, c = k.b, live = !E.over && !E.caught && !B.tr, VX = 320, VY = 64, J = 300, LX = [185, 275, 365, 455], D = 3.1, lead = cl(1.55 * 96 / P.bpm, 1.05, 1.6), tch = !!STATE.touchUI;

@@ -114,6 +114,7 @@ window.CONFIG = {
   ib_strikes: { value: 3, min: 1, max: 9, step: 1 },               // [해외 보스] 페이즈마다 이만큼 들키거나(1·2) 놓치면(3) 끝
   ib1_blocks: { value: 72, min: 20, max: 160, step: 2 },           // [해외 보스 1] 블록 러시: 입력할 블록 수
   ib1_sent: { value: 12, min: 4, max: 24, step: 1 },                // [해외 보스 1] 프롬프터 속사: 문장 수 (문장마다 블록 8~12개)
+  ib1_scan: { value: 0.17, min: 0.05, max: 0.6, step: 0.01 },      // [해외 보스 1] 스캔으로 블록 하나를 읽는 시간(초)
   ib1_rate: { value: 0.24, min: 0.1, max: 0.6, step: 0.01 },       // [해외 보스 1] 블록 하나에 주는 시간(초). 뒤로 갈수록 18% 짧아진다
   ib1_time: { value: 75, min: 30, max: 180, step: 1 },             // [해외 보스 1] 제한 시간(초)
   ib1_acc: { value: 0.85, min: 0.5, max: 1, step: 0.01 },          // [해외 보스 1] 통과 정확도
