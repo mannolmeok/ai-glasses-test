@@ -32,3 +32,15 @@
   tool: "Higgsfield gpt_image_2_6, 한 장(4x4 아이콘 16개)을 96px 격자로 줄임. AI 모델 15종 그림"
   date: 2026-11-23
   ships: true
+- path: assets/title/lens-plate.jpg
+  origin: generated
+  tool: "Higgsfield gpt_image_2_6. 타이틀 시안 3번(렌즈 반사 클로즈업) 그림을 참고 이미지로 넣어 제목 글자·버튼·석차표 줄·테두리·오른쪽 렌즈 괄호·땀방울을 지운 배경판을 다시 뽑음 (2688x1520 → 16:9로 잘라 1920x1080)"
+  model: "gpt_image_2_6"
+  date: 2026-11-24
+  ships: true
+- path: assets/title/lens-drop.png
+  origin: generated
+  tool: "Higgsfield gpt_image_2_6 시안 3번 그림에서 땀방울만 오려 낸 것 (배경판과의 차이로 경계를 잡고 1920 기준으로 줄임)"
+  model: "gpt_image_2_6"
+  date: 2026-11-24
+  ships: true
