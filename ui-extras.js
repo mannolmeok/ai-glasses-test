@@ -295,6 +295,11 @@
     else if (gd.k === 'sides') { altSpot(k, 51, 173, t, '왼쪽 보기', 'left', !touch && (held('ArrowLeft') || held('KeyA')), touch ? null : '←'); altSpot(k, W - 51, 173, t, '오른쪽 보기', 'right', !touch && (held('ArrowRight') || held('KeyD')), touch ? null : '→'); cap(touch ? '양옆을 누르면 그쪽으로 고개를 돌린다' : '← → 키를 누르면 그쪽으로 고개를 돌린다'); }
   }
   function brackets(k, x, y, w, h, p, col) { // 네 모서리 꺾쇠. p만큼 바깥으로 숨 쉬듯 벌어진다
+    if (!GREEN) { const b = k.b, r = 8, n = 5, X0 = x - p, Y0 = y - p, X1 = x + w + p, Y1 = y + h + p; b.save(); b.strokeStyle = col; b.lineWidth = 2; b.lineCap = 'round'; // 흰색 안내: 모서리를 둥글게 굴린 꺾쇠
+      for (const [cx, cy, a0, sx, sy] of [[X0 + r, Y0 + r, Math.PI, -1, -1], [X1 - r, Y0 + r, -Math.PI / 2, 1, -1], [X1 - r, Y1 - r, 0, 1, 1], [X0 + r, Y1 - r, Math.PI / 2, -1, 1]]) { b.beginPath();
+        if (sx * sy > 0) { b.moveTo(cx + sx * r, cy - sy * n); b.arc(cx, cy, r, a0, a0 + Math.PI / 2); b.lineTo(cx - sx * n, cy + sy * r); } else { b.moveTo(cx - sx * n, cy + sy * r); b.arc(cx, cy, r, a0, a0 + Math.PI / 2); b.lineTo(cx + sx * r, cy - sy * n); }
+        b.stroke(); }
+      b.restore(); return; }
     const R = k.R, n = 8, t = 2, x0 = x - p, y0 = y - p, x1 = x + w + p, y1 = y + h + p;
     R(x0, y0, n, t, col); R(x0, y0, t, n, col); R(x1 - n, y0, n, t, col); R(x1 - t, y0, t, n, col);
     R(x0, y1 - t, n, t, col); R(x0, y1 - n, t, n, col); R(x1 - n, y1 - t, n, t, col); R(x1 - t, y1 - n, t, n, col);
@@ -305,10 +310,10 @@
     else if (dir === 'left') { P([[cx - 9, cy], [cx + 1, cy - 9], [cx + 1, cy + 9]], col); R(cx + 1, cy - 2, 8, 4, col); }
     else { P([[cx + 9, cy], [cx - 1, cy - 9], [cx - 1, cy + 9]], col); R(cx - 9, cy - 2, 8, 4, col); }
   }
-  function tag(k, str, cx, y, col) { const b = k.b, w = k.TW(str, 8, 700) + 10; b.globalAlpha = 0.72; k.R(Math.round(cx - w / 2), y - 7, w, 13, HD); b.globalAlpha = 1; k.M(str, cx, y, 8, col, 'center', 700); }
+  function tag(k, str, cx, y, col) { const b = k.b, w = k.TW(str, 8, 700) + (GREEN ? 10 : 14); b.globalAlpha = 0.72; if (GREEN) k.R(Math.round(cx - w / 2), y - 7, w, 13, HD); else rrect(b, Math.round(cx - w / 2), y - 7.5, w, 14, 7, HD); b.globalAlpha = 1; k.M(str, cx, y, 8, col, 'center', 700); }
   function spotHud(k, cx, cy, t, label, glyph, on) { // 누를 자리: 어두운 판 + 꺾쇠 + 가운데 그림 + 아래 이름표
     const b = k.b, R = k.R, r = 25, p = on ? 0 : Math.round(2 + 2 * Math.sin(t * 5)), blink = Math.floor(t * 3) % 2 === 0;
-    b.globalAlpha = on ? 0.3 : 0.55; R(cx - r, cy - r, r * 2, r * 2, on ? HG : HD); b.globalAlpha = 1;
+    b.globalAlpha = on ? 0.3 : 0.55; if (GREEN) R(cx - r, cy - r, r * 2, r * 2, on ? HG : HD); else rrect(b, cx - r, cy - r, r * 2, r * 2, 9, on ? HG : HD); b.globalAlpha = 1;
     brackets(k, cx - r, cy - r, r * 2, r * 2, p, HG);
     if (glyph === 'hold') { R(cx - 12, cy - 1, 7, 2, HG); R(cx + 5, cy - 1, 7, 2, HG); R(cx - 1, cy - 12, 2, 7, HG); R(cx - 1, cy + 5, 2, 7, HG); if (on || blink) R(cx - 3, cy - 3, 6, 6, on ? HHI : HG); }
     else arrow(k, cx, cy, glyph, blink ? HHI : HG);
@@ -328,8 +333,9 @@
   }
   function keyHud(k, cx, cy, label, w, isDown, t, name) { // 키: HUD 창 모양 (어두운 판, 얇은 초록 테두리, 왼쪽 굵은 줄). 누르면 초록으로 찬다
     const b = k.b, R = k.R, h = 26, x = Math.round(cx - w / 2), y = Math.round(cy - h / 2), p = isDown ? 0 : Math.round(2 + 2 * Math.sin(t * 5)), ink = isDown ? HD : HG;
-    b.globalAlpha = isDown ? 0.92 : 0.72; R(x, y, w, h, isDown ? HG : HD); b.globalAlpha = 1;
-    k.frame(x, y, w, h, HG, 1); R(x, y, 2, h, HG); brackets(k, x - 3, y - 3, w + 6, h + 6, p, HG);
+    b.globalAlpha = isDown ? 0.92 : 0.72; if (GREEN) R(x, y, w, h, isDown ? HG : HD); else rrect(b, x, y, w, h, 7, isDown ? HG : HD); b.globalAlpha = 1;
+    if (GREEN) { k.frame(x, y, w, h, HG, 1); R(x, y, 2, h, HG); } else { b.save(); b.strokeStyle = HG; b.lineWidth = 1; b.beginPath(); if (b.roundRect) b.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, 7); else b.rect(x + 0.5, y + 0.5, w - 1, h - 1); b.stroke(); b.restore(); }
+    brackets(k, x - 3, y - 3, w + 6, h + 6, p, HG);
     if (label.length > 2 && label === label.toUpperCase()) { k.M(label, cx, cy + 0.5, 11, ink, 'center', 700); if (!isDown && Math.floor(t * 3) % 2 === 0) R(x + w - 9, y + 5, 3, 3, HG); }
     else arrow(k, cx, cy, label, ink);
     tag(k, name, cx, y + h + 15, isDown ? HHI : HG);
