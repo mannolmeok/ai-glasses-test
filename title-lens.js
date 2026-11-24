@@ -1,56 +1,147 @@
 // PROTOTYPE - NOT FOR PRODUCTION
-// 타이틀 시안 3번 '렌즈 반사 클로즈업' (테스트판). art.js의 drawTitle · drawTitleOut 을 이 파일의 것으로 바꿔 끼운다.
-// 배경은 그림 한 장(assets/title/lens-plate.jpg). 로고·버튼·석차표 줄·테두리는 코드로 그린다.
-// 움직임: 오른쪽 렌즈 속 감독관이 다가오고(렌즈 안만 확대), 가까워지면 왼쪽 렌즈 화면이 꺼졌다가 멀어지면 다시 켜진다.
-// 켜져 있는 동안 보기 ②가 깜빡이고, 감독관이 다가올 때 땀방울이 흘러내린다. 시험 시작을 누르면 왼쪽 렌즈 안으로 들어간다.
+// 타이틀 시안 3번 '렌즈 반사 클로즈업' (테스트판, 도트판). art.js의 drawTitle · drawTitleOut 을 이 파일의 것으로 바꿔 끼운다.
+// 그림·글자·선을 전부 640x360 한 장(게임 화면 1칸 = 점 하나)에 그린 뒤 번지지 않게 키운다. 작은 글자는 게임의 도트 글꼴(갈무리11),
+// 제목은 기존 타이틀 글꼴(Black Han Sans)을 점으로 찍은 것. 'AI'는 기존 타이틀처럼 초록 + 빨강·파랑 어긋남 + 가끔 흔들림.
+// 움직임: 오른쪽 렌즈 속 감독관이 다가오면 왼쪽 렌즈 화면이 꺼졌다 켜지고, 보기 ②가 깜빡이고, 땀방울이 흘러내린다.
+// 시험 시작을 누르면 왼쪽 렌즈 안으로 들어간다. 타이틀이 떠 있는 동안 뒤의 3D 시험장은 그리지 않는다 (그림이 다 덮으므로).
 'use strict';
 (function () {
   if (typeof drawTitle !== 'function') return;
   const OLD_TITLE = drawTitle, OLD_OUT = typeof drawTitleOut === 'function' ? drawTitleOut : null; // 그림을 못 받으면 예전 타이틀로
   const W = 640, H = 360;
-  const MINT = '#6ef7a6', MINT_HI = '#a6fbd3', CREAM = '#f7f0dd', INK = '#f3f6ef';
-  const SANS = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR","NanumGothic",sans-serif';
-  const BHS = '"Black Han Sans","Do Hyeon",' + SANS;
+  const G1 = '#74ff8e', G_DK = '#0a4018', G_HI = '#c8ffd8', CREAM = '#f4ecd6', INK = '#f2f5ee', DARK = '#050806';
+  const PX = '"Galmuri11","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif'; // 게임의 도트 글꼴: 12px의 배수에서 점이 또렷하다
+  const BHS = '"Black Han Sans","Do Hyeon","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif'; // 기존 타이틀 글꼴
   const Q = new URLSearchParams(location.search);
   const FIX_T = Q.has('tt') ? Number(Q.get('tt')) : null; // check only: 타이틀 연출의 그 순간에 멈춰 본다 (초)
 
-  const plate = new Image(); let plateBad = false; plate.onerror = () => { plateBad = true; }; plate.src = 'assets/title/lens-plate.jpg?v=1';
-  const drop = new Image(); drop.src = 'assets/title/lens-drop.png?v=1';
+  const plate = new Image(); let plateBad = false; plate.onerror = () => { plateBad = true; }; plate.src = 'assets/title/lens-plate-px.png?v=2';
   const loaded = im => im.complete && im.naturalWidth > 0;
-  const fontOk = () => !document.fonts || document.fonts.check(`400 60px ${BHS}`, 'AI 안경으로 살아남기');
-  if (document.fonts) document.fonts.load(`400 60px ${BHS}`, 'AI 안경으로 살아남기 전국 석차표').then(() => { CACHE.logo = null; CACHE.rank = null; }, () => { });
+  const fontOk = () => !document.fonts || (document.fonts.check(`400 60px ${BHS}`, 'AI 안경으로 살아남기') && document.fonts.check(`12px ${PX}`, '석차표 시험 시작'));
+  if (document.fonts) Promise.all([document.fonts.load(`400 60px ${BHS}`, 'AI 안경으로 살아남기 전국 석차표'), document.fonts.load(`12px ${PX}`, '석차표 시험 시작 이어서 하기 돌아가기')]).then(() => { SPR.ok = false; }, () => { });
 
-  // ---- 그림 속 자리 (640x360 기준, 배경 그림에서 잰 값) ----
+  // ---- 그림 속 자리 (640x360) ----
   const LENS_L = [[73.7, 140.3], [95.7, 131.0], [122.7, 131.0], [195.0, 141.3], [204.3, 145.0], [218.7, 158.3], [215.3, 172.7], [198.0, 220.0], [190.7, 232.7], [179.3, 244.0], [163.0, 247.7], [123.7, 246.7], [87.0, 238.3], [73.3, 224.3], [69.0, 190.3]];
   const LENS_R = [[367.0, 165.7], [343.3, 235.0], [332.7, 246.7], [314.7, 250.0], [269.3, 245.0], [261.3, 234.7], [258.7, 201.7], [262.0, 175.7], [266.0, 162.3], [282.3, 148.7], [315.3, 147.7], [353.7, 152.3]];
   const ROW2 = [[108.8, 163.1], [189.4, 175.6], [188.1, 197.5], [105.0, 184.8]]; // 왼쪽 렌즈 속 보기 ② 줄
-  const ZOOM_C = [311, 190]; // 오른쪽 렌즈 속 감독관 (가슴께): 여기를 중심으로 다가온다
-  const DIVE_C = [142, 189]; // 왼쪽 렌즈 가운데: 시험 시작 때 이 안으로 들어간다
-  const DROP_AT = [57.6, 71.9, 14.05, 40.5]; // 땀방울 (x, y, w, h)
-  const SKIN = [[20, 55], [120, 55], [120, 104], [100, 104.5], [82.5, 106.5], [61, 121.5], [43.5, 108.5], [20, 108]]; // 땀방울이 보이는 곳: 안경테 위 피부 (흘러내리면 테 뒤로 숨는다)
-  const BRK_R = [[269.5, 169.5, 1, 1], [354.5, 162, -1, 1], [332.5, 234.5, -1, -1]]; // 오른쪽 렌즈 속 추적 괄호 (시안 그대로 셋)
+  const SKIN = [[20, 55], [120, 55], [120, 104], [100, 104.5], [82.5, 106.5], [61, 121.5], [43.5, 108.5], [20, 108]]; // 땀방울이 보이는 곳 (안경테 뒤로 숨는다)
+  const ZOOM_C = [311, 190], DIVE_C = [142, 189], DROP_AT = [61, 88];
+  const RB = [255, 145, 116, 108]; // 오른쪽 렌즈를 담는 칸 (x, y, w, h)
+  const BRK_R = [[270, 170, 1, 1], [354, 162, -1, 1], [332, 234, -1, -1]]; // 오른쪽 렌즈 속 추적 괄호 (시안 그대로 셋)
 
   const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
   const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
-  const path = (g, P) => { g.beginPath(); g.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) g.lineTo(P[i][0], P[i][1]); g.closePath(); };
-  const CACHE = { S: 0, frame: null, logo: null, rank: null, tick: null, tickStr: '' };
-  let T0 = 0, lastNow = -9, firstSeen = -1; // 타이틀이 뜬 때 (다시 뜨면 켜지는 연출부터)
   const canvasOf = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
-  const silhouette = (src, col) => { const c = canvasOf(src.width, src.height), g = c.getContext('2d'); g.drawImage(src, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height); return c; }; // 그림자용: 같은 모양을 한 색으로
+  const ctx2 = c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return g; };
+  const path = (g, P) => { g.beginPath(); g.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) g.lineTo(P[i][0], P[i][1]); g.closePath(); };
+  function crisp(c, thr = 128) { // 반투명 가장자리를 없애 점만 남긴다
+    const g = c.getContext('2d'), id = g.getImageData(0, 0, c.width, c.height), d = id.data;
+    for (let i = 3; i < d.length; i += 4) d[i] = d[i] >= thr ? 255 : 0;
+    g.putImageData(id, 0, 0); return c;
+  }
+  const tint = (src, col) => { const c = canvasOf(src.width, src.height), g = ctx2(c); g.drawImage(src, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height); return c; };
+  function polyMask(P) { const c = canvasOf(W, H), g = ctx2(c); g.fillStyle = '#ffffff'; path(g, P); g.fill(); return crisp(c); }
+  function outlined(mask, col, edge, shadow) { // 점 글자에 1칸 테두리(edge)와 1칸 그림자(shadow). 글자는 (1,1)에서 시작
+    const c = canvasOf(mask.width + 3, mask.height + 3), g = ctx2(c);
+    if (shadow) g.drawImage(tint(mask, shadow), 2, 2);
+    if (edge) { const e = tint(mask, edge); for (const [dx, dy] of [[0, 1], [2, 1], [1, 0], [1, 2], [0, 0], [2, 0], [0, 2], [2, 2]]) g.drawImage(e, dx, dy); }
+    g.drawImage(tint(mask, col), 1, 1); return c;
+  }
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16); // 점 무늬로 어둡게 할 때 쓰는 4x4 순서
+
+  // ---- 미리 그려 두는 것들 ----
+  const SPR = { ok: false, txt: new Map() };
+  function pxText(str, size, col, edge = DARK, bold = false) { // 도트 글꼴 한 줄 (size는 12의 배수, bold면 획을 한 칸 두껍게). c.base: 위에서 글자 바닥선까지
+    const key = str + '|' + size + '|' + col + '|' + edge + '|' + bold; let c = SPR.txt.get(key); if (c) return c;
+    const mg = canvasOf(4, 4).getContext('2d'); mg.font = `${size}px ${PX}`; const w = Math.ceil(mg.measureText(str).width) + 2, h = Math.ceil(size * 1.3), base = Math.round(size * 1.05);
+    const t = canvasOf(w + (bold ? 1 : 0), h), g = t.getContext('2d'); g.font = `${size}px ${PX}`; g.textBaseline = 'alphabetic'; g.fillStyle = '#ffffff'; g.fillText(str, 1, base); if (bold) g.fillText(str, 2, base);
+    c = outlined(crisp(t), col, edge, null); c.base = base + 1; c.tw = w - 2; if (SPR.txt.size > 400) SPR.txt.clear(); SPR.txt.set(key, c); return c;
+  }
+  const putText = (c, x, baseY, align = 'left') => lg.drawImage(c, Math.round(align === 'right' ? x - c.tw : align === 'center' ? x - c.tw / 2 : x) - 2, Math.round(baseY - c.base));
+  function fitInk(g, str, font, box) { // 글자의 실제 잉크 상자를 box에 맞출 배율
+    g.font = font; const m = g.measureText(str);
+    return { sx: box.w / (m.actualBoundingBoxLeft + m.actualBoundingBoxRight), sy: box.h / (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent), iw: m.actualBoundingBoxLeft + m.actualBoundingBoxRight, ox: m.actualBoundingBoxLeft, oy: m.actualBoundingBoxDescent };
+  }
+  function bhsMask(words) { // 제목 글꼴을 화면 1칸 = 점 하나로 찍은 모양 (화면 크기 캔버스)
+    const c = canvasOf(W, H), g = c.getContext('2d');
+    for (const [str, box, right] of words) {
+      const font = `400 100px ${BHS}`, f = fitInk(g, str, font, box), sx = right ? f.sy : f.sx, x0 = right ? box.x + box.w - f.iw * sx : box.x;
+      g.save(); g.translate(x0, box.y + box.h); g.scale(sx, f.sy); g.font = font; g.textBaseline = 'alphabetic'; g.fillStyle = '#ffffff'; g.fillText(str, f.ox, -f.oy); g.restore();
+    }
+    return crisp(c);
+  }
+  function wear(c, seed, n) { // 닳은 자국: 글자 안쪽 몇 칸을 비운다
+    let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647, g = c.getContext('2d'), id = g.getImageData(0, 0, c.width, c.height), d = id.data, Wc = c.width;
+    for (let i = 0, k = 0; i < n * 60 && k < n; i++) { const x = 1 + Math.floor(rnd() * (Wc - 2)), y = 1 + Math.floor(rnd() * (c.height - 2)), p = (y * Wc + x) * 4;
+      if (d[p + 3] && d[p - 1] && d[p + 7] && d[p + 3 - Wc * 4] && d[p + 3 + Wc * 4]) { d[p + 3] = 0; k++; } }
+    g.putImageData(id, 0, 0); return c;
+  }
+  function build() {
+    // 렌즈 모양
+    SPR.mL = polyMask(LENS_L); SPR.mR = polyMask(LENS_R); SPR.mSkin = polyMask(SKIN);
+    const row = polyMask(ROW2), rg = ctx2(row); rg.globalCompositeOperation = 'destination-in'; rg.drawImage(SPR.mL, 0, 0); SPR.row2 = tint(row, G1);
+    // 꺼진 렌즈: 어두운 유리 + 비스듬한 반사 두 줄
+    const dk = tint(SPR.mL, 'rgba(3,10,7,0.96)'), dg = ctx2(dk); dg.globalCompositeOperation = 'source-atop'; dg.fillStyle = 'rgba(200,232,215,0.10)';
+    for (const [a, b] of [[60, 74], [92, 98]]) { dg.beginPath(); dg.moveTo(a, 120); dg.lineTo(b, 120); dg.lineTo(b + 130, 260); dg.lineTo(a + 130, 260); dg.closePath(); dg.fill(); }
+    SPR.dark = dk;
+    // 렌즈 빛이 꺼지면 얼굴에 비치던 초록빛도 죽는다: 점 무늬로 어둡게
+    const sp = canvasOf(W, H), sg = sp.getContext('2d'), sid = sg.createImageData(W, H), sd = sid.data;
+    for (let y = 150; y < 300; y++) for (let x = 70; x < 280; x++) {
+      let k = 0; for (const [cx, cy, r, s] of [[230, 224, 40, 0.75], [150, 262, 72, 0.5]]) { const q = Math.hypot(x - cx, y - cy) / r; if (q < 1) k = Math.max(k, s * (1 - q)); }
+      if (k > BAYER[(y & 3) * 4 + (x & 3)]) sd[(y * W + x) * 4 + 3] = 150;
+    }
+    sg.putImageData(sid, 0, 0); SPR.spill = sp;
+    // 땀방울 (점 그림)
+    const art = ['....o...', '....o...', '...oo...', '...oo...', '..oho...', '..ofo...', '.ohffo..', '.offfo..', 'ohfffso.', 'offffso.', 'offffso.', '.offso..', '..ooo...'];
+    const col = { o: 'rgba(226,240,238,0.85)', f: 'rgba(255,255,255,0.20)', h: '#ffffff', s: 'rgba(40,24,18,0.35)' }, dc = canvasOf(8, art.length), dx = ctx2(dc);
+    art.forEach((r, y) => [...r].forEach((ch, x) => { if (col[ch]) { dx.fillStyle = col[ch]; dx.fillRect(x, y, 1, 1); } }));
+    SPR.drop = dc;
+    // 테두리 (화면 가장자리 선·모서리 괄호, 아래 석차표 띠)
+    const fr = canvasOf(W, H), f = ctx2(fr);
+    const R = (x, y, w, h, a, c = G1) => { f.globalAlpha = a; f.fillStyle = c; f.fillRect(x, y, w, h); };
+    const dashes = (x, y, n) => { f.globalAlpha = 1; f.fillStyle = G1; for (let i = 0; i < n; i++) for (let r = 0; r < 5; r++) f.fillRect(x + i * 8 + (4 - r), y + r, 5, 1); };
+    R(7, 7, 626, 1, 0.5); R(7, 7, 22, 2, 1, G_HI); R(611, 7, 22, 2, 1, G_HI); R(7, 7, 1, 49, 0.8); R(632, 7, 1, 49, 0.8);
+    R(320, 3, 1, 11, 1); for (const d of [-16, -8, 8, 16]) R(320 + d, Math.abs(d) > 8 ? 7 : 5, 1, Math.abs(d) > 8 ? 3 : 5, 0.6); R(94, 6, 2, 3, 1);
+    R(7, 328, 626, 1, 0.45); R(320, 325, 1, 7, 0.9); dashes(21, 336, 5); R(85, 339, 86, 1, 0.65); R(469, 339, 112, 1, 0.65); dashes(585, 336, 5);
+    R(7, 349, 626, 1, 0.5); R(7, 348, 22, 2, 1, G_HI); R(611, 348, 22, 2, 1, G_HI); R(7, 326, 1, 24, 0.8); R(632, 326, 1, 24, 0.8); R(320, 349, 1, 6, 1);
+    SPR.frame = fr;
+    // 제목: 안경으로 · 살아남기 (크림색 점 글자, 1칸 테두리와 그림자) / AI (기존 타이틀처럼 초록, 빨강·파랑 어긋남, 짙은 초록 테두리)
+    SPR.words = outlined(wear(bhsMask([['안경으로', { x: 493, y: 92, w: 129, h: 38 }], ['살아남기', { x: 418, y: 138, w: 209, h: 56 }]]), 9137, 46), CREAM, DARK, 'rgba(0,0,0,0.6)');
+    const ai = bhsMask([['AI', { x: 404, y: 80, w: 85, h: 56 }, true]]);
+    const ac = canvasOf(W + 8, H + 4), a = ctx2(ac);
+    a.globalAlpha = 0.45; a.drawImage(tint(ai, 'rgb(255,60,60)'), 4 + 2, 1); a.globalAlpha = 0.4; a.drawImage(tint(ai, 'rgb(60,160,255)'), 4 - 2, 1); a.globalAlpha = 1;
+    const e = tint(ai, G_DK); for (const [ex, ey] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) a.drawImage(e, 4 + ex, 1 + ey);
+    a.drawImage(tint(ai, G1), 4, 1);
+    const hi = tint(ai, G_HI), hg = ctx2(hi); hg.globalCompositeOperation = 'destination-in'; hg.fillStyle = '#ffffff'; hg.fillRect(0, 80, W, 9); a.globalAlpha = 0.5; a.drawImage(hi, 4, 1); a.globalAlpha = 1; // 윗줄 몇 칸을 밝게
+    SPR.ai = ac;
+    // 제목 둘레 장식 선 (점선으로 끊어지며 흐려진다)
+    const dc2 = canvasOf(W, H), d2 = ctx2(dc2);
+    const seg = (x0, x1, y, h, a0, a1) => { const n = Math.max(1, Math.round((x1 - x0) / 6)); for (let i = 0; i < n; i++) { d2.globalAlpha = a0 + (a1 - a0) * (i / Math.max(1, n - 1)); d2.fillStyle = G1; d2.fillRect(Math.round(x0 + (x1 - x0) * i / n), y, Math.ceil((x1 - x0) / n), h); } };
+    seg(462, 556, 84, 1, 0.95, 0.15);
+    seg(366, 437, 99, 2, 0.1, 1); seg(388, 446, 105, 1, 0.1, 0.9); seg(360, 431, 112, 2, 0.1, 1);
+    seg(428, 579, 205, 1, 0.1, 1); d2.globalAlpha = 1; d2.fillStyle = G1; d2.fillRect(579, 204, 2, 1); d2.fillRect(581, 203, 2, 1);
+    for (let i = 0; i < 5; i++) for (let r = 0; r < 5; r++) d2.fillRect(585 + i * 5 + ((4 - r) * 0.6 | 0), 203 + r, 3, 1);
+    d2.globalAlpha = 0.85; d2.fillRect(618, 206, 8, 1);
+    SPR.deco = dc2;
+    // 석차표 제목
+    SPR.rankTitle = outlined(bhsMask([['전국 석차표', { x: 470, y: 18, w: 151, h: 30 }]]), CREAM, DARK, 'rgba(0,0,0,0.6)');
+    SPR.scanTmp = canvasOf(W, H); SPR.tick = null; SPR.ok = true;
+  }
 
   // ---- 시간표 ----
-  // 켜질 때 (0~2.7초): 검은 화면 → 그림이 밝아짐 → 왼쪽 렌즈가 스캔 줄과 함께 켜짐 → 로고가 찍히고 흔들림 → 버튼 깜빡 → 석차표 줄
+  // 켜질 때 (0~2.7초): 검은 화면 → 그림이 밝아짐 → 왼쪽 렌즈가 스캔 줄과 함께 켜짐 → 제목이 찍히고 흔들림 → 버튼 깜빡 → 석차표 줄
   // 그 뒤 10초마다: 감독관이 6초에 걸쳐 다가옴 → 왼쪽 렌즈 꺼짐 → 감독관이 멀어짐 → 다시 켜짐. 다가오는 동안 땀방울이 흘러내림
   function timeline(t) {
     const P = {};
     P.black = 1 - smooth(0.2, 0.85, t);
     P.power = clamp01((t - 0.95) / 0.45);
     P.logo = clamp01((t - 1.35) / 0.26);
-    P.shake = t > 1.61 && t < 1.86 ? Math.sin(t * 97) * 1.7 * (1 - (t - 1.61) / 0.25) : 0;
+    P.shake = t > 1.61 && t < 1.86 ? Math.round(Math.sin(t * 97) * 2 * (1 - (t - 1.61) / 0.25)) : 0;
     P.frame = smooth(1.3, 1.75, t);
     P.btn = t < 1.95 ? 0 : t < 2.35 ? (Math.floor((t - 1.95) * 20) % 2 ? 0.2 : 1) : 1;
     P.tick = smooth(2.25, 2.7, t);
-    P.zoom = 1; P.off = 0; P.scan = -1; P.drop = { y: 0, a: 1, s: 1 };
+    P.jit = (t * 0.29) % 1 < 0.035 ? Math.round(Math.sin(t * 90) * 3) : 0; // 기존 타이틀처럼 가끔 옆으로 흔들림 (AI만)
+    P.zoom = 1; P.off = 0; P.scan = -1; P.drop = { y: 0, a: 1 };
     const u = t < 2.7 ? -1 : (t - 2.7) % 10;
     if (u >= 0) {
       P.zoom = 1 + 0.32 * (u < 6 ? smooth(0, 6, u) : u < 7.3 ? 1 : 1 - smooth(7.3, 8.5, u));
@@ -60,246 +151,157 @@
       if (f1 >= 0) P.off = f1 ? 0 : 1;
       if (f2 >= 0) P.off = f2 ? 1 : 0;
       if (u >= 8.64 && u < 9.1) P.scan = (u - 8.64) / 0.46;
-      if (u >= 5.2 && u < 7.6) { const k = (u - 5.2) / 2.4; P.drop = { y: 15 * Math.pow(k, 1.8), a: 1 - smooth(7.3, 7.6, u), s: 1 + 0.12 * k }; }
-      else if (u >= 7.6 && u < 8.8) P.drop = { y: 0, a: 0, s: 1 };
-      else if (u >= 8.8 && u < 9.6) { const k = smooth(8.8, 9.6, u); P.drop = { y: 0, a: k, s: 0.82 + 0.18 * k }; }
+      if (u >= 5.2 && u < 7.6) P.drop = { y: Math.round(24 * Math.pow((u - 5.2) / 2.4, 1.8)), a: 1 };
+      else if (u >= 7.6 && u < 8.8) P.drop = { y: 0, a: 0 };
+      else if (u >= 8.8 && u < 9.6) P.drop = { y: 0, a: Math.ceil(smooth(8.8, 9.6, u) * 4) / 4 };
     }
     return P;
   }
 
-  // ---- 테두리 (화면 가장자리의 가는 선과 모서리 괄호, 아래 석차표 띠) ----
-  function buildFrame(S) {
-    const c = canvasOf(W * S, H * S), g = c.getContext('2d'); g.scale(S, S);
-    g.shadowColor = 'rgba(110,247,166,0.55)'; g.shadowBlur = 3 * S;
-    const R = (x, y, w, h, a, col = MINT) => { g.globalAlpha = a; g.fillStyle = col; g.fillRect(x, y, w, h); };
-    const dashes = (x, y, n) => { g.fillStyle = MINT; g.globalAlpha = 0.95; for (let i = 0; i < n; i++) { const x0 = x + i * 7.6; g.beginPath(); g.moveTo(x0 + 2.4, y); g.lineTo(x0 + 7.4, y); g.lineTo(x0 + 5, y + 5.6); g.lineTo(x0, y + 5.6); g.closePath(); g.fill(); } };
-    // 위
-    R(7, 7.4, 626, 0.8, 0.5);
-    R(7, 7, 21.6, 1.6, 1, MINT_HI); R(611.4, 7, 21.6, 1.6, 1, MINT_HI);
-    R(7, 7, 1.2, 49, 0.75); R(631.8, 7, 1.2, 49, 0.75);
-    R(319.4, 3, 1.2, 11.5, 0.9); for (const d of [-16, -8, 8, 16]) R(320 + d - 0.4, Math.abs(d) > 8 ? 6.5 : 5, 0.8, Math.abs(d) > 8 ? 3 : 5, 0.55);
-    R(94.4, 6.6, 2, 2.2, 0.9);
-    // 아래: 석차표 띠
-    R(7, 328.2, 626, 0.8, 0.42); R(319.6, 325.5, 0.8, 6, 0.8);
-    dashes(21.4, 336.4, 5); R(84.8, 338.6, 86.6, 0.9, 0.6);
-    R(469, 338.6, 112, 0.9, 0.6); dashes(584.6, 336.4, 5);
-    R(7, 349.4, 626, 0.8, 0.5);
-    R(7, 348.8, 21.6, 1.6, 1, MINT_HI); R(611.4, 348.8, 21.6, 1.6, 1, MINT_HI);
-    R(7, 326, 1.2, 24.4, 0.75); R(631.8, 326, 1.2, 24.4, 0.75);
-    R(319.4, 349.4, 1.2, 6, 0.9);
-    return c;
+  // ---- 한 장(640x360)에 그리기 ----
+  const LAY = canvasOf(W, H), lg = ctx2(LAY), TMP = canvasOf(RB[2], RB[3]), tg = ctx2(TMP), DT = canvasOf(8, 14), dtg = ctx2(DT);
+  function scanLine(y) { // 왼쪽 렌즈 안에만 보이는 스캔 줄 (밝은 한 줄 + 위로 흐려지는 세 줄)
+    y = Math.round(y); const g2 = ctx2(SPR.scanTmp);
+    g2.globalCompositeOperation = 'source-over'; g2.clearRect(0, 0, W, H);
+    g2.globalAlpha = 0.95; g2.fillStyle = G_HI; g2.fillRect(60, y, 170, 1); g2.fillStyle = G1;
+    for (let i = 1; i <= 3; i++) { g2.globalAlpha = 0.55 - i * 0.14; g2.fillRect(60, y - i, 170, 1); } g2.globalAlpha = 1;
+    g2.globalCompositeOperation = 'destination-in'; g2.drawImage(SPR.mL, 0, 0); g2.globalCompositeOperation = 'source-over';
+    lg.drawImage(SPR.scanTmp, 0, 0);
   }
-
-  // ---- 로고: AI(초록, 기울임, 빛) + 안경으로·살아남기(크림색, 닳은 도트 글자) + 장식 선 ----
-  const LG = { x: 356, y: 70, w: 279, h: 152 }; // 로고가 들어가는 칸 (화면 기준)
-  function fitInk(g, str, font, box) { // 글자의 실제 잉크 상자를 box에 꼭 맞춰 그릴 배율과 자리
-    g.font = font; const m = g.measureText(str);
-    const l = m.actualBoundingBoxLeft, r = m.actualBoundingBoxRight, a = m.actualBoundingBoxAscent, d = m.actualBoundingBoxDescent;
-    return { sx: box.w / (l + r), sy: box.h / (a + d), ox: l, oy: d };
-  }
-  function grunge(g, w, h, seed) { // 닳은 인쇄 느낌: 군데군데 긁히고 바랜 자국 (같은 seed면 늘 같은 모양)
-    let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
-    g.save(); g.globalCompositeOperation = 'source-atop';
-    for (let i = 0; i < 10; i++) { g.fillStyle = `rgba(150,138,112,${0.18 + rnd() * 0.16})`; g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 3 + Math.floor(rnd() * 8), 2 + Math.floor(rnd() * 4)); } // 바랜 얼룩
-    g.fillStyle = 'rgba(140,128,100,0.45)'; for (let i = 0; i < w * h * 0.012; i++) g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 1, 1);
-    g.globalCompositeOperation = 'destination-out'; g.globalAlpha = 0.8;
-    for (let i = 0; i < w * h * 0.006; i++) g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 1, 1);
-    for (let i = 0; i < 16; i++) g.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 2 + Math.floor(rnd() * 6), 1); // 긁힘
-    g.restore();
-  }
-  function creamWords(words, seed) { // 크림색 글자를 화면 1칸 해상도로 찍는다 (키우면 도트 계단이 보인다)
-    const c = canvasOf(LG.w, LG.h), g = c.getContext('2d');
-    for (const [str, box] of words) {
-      const font = `400 100px ${BHS}`, f = fitInk(g, str, font, box);
-      g.save(); g.translate(box.x - LG.x, box.y + box.h - LG.y); g.scale(f.sx, f.sy); g.font = font; g.textBaseline = 'alphabetic'; g.fillStyle = CREAM; g.fillText(str, f.ox, -f.oy); g.restore();
+  function lenses(P, t) {
+    if (P.zoom > 1.0005) { // 오른쪽 렌즈: 렌즈 안만 키워서 감독관이 다가오는 것처럼. 가까울수록 어둡게
+      const [x, y, w, h] = RB, z = P.zoom, sx = ZOOM_C[0] + (x - ZOOM_C[0]) / z, sy = ZOOM_C[1] + (y - ZOOM_C[1]) / z;
+      tg.globalCompositeOperation = 'source-over'; tg.globalAlpha = 1; tg.clearRect(0, 0, w, h); tg.drawImage(plate, sx, sy, w / z, h / z, 0, 0, w, h);
+      tg.globalAlpha = Math.round(0.34 * (z - 1) / 0.32 * 8) / 8; tg.fillStyle = '#010604'; tg.fillRect(0, 0, w, h); tg.globalAlpha = 1;
+      tg.globalCompositeOperation = 'destination-in'; tg.drawImage(SPR.mR, x, y, w, h, 0, 0, w, h); tg.globalCompositeOperation = 'source-over';
+      lg.drawImage(TMP, x, y);
     }
-    grunge(g, LG.w, LG.h, seed);
-    return c;
-  }
-  function buildLogo(S, words) {
-    const c = canvasOf(LG.w * S, LG.h * S), g = c.getContext('2d');
-    g.scale(S, S); g.translate(-LG.x, -LG.y);
-    const glowLine = (x0, x1, y, h, a0, a1, a2) => { const gr = g.createLinearGradient(x0, 0, x1, 0); gr.addColorStop(0, `rgba(110,247,166,${a0})`); gr.addColorStop(0.55, `rgba(150,251,200,${a1})`); gr.addColorStop(1, `rgba(110,247,166,${a2})`); g.fillStyle = gr; g.fillRect(x0, y, x1 - x0, h); };
-    g.save(); g.shadowColor = 'rgba(110,247,166,0.8)'; g.shadowBlur = 4 * S;
-    glowLine(462, 556, 83.6, 1, 0, 0.95, 0.15); // AI 위를 지나는 선
-    glowLine(368, 437, 98.4, 1.6, 0, 0.95, 1); glowLine(390, 446, 105.4, 1.1, 0, 0.8, 0.9); glowLine(362, 432, 112.4, 1.6, 0, 0.9, 1); // AI 왼쪽 빠른 줄
-    glowLine(428, 579, 205.4, 1, 0, 0.9, 0.95); // 로고 아래 선
-    g.fillStyle = MINT; g.beginPath(); g.moveTo(578.6, 205.4); g.lineTo(583.6, 203.4); g.lineTo(583.6, 204.4); g.lineTo(579.4, 206.4); g.closePath(); g.fill();
-    for (let i = 0; i < 5; i++) { const x0 = 584.6 + i * 5.3; g.beginPath(); g.moveTo(x0 + 2, 202.9); g.lineTo(x0 + 5.6, 202.9); g.lineTo(x0 + 3.6, 207.9); g.lineTo(x0, 207.9); g.closePath(); g.fill(); }
-    g.globalAlpha = 0.85; g.fillRect(618.6, 206.2, 7.4, 0.9); g.globalAlpha = 1;
-    g.restore();
-    // 크림색 글자: 1칸 해상도 그림을 그대로 키운다 (번지지 않게). 아래에 그림자 한 칸
-    g.save(); g.imageSmoothingEnabled = false;
-    g.globalAlpha = 0.55; g.drawImage(silhouette(words, '#000000'), LG.x + 1, LG.y + 1.2, LG.w, LG.h); g.globalAlpha = 1;
-    g.drawImage(words, LG.x, LG.y, LG.w, LG.h); g.restore();
-    // AI: 기울인 굵은 글자, 위가 밝은 초록, 빛 번짐
-    const box = { x: 410, y: 80.2, w: 79.3, h: 56 }, sk = 0.25, font = `400 100px ${BHS}`;
-    g.save(); const f = fitInk(g, 'AI', font, { w: box.w - box.h * sk, h: box.h });
-    g.translate(box.x, box.y + box.h); g.transform(1, 0, -sk, 1, 0, 0); g.scale(f.sx, f.sy); g.font = font; g.textBaseline = 'alphabetic';
-    const ih = box.h / f.sy, gr = g.createLinearGradient(0, -ih, 0, 0); gr.addColorStop(0, '#8dfcc2'); gr.addColorStop(0.42, '#4ff096'); gr.addColorStop(1, '#1db463'); g.fillStyle = gr;
-    g.shadowColor = 'rgba(60,240,140,0.9)'; g.shadowBlur = 14 * S; g.fillText('AI', f.ox, -f.oy); g.shadowColor = 'rgba(120,255,180,0.7)'; g.shadowBlur = 5 * S; g.fillText('AI', f.ox, -f.oy); g.shadowBlur = 0; g.fillText('AI', f.ox, -f.oy); g.restore();
-    return c;
-  }
-  function logo(S) {
-    if (!CACHE.logo) CACHE.logo = buildLogo(S, creamWords([['안경으로', { x: 493.3, y: 92.4, w: 128.4, h: 37.4 }], ['살아남기', { x: 418.1, y: 138.1, w: 208.8, h: 55.7 }]], 9137));
-    return CACHE.logo;
-  }
-  function rankTitle(S) { // 석차표를 열면 로고 자리에 같은 글자로
-    if (!CACHE.rank) { const words = creamWords([['전국 석차표', { x: 470, y: 70, w: 151, h: 30 }]], 5521); const c = canvasOf(LG.w * S, LG.h * S), g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.scale(S, S); g.globalAlpha = 0.55; g.drawImage(silhouette(words, '#000000'), 1, 1.2, LG.w, LG.h); g.globalAlpha = 1; g.drawImage(words, 0, 0, LG.w, LG.h); CACHE.rank = c; }
-    return CACHE.rank;
-  }
-
-  // ---- 렌즈 ----
-  function darkGlass(b, P, a, below) { // 꺼진 렌즈: 어두운 유리 + 비스듬한 반사. below: 이 높이 아래만 (켜지는 스캔)
-    if (a <= 0) return;
-    b.save(); path(b, P); b.clip(); if (below != null) { b.beginPath(); b.rect(0, below, W, H); b.clip(); }
-    b.globalAlpha = 0.96 * a; b.fillStyle = '#030a07'; b.fillRect(60, 120, 170, 140);
-    const gr = b.createLinearGradient(70, 130, 170, 250); gr.addColorStop(0, 'rgba(200,230,215,0.10)'); gr.addColorStop(0.35, 'rgba(200,230,215,0.02)'); gr.addColorStop(0.5, 'rgba(200,230,215,0.07)'); gr.addColorStop(1, 'rgba(200,230,215,0)');
-    b.globalAlpha = a; b.fillStyle = gr; b.fillRect(60, 120, 170, 140); b.restore();
-  }
-  function scanBar(b, P, y) { // 렌즈가 켜질 때 위에서 아래로 지나가는 초록 줄
-    b.save(); path(b, P); b.clip();
-    const gr = b.createLinearGradient(0, y - 12, 0, y); gr.addColorStop(0, 'rgba(110,247,166,0)'); gr.addColorStop(1, 'rgba(160,255,205,0.55)');
-    b.fillStyle = gr; b.fillRect(60, y - 12, 170, 12); b.fillStyle = 'rgba(200,255,225,0.95)'; b.fillRect(60, y - 0.8, 170, 1.4); b.restore();
-  }
-  function lenses(b, P, t) {
-    // 오른쪽 렌즈: 렌즈 안만 키워서 감독관이 다가오는 것처럼. 가까울수록 어둡게
-    if (P.zoom > 1.0005) {
-      b.save(); path(b, LENS_R); b.clip(); b.translate(ZOOM_C[0], ZOOM_C[1]); b.scale(P.zoom, P.zoom); b.translate(-ZOOM_C[0], -ZOOM_C[1]); b.drawImage(plate, 0, 0, W, H); b.restore();
-      b.save(); path(b, LENS_R); b.clip(); b.globalAlpha = 0.32 * (P.zoom - 1) / 0.32; b.fillStyle = '#010604'; b.fillRect(255, 144, 116, 110); b.restore();
+    const scrOn = P.power >= 1 && !P.off;
+    if (scrOn) {
+      const e = 1 + (P.zoom - 1) * 0.7; lg.fillStyle = G1; // 오른쪽 렌즈 속 추적 괄호 (감독관이 가까울수록 벌어진다)
+      for (const [x, y, sx, sy] of BRK_R) { const X = Math.round(ZOOM_C[0] + (x - ZOOM_C[0]) * e), Y = Math.round(ZOOM_C[1] + (y - ZOOM_C[1]) * e); lg.fillRect(sx > 0 ? X : X - 6, Y, 7, 1); lg.fillRect(X, sy > 0 ? Y : Y - 5, 1, 6); }
+      const k = 0.1 + 0.3 * Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 / 1.3)), 3); // 보기 ② 깜빡
+      lg.globalCompositeOperation = 'lighter'; lg.globalAlpha = Math.round(k * 10) / 10; lg.drawImage(SPR.row2, 0, 0); lg.globalAlpha = 1; lg.globalCompositeOperation = 'source-over';
     }
-    const scrOn = P.power >= 1 && !P.off, e = 1 + (P.zoom - 1) * 0.7;
-    if (scrOn) { b.save(); b.fillStyle = MINT; b.shadowColor = 'rgba(110,247,166,0.7)'; b.shadowBlur = 3 * (CACHE.S || 1); b.globalAlpha = 0.95;
-    for (const [x, y, sx, sy] of BRK_R) { const X = ZOOM_C[0] + (x - ZOOM_C[0]) * e, Y = ZOOM_C[1] + (y - ZOOM_C[1]) * e; b.fillRect(sx > 0 ? X : X - 7, sy > 0 ? Y : Y - 1.2, 7, 1.2); b.fillRect(sx > 0 ? X : X - 1.2, sy > 0 ? Y : Y - 6.5, 1.2, 6.5); }
-    b.restore(); }
-    // 왼쪽 렌즈: 켜져 있으면 보기 ②가 깜빡, 꺼지면 어두운 유리
-    if (scrOn) { const k = 0.08 + 0.24 * Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 / 1.3)), 3); b.save(); path(b, LENS_L); b.clip(); b.globalCompositeOperation = 'lighter'; b.globalAlpha = k; path(b, ROW2); b.fillStyle = MINT; b.fill(); b.restore(); }
-    if (P.power < 1) { const y = 128 + 124 * P.power; darkGlass(b, LENS_L, 1, y); if (P.power > 0) scanBar(b, LENS_L, y); }
-    else if (P.off) { darkGlass(b, LENS_L, 1, null); b.save(); for (const [x, y, r, k] of [[230, 224, 40, 0.55], [150, 262, 72, 0.32]]) { const sp = b.createRadialGradient(x, y, 4, x, y, r); sp.addColorStop(0, `rgba(0,0,0,${k})`); sp.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = sp; b.fillRect(x - r, y - r, r * 2, r * 2); } b.restore(); } // 렌즈 빛이 꺼지면 얼굴에 비치던 초록빛도 죽는다
-    if (P.scan >= 0) scanBar(b, LENS_L, 128 + 124 * P.scan);
-    // 땀방울
-    if (loaded(drop) && P.drop.a > 0) { const [x, y, w, h] = DROP_AT; b.save(); path(b, SKIN); b.clip(); b.globalAlpha = P.drop.a; b.drawImage(drop, x - P.drop.y * 0.12, y + P.drop.y, w, h * P.drop.s); b.restore(); }
-  }
-
-  // ---- 시험 시작 버튼 · 석차표 줄 ----
-  function startButton(b, label, a, t) {
-    b.save(); b.globalAlpha = a; b.font = `800 21px ${SANS}`; b.textBaseline = 'alphabetic';
-    const m = b.measureText(label), tw = m.actualBoundingBoxLeft + m.actualBoundingBoxRight, x1 = 593.3, x0 = Math.min(452.4, x1 - 17.6 - tw - 25 - 16.4), y0 = 227.6, y1 = 261;
-    const tx = x1 - 17.6 - tw, base = 251.7 - m.actualBoundingBoxDescent;
-    b.shadowColor = 'rgba(110,247,166,0.7)'; b.shadowBlur = 3 * (CACHE.S || 1); b.fillStyle = MINT;
-    for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { b.fillRect(sx > 0 ? x : x - 7.5, sy > 0 ? y : y - 1.3, 7.5, 1.3); b.fillRect(sx > 0 ? x : x - 1.3, sy > 0 ? y : y - 6.5, 1.3, 6.5); }
-    const gr = b.createLinearGradient(x0 + 10, 0, x1 - 8, 0); gr.addColorStop(0, 'rgba(110,247,166,0)'); gr.addColorStop(0.5, 'rgba(160,255,205,0.95)'); gr.addColorStop(1, 'rgba(110,247,166,0)'); b.fillStyle = gr; b.fillRect(x0 + 10, 262.6, x1 - x0 - 18, 1);
-    const tri = 0.86 + 0.14 * (0.5 + 0.5 * Math.sin(t * 4.2)); b.globalAlpha = a * tri; b.fillStyle = '#7dfab0'; b.shadowColor = 'rgba(110,247,166,0.95)'; b.shadowBlur = 8 * (CACHE.S || 1);
-    const ax = tx - 25.3; b.beginPath(); b.moveTo(ax, 234.8); b.lineTo(ax + 15.2, 243); b.lineTo(ax, 251.2); b.closePath(); b.fill();
-    b.globalAlpha = a; b.shadowColor = 'rgba(0,0,0,0.6)'; b.shadowBlur = 2 * (CACHE.S || 1); b.fillStyle = INK; b.fillText(label, tx + m.actualBoundingBoxLeft, base);
-    b.restore();
-  }
-  function ticker(b, S, str, a, t) { // 석차표 줄: '석차표' 글자는 서 있고, 기록은 흐른다. 양 끝은 흐리게
-    b.save(); b.globalAlpha = a; b.font = `600 13.5px ${SANS}`; b.textBaseline = 'alphabetic'; b.fillStyle = INK; b.shadowColor = 'rgba(0,0,0,0.7)'; b.shadowBlur = 2 * S;
-    b.fillText('석차표', 192, 343.4); b.restore();
-    const wx = 246, ww = 210, wh = 18;
-    if (CACHE.tickStr !== str || !CACHE.tick || CACHE.tick.S !== S) { // 흐르는 글자 한 줄을 미리 찍어 둔다
-      const mg = canvasOf(4, 4).getContext('2d'); mg.font = `600 ${13.5 * S}px ${SANS}`;
-      const sw = Math.ceil(mg.measureText(str).width) + 1, c = canvasOf(sw, wh * S), g = c.getContext('2d');
-      g.font = `600 ${13.5 * S}px ${SANS}`; g.textBaseline = 'alphabetic'; g.fillStyle = INK; g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 2 * S; g.fillText(str, 0, 13.4 * S);
-      CACHE.tick = { c, S, sw: sw / S, win: canvasOf(ww * S, wh * S) }; CACHE.tickStr = str;
+    if (P.power < 1) { const y = Math.round(128 + 124 * P.power); if (y < H) lg.drawImage(SPR.dark, 0, y, W, H - y, 0, y, W, H - y); if (P.power > 0) scanLine(y); } // 켜지는 중: 스캔 줄 아래는 아직 꺼진 유리
+    else if (P.off) { lg.drawImage(SPR.dark, 0, 0); lg.drawImage(SPR.spill, 0, 0); }
+    if (P.scan >= 0) scanLine(128 + 124 * P.scan);
+    if (P.drop.a > 0) { // 땀방울: 안경테 위 피부에서만 보이고, 흘러내리면 테 뒤로 숨는다
+      const [x, y] = DROP_AT, yy = y + P.drop.y; dtg.globalCompositeOperation = 'source-over'; dtg.clearRect(0, 0, 8, 14); dtg.drawImage(SPR.drop, 0, 0);
+      dtg.globalCompositeOperation = 'destination-in'; dtg.drawImage(SPR.mSkin, x, yy, 8, 14, 0, 0, 8, 14); dtg.globalCompositeOperation = 'source-over';
+      lg.globalAlpha = P.drop.a; lg.drawImage(DT, x, yy); lg.globalAlpha = 1;
     }
-    const T = CACHE.tick, g = T.win.getContext('2d'), off = (t * 24) % T.sw;
-    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, T.win.width, T.win.height);
-    for (let x = -off; x < ww; x += T.sw) g.drawImage(T.c, Math.round(x * S), 0);
-    g.globalCompositeOperation = 'destination-in'; const gr = g.createLinearGradient(0, 0, ww * S, 0);
-    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.14, 'rgba(0,0,0,1)'); gr.addColorStop(0.88, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, ww * S, wh * S);
-    b.save(); b.globalAlpha = a; b.imageSmoothingEnabled = true; b.drawImage(T.win, wx, 330, ww, wh); b.restore();
   }
-
-  // ---- 석차표 (줄을 누르면 화면 오른쪽에 펼쳐진다) ----
-  function rankPanel(b, RK, rk, now) {
-    const a = clamp01((rk - 0.35) / 0.65); if (a <= 0) return [];
-    const btns = [], bf = sz => `400 ${sz * BOOT_K}px ${BOOT_FONT}`, G1 = '#74ff8e';
-    const text = (s, x, y, f, col, align, glow) => { b.font = f; b.textAlign = align; b.textBaseline = 'alphabetic'; b.shadowColor = glow || 'transparent'; b.shadowBlur = glow ? 4 * (CACHE.S || 1) : 0; b.fillStyle = col; b.fillText(s, x, y); b.shadowBlur = 0; };
-    b.save(); b.globalAlpha = a;
-    b.imageSmoothingEnabled = true; b.drawImage(rankTitle(CACHE.S), LG.x, LG.y - 30 - 22, LG.w, LG.h);
+  function startButton(label, a, t) { // 시험 시작: 모서리 괄호 + ▶ + 도트 글자 (24px = 점 두 칸)
+    const tx = pxText(label, 24, INK, DARK, true), x1 = 593, tw = tx.tw, x0 = Math.min(452, x1 - 18 - tw - 30), y0 = 226, y1 = 262;
+    lg.globalAlpha = a; lg.fillStyle = G1;
+    for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { lg.fillRect(sx > 0 ? x : x - 7, sy > 0 ? y : y - 1, 8, 2); lg.fillRect(sx > 0 ? x : x - 1, sy > 0 ? y : y - 6, 2, 7); }
+    const ux0 = x0 + 10, ux1 = x1 - 10; for (let x = ux0; x < ux1; x += 4) { const q = 1 - Math.abs((x - (ux0 + ux1) / 2) / ((ux1 - ux0) / 2)); lg.globalAlpha = a * Math.round((0.15 + 0.85 * q) * 6) / 6; lg.fillRect(x, y1 + 3, 3, 1); }
+    lg.globalAlpha = a * (Math.sin(t * 4.2) > -0.4 ? 1 : 0.7); const ax = x1 - 18 - tw - 24; // ▶ 점 그림
+    for (let r = 0; r < 17; r++) { const w = Math.round(14 * (1 - Math.abs(r - 8) / 8.5)); if (w > 0) { lg.fillStyle = G1; lg.fillRect(ax, 236 + r, w, 1); lg.fillStyle = G_HI; lg.fillRect(ax, 236 + r, 1, 1); } }
+    lg.globalAlpha = a; putText(tx, x1 - 18 - tw, 255); lg.globalAlpha = 1;
+  }
+  function ticker(str, a, t) { // 석차표 줄: '석차표'는 서 있고, 기록은 점 단위로 흐른다
+    lg.globalAlpha = a; putText(pxText('석차표', 12, INK), 190, 344);
+    if (!SPR.tick || SPR.tickStr !== str) { SPR.tick = pxText(str, 12, INK); SPR.tickStr = str; }
+    const s = SPR.tick, sw = s.tw, wx = 244, ww = 212, off = Math.floor(t * 24) % sw;
+    if (!SPR.tWin) { // 흐르는 창: 양 끝 12칸은 점 무늬로 지워 끊긴 글자가 덜 보이게
+      SPR.tWin = canvasOf(ww, 18); const m = canvasOf(ww, 18), mg = m.getContext('2d'), id = mg.createImageData(ww, 18), d = id.data;
+      for (let y = 0; y < 18; y++) for (let x = 0; x < ww; x++) { const e = Math.min(x, ww - 1 - x) / 12; if (e < 1 && e < BAYER[(y & 3) * 4 + (x & 3)]) d[(y * ww + x) * 4 + 3] = 255; }
+      mg.putImageData(id, 0, 0); SPR.tFade = m;
+    }
+    const g = ctx2(SPR.tWin); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, ww, 18);
+    for (let x = -off; x < ww; x += sw) g.drawImage(s, x - 2, 344 - 330 - s.base);
+    g.globalCompositeOperation = 'destination-out'; g.drawImage(SPR.tFade, 0, 0); g.globalCompositeOperation = 'source-over';
+    lg.drawImage(SPR.tWin, wx, 330); lg.globalAlpha = 1;
+  }
+  function rankPanel(RK, rk) { // 석차표: 화면 오른쪽에 펼쳐진다 (도트 글꼴 12px)
+    const a = clamp01((rk - 0.35) / 0.65), btns = []; if (a <= 0) return btns;
+    lg.globalAlpha = a; lg.drawImage(SPR.rankTitle, -1, -1);
     const rows = RK.rows, total = RK.total || rows.length, mineI = rows.findIndex(r => r.me), rankOf = i => rows[i].rank || i + 1, per = 10, pages = Math.max(1, Math.ceil(rows.length / per)), page = Math.max(0, Math.min(pages - 1, RK.page || 0));
     const stats = [RK.online ? `응시자 ${total.toLocaleString()}명` : `이 기기의 기록 ${total}개`, mineI >= 0 ? `내 석차 ${rankOf(mineI)}등` : '내 석차 미정'].concat(RK.online && RK.runs > 0 ? [`누적 응시 ${RK.runs.toLocaleString()}회`] : []);
-    text(stats.join('  ·  '), 621, 62, bf(13), G1, 'right', '#0a4018');
-    const x0 = 356, x1 = 622, y0 = 70, y1 = 298; // 판
-    b.globalAlpha = a * 0.72; b.fillStyle = '#02100a'; b.fillRect(x0, y0, x1 - x0, y1 - y0); b.globalAlpha = a; b.fillStyle = MINT;
-    for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { b.fillRect(sx > 0 ? x : x - 8, sy > 0 ? y : y - 1.3, 8, 1.3); b.fillRect(sx > 0 ? x : x - 1.3, sy > 0 ? y : y - 7, 1.3, 7); }
-    const lh = 18.6, rx = x0 + 12, rw = x1 - x0 - 24, show = Math.floor(clamp01((rk - 0.35) / 0.65) * 13), list = rows.slice(page * per, page * per + per);
-    const row = (i, r, y, inv) => { if (inv) { b.fillStyle = G1; b.fillRect(rx - 4, y - 14.5, rw + 8, 19); } const col = inv ? '#06200e' : G1, gl = inv ? null : '#0a4018', nm = [...r.name].slice(0, 8).join('');
-      text(`${rankOf(i)}등`, rx, y, bf(15.5), col, 'left', gl); text(nm, rx + 46, y, bf(15.5), col, 'left', gl); text(fmtRunT(r.t), rx + rw, y, bf(15.5), col, 'right', gl); };
-    list.forEach((r, i) => { if (i < show) row(page * per + i, r, y0 + 21 + i * lh, false); });
-    if (!rows.length && show > 2) { text('아직 기록이 없습니다', (x0 + x1) / 2, (y0 + y1) / 2 - 4, bf(15.5), G1, 'center', '#0a4018'); text('엔딩을 보면 석차표에 오릅니다', (x0 + x1) / 2, (y0 + y1) / 2 + 17, bf(12.5), '#d8f8e0', 'center', '#0a4018'); }
-    if (mineI >= 0 && show > 11) row(mineI, rows[mineI], y1 - 9, true);
-    if (rk >= 1) { const py = y1 + 14; b.globalAlpha = a * (page > 0 ? 1 : 0.35); text('▲ 위로', x0, py, bf(12), G1, 'left', '#0a4018'); b.globalAlpha = a * (page < pages - 1 ? 1 : 0.35); text('아래로 ▼', x1, py, bf(12), G1, 'right', '#0a4018'); b.globalAlpha = a;
-      text(rows.length ? `${page * per + 1}~${Math.min(rows.length, page * per + per)}등 / ${(RK.listed != null ? RK.listed : total).toLocaleString()}명` : '', (x0 + x1) / 2, py, bf(12), G1, 'center', '#0a4018');
-      btns.push({ x: x0 - 10, y: py - 16, w: (x1 - x0) / 3, h: 26, key: 'rank:up' }, { x: x1 - (x1 - x0) / 3 + 10, y: py - 16, w: (x1 - x0) / 3, h: 26, key: 'rank:down' }); }
-    b.restore();
+    const T = (s, x, y, col, align, edge) => putText(pxText(s, 12, col, edge === undefined ? DARK : edge), x, y, align);
+    T(stats.join(' · '), 621, 62, G1, 'right');
+    const x0 = 356, x1 = 622, y0 = 70, y1 = 298;
+    lg.globalAlpha = a * 0.78; lg.fillStyle = '#02100a'; lg.fillRect(x0, y0, x1 - x0, y1 - y0); lg.globalAlpha = a; lg.fillStyle = G1;
+    for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { lg.fillRect(sx > 0 ? x : x - 7, sy > 0 ? y : y - 1, 8, 2); lg.fillRect(sx > 0 ? x : x - 1, sy > 0 ? y : y - 6, 2, 7); }
+    const lh = 19, rx = x0 + 12, rw = x1 - x0 - 24, show = Math.floor(a * 13), list = rows.slice(page * per, page * per + per);
+    const row = (i, r, y, inv) => { if (inv) { lg.fillStyle = G1; lg.fillRect(rx - 4, y - 14, rw + 8, 18); } const col = inv ? '#06200e' : G1, ed = inv ? null : DARK, nm = [...r.name].slice(0, 8).join('');
+      T(`${rankOf(i)}등`, rx, y, col, 'left', ed); T(nm, rx + 44, y, col, 'left', ed); T(fmtRunT(r.t), rx + rw, y, col, 'right', ed); };
+    list.forEach((r, i) => { if (i < show) row(page * per + i, r, y0 + 22 + i * lh, false); });
+    if (!rows.length && show > 2) { T('아직 기록이 없습니다', (x0 + x1) / 2, (y0 + y1) / 2 - 2, G1, 'center'); T('엔딩을 보면 석차표에 오릅니다', (x0 + x1) / 2, (y0 + y1) / 2 + 18, '#d8f8e0', 'center'); }
+    if (mineI >= 0 && show > 11) row(mineI, rows[mineI], y1 - 8, true);
+    if (rk >= 1) { const py = y1 + 18; lg.globalAlpha = a * (page > 0 ? 1 : 0.35); T('▲ 위로', x0, py, G1, 'left'); lg.globalAlpha = a * (page < pages - 1 ? 1 : 0.35); T('아래로 ▼', x1, py, G1, 'right'); lg.globalAlpha = a;
+      if (rows.length) T(`${page * per + 1}~${Math.min(rows.length, page * per + per)}등 / ${(RK.listed != null ? RK.listed : total).toLocaleString()}명`, (x0 + x1) / 2, py, G1, 'center');
+      btns.push({ x: x0 - 10, y: py - 16, w: (x1 - x0) / 3, h: 24, key: 'rank:up' }, { x: x1 - (x1 - x0) / 3 + 10, y: py - 16, w: (x1 - x0) / 3, h: 24, key: 'rank:down' }); }
+    lg.globalAlpha = 1;
     return btns;
   }
 
   // ---- 타이틀 ----
+  let T0 = 0, lastNow = -9, firstSeen = -1;
+  const ready = () => loaded(plate) && (fontOk() || (firstSeen >= 0 && lastNow - firstSeen > 2.5));
   function lensTitle(k, L, now, hasSave, info) {
     if (Q.get('hud') === '0') return []; // check only: 배경만
     if (plateBad) return OLD_TITLE(k, L, now, hasSave, info);
-    const b = k.b, S = k.S || HUD_SCALE, RK = info.rank || { k: 0, rows: [] }, rk = RK.k;
-    if (CACHE.S !== S) { CACHE.S = S; CACHE.frame = null; CACHE.logo = null; CACHE.rank = null; CACHE.tick = null; }
-    if (now - lastNow > 0.5 || now < lastNow) T0 = now; lastNow = now;
-    if (firstSeen < 0) firstSeen = now;
-    const ready = loaded(plate) && (fontOk() || now - firstSeen > 2.5);
-    if (!ready) T0 = now; // 그림과 글꼴이 오기 전에는 켜지는 연출을 시작하지 않는다
-    const t = FIX_T != null ? FIX_T : now - T0, P = timeline(t), btns = [];
-    b.save(); b.fillStyle = '#000000'; b.fillRect(0, 0, W, H);
-    if (ready) {
-      b.imageSmoothingEnabled = true; b.imageSmoothingQuality = 'high';
-      b.drawImage(plate, 0, 0, W, H);
-      lenses(b, P, t);
-      if (rk > 0) { b.globalAlpha = 0.5 * rk; b.fillStyle = '#000000'; b.fillRect(0, 0, W, H); b.globalAlpha = 1; }
-      if (!CACHE.frame) CACHE.frame = buildFrame(S);
-      b.globalAlpha = P.frame; b.drawImage(CACHE.frame, 0, 0, W, H); b.globalAlpha = 1;
-      const ua = 1 - clamp01(rk * 2.4); // 석차표를 열면 로고·버튼·줄은 걷힌다
+    const b = k.b, RK = info.rank || { k: 0, rows: [] }, rk = RK.k, btns = [];
+    if (now - lastNow > 0.5 || now < lastNow) T0 = now; lastNow = now; if (firstSeen < 0) firstSeen = now;
+    const ok = ready(); if (!ok) T0 = now; // 그림과 글꼴이 오기 전에는 켜지는 연출을 시작하지 않는다
+    if (ok && !SPR.ok) build();
+    lg.globalAlpha = 1; lg.globalCompositeOperation = 'source-over'; lg.fillStyle = '#000000'; lg.fillRect(0, 0, W, H);
+    if (ok) {
+      const t = FIX_T != null ? FIX_T : now - T0, P = timeline(t);
+      lg.drawImage(plate, 0, 0);
+      lenses(P, t);
+      if (rk > 0) { lg.globalAlpha = Math.round(0.55 * rk * 8) / 8; lg.fillStyle = '#000000'; lg.fillRect(0, 0, W, H); lg.globalAlpha = 1; }
+      lg.globalAlpha = Math.round(P.frame * 4) / 4; lg.drawImage(SPR.frame, 0, 0); lg.globalAlpha = 1;
+      const ua = 1 - clamp01(rk * 2.4); // 석차표를 열면 제목·버튼·줄은 걷힌다
       if (P.logo > 0 && ua > 0) {
-        const lo = logo(S), e = 1 - Math.pow(1 - P.logo, 3), sc = 1 + 0.24 * (1 - e), cx = LG.x + LG.w / 2, cy = LG.y + LG.h / 2;
-        b.save(); b.globalAlpha = Math.min(1, P.logo * 1.6) * ua; b.translate(cx + P.shake, cy + P.shake * 0.4); b.scale(sc, sc); b.drawImage(lo, -LG.w / 2, -LG.h / 2, LG.w, LG.h); b.restore();
+        const e = 1 - Math.pow(1 - P.logo, 3), sc = 1 + 0.24 * (1 - e), cx = 495, cy = 146;
+        lg.save(); lg.globalAlpha = Math.round(Math.min(1, P.logo * 1.6) * ua * 4) / 4; lg.translate(cx + P.shake, cy); lg.scale(sc, sc); lg.translate(-cx, -cy);
+        lg.drawImage(SPR.deco, 0, 0); lg.drawImage(SPR.words, -1, -1); lg.drawImage(SPR.ai, -4 + (P.logo >= 1 ? P.jit : 0), -1); lg.restore();
       }
       if (ua > 0 && rk <= 0 && P.logo >= 1) {
-        b.save(); b.font = `500 10.5px ${SANS}`; b.textAlign = 'right'; b.textBaseline = 'alphabetic'; b.fillStyle = 'rgba(247,240,221,0.85)'; b.shadowColor = 'rgba(0,0,0,0.7)'; b.shadowBlur = 2 * S;
-        if (info.best) b.fillText(`내 최고 기록 ${info.best}`, 621, 220);
-        if (info.ios) { b.font = `500 9.5px ${SANS}`; b.fillStyle = 'rgba(247,240,221,0.7)'; b.fillText('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', 621, 300); }
-        b.restore();
+        if (info.best) putText(pxText(`내 최고 기록 ${info.best}`, 12, CREAM), 621, 218, 'right');
+        if (info.ios) { lg.globalAlpha = 0.8; putText(pxText('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', 12, CREAM), 621, 306, 'right'); lg.globalAlpha = 1; }
       }
-      if (P.btn > 0 && ua > 0) startButton(b, hasSave ? '이어서 하기' : '시험 시작', P.btn * ua, t);
+      if (P.btn > 0 && ua > 0) startButton(hasSave ? '이어서 하기' : '시험 시작', P.btn * ua, t);
       if (P.tick > 0 && ua > 0) {
         const rows = RK.rows || [], str = rows.length ? rows.slice(0, 10).map((r, i) => `${i + 1}등 ${r.name} ${fmtRunT(r.t)}`).join('   ·   ') + '   ·   ' : '아직 기록이 없습니다 · 엔딩을 보면 석차표에 오릅니다   ·   ';
-        ticker(b, S, str, P.tick * ua, t);
+        ticker(str, Math.round(P.tick * ua * 4) / 4, t);
       }
       if (rk > 0) {
-        btns.push(...rankPanel(b, RK, rk, now));
-        if (rk >= 0.5) closeLabel(b, clamp01((rk - 0.5) * 2), S);
+        btns.push(...rankPanel(RK, rk));
+        if (rk >= 0.5) { lg.globalAlpha = clamp01((rk - 0.5) * 2); putText(pxText('◀ 돌아가기', 12, INK), 320, 344, 'center'); lg.globalAlpha = 1; } // 아래 띠를 다시 누르면 닫힌다
         if (rk >= 1) btns.push({ x: 0, y: 320, w: W, h: H - 320, key: 'rank:close' });
       }
-      if (P.black > 0) { b.globalAlpha = P.black; b.fillStyle = '#000000'; b.fillRect(0, 0, W, H); b.globalAlpha = 1; }
+      if (P.black > 0) { lg.globalAlpha = Math.ceil(P.black * 4) / 4; lg.fillStyle = '#000000'; lg.fillRect(0, 0, W, H); lg.globalAlpha = 1; } // 네 단계로 밝아진다
     }
-    b.restore(); b.imageSmoothingEnabled = false; b.textAlign = 'left';
+    b.save(); b.imageSmoothingEnabled = false; b.drawImage(LAY, 0, 0, W, H); b.restore(); b.imageSmoothingEnabled = false; b.textAlign = 'left';
     if (rk <= 0) { btns.push({ x: 0, y: 322, w: W, h: H - 322, key: 'rank:open' }); btns.push({ x: 0, y: 0, w: W, h: H, key: 'start' }); }
     return btns;
   }
-  function closeLabel(b, a, S) { // 석차표를 열면 아래 띠의 글자가 '돌아가기'로 바뀐다 (같은 띠를 다시 누르면 닫힌다)
-    b.save(); b.globalAlpha = a; b.font = `600 13.5px ${SANS}`; b.textAlign = 'center'; b.textBaseline = 'alphabetic'; b.shadowColor = 'rgba(0,0,0,0.7)'; b.shadowBlur = 2 * S;
-    b.fillStyle = INK; b.fillText('돌아가기', 326, 343.4); b.fillStyle = MINT; b.beginPath(); b.moveTo(287, 339.2); b.lineTo(294.5, 335); b.lineTo(294.5, 343.4); b.closePath(); b.fill(); b.restore();
-  }
+
   // ---- 시험 시작: 왼쪽 렌즈 안으로 들어가며 시험장이 드러난다 (a: 1 → 0, 0.9초) ----
   function lensTitleOut(k, L, now, a) {
-    if (!loaded(plate)) { if (OLD_OUT) OLD_OUT(k, L, now, a); return; }
-    const b = k.b, p = 1 - a, z = 1 + 11 * Math.pow(p, 2.2), fade = 1 - smooth(0.42, 0.9, p);
-    b.save(); b.imageSmoothingEnabled = true;
-    if (fade > 0) { b.save(); b.globalAlpha = fade; b.translate(DIVE_C[0], DIVE_C[1]); b.scale(z, z); b.translate(-DIVE_C[0], -DIVE_C[1]); b.drawImage(plate, 0, 0, W, H); b.restore(); }
-    const ua = 1 - smooth(0, 0.16, p);
-    if (ua > 0) { b.globalAlpha = ua; if (CACHE.frame) b.drawImage(CACHE.frame, 0, 0, W, H); if (CACHE.logo) b.drawImage(CACHE.logo, LG.x, LG.y, LG.w, LG.h); }
-    const fl = Math.max(0, 1 - Math.abs(p - 0.6) / 0.17); if (fl > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.28 * fl; b.fillStyle = MINT; b.fillRect(0, 0, W, H); b.globalCompositeOperation = 'source-over'; }
+    if (!loaded(plate) || !SPR.ok) { if (OLD_OUT) OLD_OUT(k, L, now, a); return; }
+    const b = k.b, p = 1 - a, z = 1 + 11 * Math.pow(p, 2.2), fade = 1 - smooth(0.42, 0.9, p), ua = 1 - smooth(0, 0.16, p);
+    b.save(); b.imageSmoothingEnabled = false;
+    if (fade > 0) { b.save(); b.globalAlpha = Math.ceil(fade * 6) / 6; b.translate(DIVE_C[0], DIVE_C[1]); b.scale(z, z); b.translate(-DIVE_C[0], -DIVE_C[1]); b.drawImage(plate, 0, 0, W, H); b.restore(); }
+    if (ua > 0) { lg.globalAlpha = 1; lg.clearRect(0, 0, W, H); lg.drawImage(SPR.frame, 0, 0); lg.drawImage(SPR.deco, 0, 0); lg.drawImage(SPR.words, -1, -1); lg.drawImage(SPR.ai, -4, -1); b.globalAlpha = ua; b.drawImage(LAY, 0, 0, W, H); }
+    const fl = Math.max(0, 1 - Math.abs(p - 0.6) / 0.17); if (fl > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = Math.round(0.28 * fl * 8) / 8; b.fillStyle = G1; b.fillRect(0, 0, W, H); }
     b.restore(); b.imageSmoothingEnabled = false;
   }
 
+  // 타이틀이 떠 있는 동안에는 뒤의 3D 시험장을 그리지 않는다 (그림이 화면을 다 덮는다): 버벅임을 줄인다
+  if (typeof scenes !== 'undefined' && scenes.title && typeof WORLD !== 'undefined' && WORLD.renderExam) {
+    const origDraw = scenes.title.draw;
+    scenes.title.draw = function (B) {
+      if (plateBad || !loaded(plate) || Q.get('hud') === '0') return origDraw.call(this, B);
+      const r = WORLD.renderExam; WORLD.renderExam = function () { };
+      try { return origDraw.call(this, B); } finally { WORLD.renderExam = r; }
+    };
+  }
   window.drawTitle = lensTitle;
   window.drawTitleOut = lensTitleOut;
 })();
