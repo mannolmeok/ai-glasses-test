@@ -112,6 +112,7 @@ function nextTierIndex(g = G) { const i = g.cleared.findIndex(c => !c); return i
 function addMoney(v, tag, text, col) {
   if (!(v > 0)) return;
   G.money += v; G.stats.earned += v;
+  if (G.debt > 0) { const d = Math.min(G.debt, Math.floor(v / 2)); G.money -= d; G.debt -= d; if (G.debt <= 0) { G.debt = 0; addNews('bank', '[압류 해제] 밀린 벌금을 다 냈다'); } } // 밀린 벌금: 들어오는 돈의 절반이 먼저 빠진다
   if (tag) STATE.pops.push({ v, t: 0, scene: tag, text, col });
 }
 // AI마켓 진열: 탭에 맞는 상품 목록
@@ -142,7 +143,7 @@ function newGame() {
   const gear = { model: 0 }; for (const g of CONFIG.gear) gear[g.id] = 0;
   return { v: 5, heat: 0, lamps: 0, audit: null, tv: [], tvSeen: 0, lastPass: null, black: null, money: 0, gear, unlocked: 1, cleared: TIERS.map(() => false), best: TIERS.map(() => 0),
     ended: false, endSeen: false, stats: { exams: 0, caught: 0, passes: 0, fails: 0, tops: 0, selfQ: 0, aiQ: 0, playT: 0, earned: 0, fees: 0, scans: 0 },
-    hints: {}, flags: {}, pending: 0, mail: null, fresh: {}, news: [], seen: 0, run: { t: 0, splits: [], done: false, rec: 0 }, opts: { timer: false }, last: 0 };
+    hints: {}, flags: {}, debt: 0, noJack: {}, pending: 0, mail: null, fresh: {}, news: [], seen: 0, run: { t: 0, splits: [], done: false, rec: 0 }, opts: { timer: false }, last: 0 };
 }
 function adopt(s) { // 저장된 값을 새 게임 틀에 얹는다 (빠진 칸은 기본값)
   const g = newGame(), b = newGame();
@@ -152,7 +153,7 @@ function adopt(s) { // 저장된 값을 새 게임 틀에 얹는다 (빠진 칸�
   g.fresh = s.fresh || {}; g.news = Array.isArray(s.news) ? s.news : []; g.hints = s.hints || {}; g.flags = s.flags || {}; g.seen = s.seen || 0;
   g.pending = Number(s.pending) || 0; g.mail = s.mail || null; g.heat = clamp(Number(s.heat) || 0, 0, 1); g.black = s.black || null; if (g.flags && g.cleared[TIERS.findIndex(t => t.id === 'leet')]) g.flags.leet = true;
   g.lamps = s.lamps != null ? clamp(Number(s.lamps) || 0, 0, 3) : Math.min(2, Math.floor(g.heat * 3)); g.audit = s.audit || null; g.tv = Array.isArray(s.tv) ? s.tv : []; g.tvSeen = Number(s.tvSeen) || 0; g.lastPass = s.lastPass || null; // 전수조사: 예전 저장의 의심 %는 등 개수로 옮긴다
-  g.unlocked = clamp(Math.floor(g.unlocked) || 1, 1, TIERS.length); g.money = Number(g.money) || 0;
+  g.unlocked = clamp(Math.floor(g.unlocked) || 1, 1, TIERS.length); g.money = Number(g.money) || 0; g.debt = Math.max(0, Number(s.debt) || 0); g.noJack = s.noJack || {};
   return g;
 }
 function save() { if (NOSAVE) return; try { G.last = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (_) { } }
@@ -1254,11 +1255,12 @@ function endProbe() { // 판정: 5문제 중 3문제 이상이면 통과
     tvNews({ tag: '사회', h: '재검증 결과 "이상 없음"', s: `${T.name} 만점자, 조사관 앞에서 다시 풀어 통과`, tk: ['시험관리위 "실력으로 확인됐다"', '수험생 커뮤니티 "진짜였네"', '내일 전국 맑음'], icon: 'stamp', cap: '자료 화면 · 판정' });
     addNews('reg', `재검증 결과: ${T.name} "이상 없음". 등이 전부 꺼졌다`); sfx.pass();
   } else {
-    settle(); const fine = Math.min(G.money, a ? a.reward || 0 : 0); G.money -= fine; STATE.shown = Math.min(STATE.shown, G.money);
-    G.cleared[P.tier] = false; G.best[P.tier] = 0; G.stats.caught++;
+    settle(); const fine = a ? a.reward || 0 : 0, paid = Math.min(G.money, fine), owe = fine - paid; G.money -= paid; G.debt = (G.debt || 0) + owe; STATE.shown = Math.min(STATE.shown, G.money);
+    G.cleared[P.tier] = false; G.best[P.tier] = 0; G.stats.caught++; (G.noJack || (G.noJack = {}))[P.tier] = true; // 취소된 시험은 다시 만점을 받아도 3배가 없다
+    let seized = ''; if (G.gear.lens > 1) { seized = gearName('lens', G.gear.lens); G.gear.lens--; syncGear(); } // 쓰던 안경은 압수: 한 단계 아래 장비로 돌아간다
     if (a && a.mail) G.mail = Object.assign({}, a.mail, { passed: false, stamp: '합격 취소' });
-    tvNews({ tag: '속보', h: '"AI 안경 부정 응시" 수험생 검거', s: `${T.name} 합격 취소 · 벌금 ${won(fine)}원`, tk: ['재시험에서 합격선 미달', '경찰 "장비 구입 경로 수사"', 'AI 안경 단속 전국 확대'], icon: 'cuffs', cap: '현장 화면' });
-    addNews('reg', `${T.name} 합격 취소. 재시험에서 ${P.correct}문제밖에 못 맞혔다`); if (fine > 0) addNews('bank', `[출금] 벌금 ${won(fine)}원`);
+    tvNews({ tag: '속보', h: '"AI 안경 부정 응시" 수험생 검거', s: `${T.name} 합격 취소 · 벌금 ${won(fine)}원${seized ? ' · 장비 압수' : ''}`, tk: ['재시험에서 합격선 미달', seized ? `경찰 "${seized} 압수"` : '경찰 "장비 구입 경로 수사"', 'AI 안경 단속 전국 확대'], icon: 'cuffs', cap: '현장 화면' });
+    addNews('reg', `${T.name} 합격 취소. 재시험에서 ${P.correct}문제밖에 못 맞혔다`); if (paid > 0) addNews('bank', `[출금] 벌금 ${won(paid)}원`); if (owe > 0) addNews('bank', `[압류] 못 낸 벌금 ${won(owe)}원 · 앞으로 들어오는 돈의 절반이 빠진다`); if (seized) addNews('reg', `경찰이 안경을 압수했다: ${seized} → ${gearName('lens', G.gear.lens)}`);
     sfx.fail();
   }
   save();
@@ -1299,7 +1301,7 @@ function finishExam() {
   const T = E.T, pass = Math.round(tune.pass_mark * 100);
   if (E.caught && E.done.length < E.parts * T.qn) { closePart(); while (E.done.length < E.parts * T.qn) E.done.push({ r: '-' }); }
   const marks = E.done, qn = marks.length, correct = marks.filter(m => m.r === 'O').length + marks.reduce((a, m) => a + (m.part || 0), 0) + (E.ivScore != null ? E.ivScore - (E.ivPass || 0) : 0), score = Math.round(correct / qn * 100);
-  let passed = !E.caught && !E.forceFail && correct / qn >= tune.pass_mark - 1e-9, perfect = passed && correct === qn, audited = false; const jack = perfect && !(G.best[E.tier] >= 100); // 만점 보너스는 시험마다 처음 한 번만
+  let passed = !E.caught && !E.forceFail && correct / qn >= tune.pass_mark - 1e-9, perfect = passed && correct === qn, audited = false; const jack = perfect && !(G.best[E.tier] >= 100) && !(G.noJack && G.noJack[E.tier]); // 만점 보너스는 시험마다 처음 한 번만
   const heat0 = 0, tut = T.mech.includes('tutorial'), lamps0 = G.lamps || 0;
   const bonus = passed ? tune.time_bonus * (E.leftSum / (E.timeTotal * E.parts)) : 0, coach = passed ? coachMult() : 1;
   const reward = passed ? Math.round(correct * T.reward * tune.reward_scale * (1 + bonus) * coach * (jack ? tune.jackpot_mult : 1)) : 0;
@@ -1362,7 +1364,7 @@ function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].base * tune.rew
 function helperOpen() { return CONFIG.helper.filter(h => G.unlocked - 1 >= h.tier); } // 그 시험이 일정표에 열리면 연락이 온다
 function helperPending() { return helperOpen().filter(h => !tgHas(h.id)).pop() || null; }
 function helperLast() { return helperOpen().pop() || null; }
-function buyHelper(id) { const h = CONFIG.helper.find(x => x.id === id); if (!h || tgHas(id)) return; const c = helperCost(h); if (G.money < c) { sfx.no(); return; } G.money -= c; (G.tg || (G.tg = {}))[id] = true; sfx.buy(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: `${h.name} 받음`, col: PAL.good || PAL.white }); save(); }
+function buyHelper(id) { const h = CONFIG.helper.find(x => x.id === id); if (!h || tgHas(id)) return; if (G.audit) { sfx.no(); STATE.note = { text: '결제가 막혔습니다', sub: '재시험 통보가 와 있다 · 우편부터 확인', t: 0 }; return; } const c = helperCost(h); if (G.money < c) { sfx.no(); return; } G.money -= c; (G.tg || (G.tg = {}))[id] = true; sfx.buy(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: `${h.name} 받음`, col: PAL.good || PAL.white }); save(); }
 const deskOpen = () => !!(G.flags.sold || G.black || helperOpen().length); // 바탕화면으로 나갈 수 있는가
 function enterView(v, instant) {
   const hv = STATE.hv; hv.view = v; hv.target = v; hv.zoom = instant ? 1 : 0;
@@ -1384,6 +1386,7 @@ function soldOut(d) { return d.id === 'lens' && G.gear.lens === 1 && !G.flags.ca
 function brokerCost() { return Math.ceil(gearCost('lens', 1) * tune.broker_markup); }
 function buyGear(id, viaBroker) {
   const d = gearDef(id), lv = G.gear[id], cost = viaBroker ? brokerCost() : gearCost(id), hv = STATE.hv;
+  if (G.audit) { sfx.no(); STATE.note = { text: '결제가 막혔습니다', sub: '재시험 통보가 와 있다 · 우편부터 확인', t: 0 }; return; } 
   if (d && soldOut(d) && !viaBroker) { sfx.no(); if (!G.flags.sold) { G.flags.sold = true; addNews('reg', '초소형 카메라 전국 품절. 쇼핑몰들 판매 중단 · 텔레그램에 "구해 드림" 글이 돈다'); } STATE.note = { text: '품절되었습니다', t: 0 }; save(); return; }
   if (viaBroker) G.flags.cam = true;
   if (!d || !gearOpen(d) || lv >= gearCap(d) || G.money < cost) { sfx.no(); return; }
@@ -1396,6 +1399,7 @@ function buyGear(id, viaBroker) {
 }
 function buyModel() {
   const i = G.gear.model + 1;
+  if (G.audit) { sfx.no(); STATE.note = { text: '결제가 막혔습니다', sub: '재시험 통보가 와 있다 · 우편부터 확인', t: 0 }; return; } 
   if (!modelOpen(i) || G.money < modelCost(i)) { sfx.no(); return; }
   G.money -= modelCost(i); G.gear.model = i; delete G.fresh.model;
   if (modelOpen(i + 1)) G.fresh.model = true;
