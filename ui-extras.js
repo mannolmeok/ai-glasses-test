@@ -135,7 +135,7 @@
   function cornerKeys() {
     if (!WORLD.ok || dlgOpen() || Q.get('hud') === '0') return [];
     if (scene === 'play') return E && !E.over && !E.caught ? ['sound', 'pause'] : ['sound'];
-    return scene === 'hub' ? ['sound', 'pause'] : scene === 'results' ? ['sound'] : [];
+    return scene === 'hub' ? ['sound', 'pause'] : scene === 'results' || (scene === 'title' && !(STATE.rank && STATE.rank.k > 0)) ? ['sound'] : []; // 타이틀에도 소리 버튼 (꺼 둔 소리가 기억돼 있으면 여기서 바로 보이게)
   }
   addEventListener('pointerdown', e => { // 게임보다 먼저 받는다: 이 버튼을 누른 손가락은 시험 조작(왼쪽 보기)으로 넘기지 않는다
     armBack();
@@ -148,7 +148,7 @@
       return;
     }
   }, true);
-  for (const name of ['play', 'hub', 'results']) {
+  for (const name of ['play', 'hub', 'results', 'title']) {
     const d = scenes[name].draw;
     scenes[name].draw = function (B) { const r = d.call(this, B); const ck = cornerKeys(); if (ck.length) drawCorner(B.k, ck, muted, STATE.hover, STATE.touchUI); return r; };
   }
@@ -176,6 +176,12 @@
     if (dlgOpen()) closeDialog(); else if (scene === 'pause') resumePause(); else if (scene === 'play' && E && !E.over && !E.caught) openPause('play'); else if (scene === 'hub') openPause('hub');
     armBack();
   });
+
+  // ---- 6) 소리 깨우기: 브라우저는 손가락을 누르는 순간이 아니라 '뗄 때'(pointerup·touchend·click)를 허락으로 친다.
+  //      게임은 누를 때만 소리를 켜서 휴대폰에서는 첫 터치 소리가 늦거나 빠졌다. 뗄 때도 깨우고, 다른 앱에 다녀오면 다시 깨운다 ----
+  const wake = () => { startAudio(); try { if (audio && audio.ac.state !== 'running' && audio.ac.state !== 'closed') audio.ac.resume(); } catch (_) { } };
+  for (const ev of ['pointerup', 'touchend', 'click', 'keyup']) addEventListener(ev, wake, { capture: true, passive: true });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && audio) wake(); });
 
   // ---- 4) PC에서는 키로 안내 ----
   const PC_HINT = {

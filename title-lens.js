@@ -180,11 +180,12 @@
     const b = k.b, M = k.M, R = k.R, sp = Math.round(s.sus * 100), stc = ST_COL[s.st];
     let al = a * fl(t, 1.05);
     if (al > 0) {
-      b.globalAlpha = al; M('LENS-OS 0.9b', 26, 24, 9, G1, 'left', 700); M('BAT ▮▮▮ 82%', 26, 37, 9, G1, 'left', 700);
+      const LX = 40; // 왼쪽 위 소리 버튼 자리만큼 비켜 둔다
+      b.globalAlpha = al; M('LENS-OS 0.9b', LX, 24, 9, G1, 'left', 700); M('BAT ▮▮▮ 82%', LX, 37, 9, G1, 'left', 700);
       const n = Math.max(0, Math.min(3, Math.floor((t - 1.15) / 0.12) + 1)); // 부팅 줄이 한 줄씩 찍힌다
-      if (n > 0) M('초점 ......... 고정', 26, 55, 7.5, G1, 'left', 700);
-      if (n > 1) M('정답 ......... 2번 79%', 26, 66, 7.5, G1, 'left', 700);
-      if (n > 2) { const w = M('감독관 ....... ', 26, 77, 7.5, G1, 'left', 700); if (!(s.st === 'watch' && Math.floor(tm * 4) % 2)) M(ST_WORD[s.st], 26 + w, 77, 7.5, stc, 'left', 700); }
+      if (n > 0) M('초점 ......... 고정', LX, 55, 7.5, G1, 'left', 700);
+      if (n > 1) M('정답 ......... 2번 79%', LX, 66, 7.5, G1, 'left', 700);
+      if (n > 2) { const w = M('감독관 ....... ', LX, 77, 7.5, G1, 'left', 700); if (!(s.st === 'watch' && Math.floor(tm * 4) % 2)) M(ST_WORD[s.st], LX + w, 77, 7.5, stc, 'left', 700); }
     }
     al = a * fl(t, 1.2);
     if (al > 0) { // 의심 칸 8개: 60%를 넘은 칸은 빨강, 오르는 중이면 '의심' 글자도 빨강. 켜질 때는 칸이 한 번 다 차 본다
@@ -341,6 +342,8 @@
       try { return origDraw.call(this, B); } finally { WORLD.renderExam = r; }
     };
   }
+  // 시작 소리: 눌렀다는 '딸깍' 세 음 + 안경 HUD가 꺼지며 시험장으로 넘어가는 낮은 '치익'
+  const startSnd = () => { try { toneAt(660, 0.05, 'square', 0.07); toneAt(990, 0.06, 'square', 0.07, 0.05); toneAt(1320, 0.12, 'triangle', 0.06, 0.1); noiseAt(0.28, 0.03, 0.12, 700, 0.7); } catch (_) { } };
   // ---- 새로 하기: 게임 본체는 그대로 두고 여기서 받는다. 두 번 눌러야 저장을 지우고(지우기 전 한 벌은 남김) 바로 튜토리얼로. 석차표 기록은 남는다 ----
   addEventListener('pointerdown', e => {
     if (typeof scene === 'undefined' || scene !== 'title' || !NB_ON || e.target !== canvas) return;
@@ -359,7 +362,9 @@
         return;
       }
       if (STATE.newArm > 0 && pressed('Escape')) { STATE.newArm = 0; return; }
-      return tUpd.call(this, dt);
+      const was = scene, r = tUpd.call(this, dt);
+      if (was === 'title' && scene !== 'title') startSnd(); // 시험 시작 · 이어서 하기를 누른 소리
+      return r;
     };
   }
   window.drawTitle = lensTitle;
