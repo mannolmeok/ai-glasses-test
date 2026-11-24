@@ -127,7 +127,7 @@
     const b = k.b, W = L.W, R = k.R, G1 = '#74ff8e', RD = '#ff6a6a', btns = [];
     drawLensScreen(k, L, now, { col: G1, glow: '#0a4018', tint: '#061e0e', big: '일시정지', y: 150, lines: o.exam ? ['LENS-OS 0.9b', '시험 ......... 멈춤', '감독관 ....... 멈춤'] : ['LENS-OS 0.9b', '고시원 ....... 멈춤'] });
     const text = (str, x, y, size, col, glow) => { b.font = `400 ${size * BOOT_K}px ${BOOT_FONT}`; b.textAlign = 'center'; b.textBaseline = 'alphabetic'; b.shadowColor = glow || 'transparent'; b.shadowBlur = glow ? 4 * (k.S || HUD_SCALE) : 0; b.fillStyle = col; b.fillText(str, x, y); b.shadowBlur = 0; b.shadowColor = 'transparent'; };
-    const armed = o.exam && o.arm > 0, PM = Q.get('pm') === 'br' || Q.get('pm') === 'tr' ? Q.get('pm') : null, defs = PM ? [['▶ 계속하기', 'P', 'resume'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']] : [['▶ 계속하기', 'P', 'resume'], [o.bgm ? '배경음 켜짐' : '배경음 꺼짐', 'B', 'bgm'], [o.sfx ? '효과음 켜짐' : '효과음 꺼짐', 'S', 'sfx'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']];
+    const armed = o.exam && o.arm > 0, PM = Q.get('pm') === 'br' ? 'br' : Q.get('pm') === 'row' ? null : 'tr', /* 큰 버튼은 둘, 배경음·효과음은 오른쪽 위 작은 아이콘 (?pm=br 오른쪽 아래 · ?pm=row 예전 네 칸) */ defs = PM ? [['▶ 계속하기', 'P', 'resume'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']] : [['▶ 계속하기', 'P', 'resume'], [o.bgm ? '배경음 켜짐' : '배경음 꺼짐', 'B', 'bgm'], [o.sfx ? '효과음 켜짐' : '효과음 꺼짐', 'S', 'sfx'], [armed ? '한 번 더: 시험 포기' : '타이틀로', 'T', 'title']];
     const bw = PM ? 170 : 138, bh = 30, gap = 10, x0 = W / 2 - (bw * defs.length + gap * (defs.length - 1)) / 2, by = 196;
     defs.forEach(([label, keyName, key], i) => {
       const bx = x0 + i * (bw + gap), red = key === 'title' && armed, col = red ? RD : G1, hot = !!o.hover && o.hover[0] >= bx && o.hover[0] <= bx + bw && o.hover[1] >= by && o.hover[1] <= by + bh;
@@ -233,9 +233,9 @@
       if (!E0.caught && !E0.over && E0.start <= 0) { if (GS) altGuide(k, L, gd, now0, STATE.touchUI); else (STATE.touchUI ? touchGuide : keyGuide)(k, L, gd, now0); }
     };
   }
-  const HG = '#74ff8e', HD = '#04160c', HHI = '#c8ffd8';
+  const GREEN = Q.get('gs') === 'green', HG = GREEN ? '#74ff8e' : '#f4f1e8', HD = GREEN ? '#04160c' : '#0b0c10', HHI = GREEN ? '#c8ffd8' : '#ffffff'; // 첫 시험은 아직 안경이 없다: 모양은 HUD 그대로, 색만 흰색 계열 (?gs=green 은 예전 초록)
   // 시안: 첫 시험은 아직 안경이 없으니 안경 HUD 대신 시험장 물건 같은 안내. pen 빨간 색연필 동그라미 · note 포스트잇 · slip 수험표 같은 흰 딱지
-  const GS = ({ pen: 'pen', note: 'note', slip: 'slip' })[Q.get('gs')] || null, PEN = '#d2352b', NAVY = '#22407a', INK2 = '#1c1c1c', YEL = '#f4e27a';
+  const GS = ({ pen: 'pen', note: 'note', slip: 'slip', chat: 'chat' })[Q.get('gs')] || null, PEN = '#d2352b', NAVY = '#22407a', INK2 = '#1c1c1c', YEL = '#f4e27a';
   const jit = (i, s) => { const v = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return (v - Math.floor(v)) - 0.5; };
   function handLoop(b, cx, cy, rx, ry, seed, col, lw) { // 손으로 그린 동그라미: 조금 찌그러지고 끝이 겹친다
     b.save(); b.strokeStyle = col; b.lineWidth = lw; b.lineCap = 'round'; b.lineJoin = 'round'; b.beginPath();
@@ -267,7 +267,28 @@
       card(k, label, cx, ly + 1, '#ffffff', NAVY, NAVY, 0);
     }
   }
+  // 시안 chat: 시험이 끝나면 오는 답안봇 문자 알림과 같은 모양 (어두운 둥근 카드 · 파란 아이콘). 누를 자리도 같은 재질의 둥근 판
+  const rrect = (b, x, y, w, h, r, col) => { b.fillStyle = col; b.beginPath(); if (b.roundRect) b.roundRect(x, y, w, h, r); else b.rect(x, y, w, h); b.fill(); };
+  const BLUE = '#5eb5f7', CARD = 'rgba(28,30,38,0.94)';
+  function chatSpot(k, cx, cy, t, label, glyph, on, keyCap) {
+    const b = k.b, p = on ? 0 : 1.5 + 1.5 * Math.sin(t * 5), w = keyCap && keyCap.length > 1 ? Math.ceil(k.TW(keyCap, 10, 700)) + 26 : 46, h = keyCap ? 28 : 46, x = cx - w / 2, y = cy - h / 2;
+    b.save(); b.globalAlpha = 0.5; rrect(b, x - p - 2.5, y - p - 2.5, w + p * 2 + 5, h + p * 2 + 5, 13, BLUE); b.globalAlpha = 1; rrect(b, x + 1, y + 3, w, h, 10, 'rgba(0,0,0,0.3)'); rrect(b, x, y, w, h, 10, on ? '#2f5f8a' : CARD); b.restore();
+    if (keyCap && keyCap.length > 1) k.T(keyCap, cx, cy + 0.5, 10, '#ffffff', 'center', 800);
+    else if (glyph === 'hold') { b.fillStyle = on ? '#ffffff' : BLUE; b.beginPath(); b.arc(cx, cy, on ? 8 : 5.5, 0, 7); b.fill(); b.strokeStyle = '#ffffff'; b.globalAlpha = 0.7; b.lineWidth = 1.5; b.beginPath(); b.arc(cx, cy, 12, 0, 7); b.stroke(); b.globalAlpha = 1; }
+    else strokeArrow(b, cx, cy, glyph, '#ffffff', 2.6);
+    const lw = Math.ceil(k.TW(label, 8.5, 700)) + 14, ly = keyCap && cy > 180 ? y - 13 : y + h + 12; rrect(b, cx - lw / 2, ly - 8, lw, 16, 8, CARD); k.T(label, cx, ly + 0.5, 8.5, '#ffffff', 'center', 700);
+  }
+  function chatCard(k, L, head, sub, bottom) { const b = k.b, T = k.T, cw = 300, ch = 50, cx = L.W / 2 - cw / 2, cy = bottom ? L.H - ch - 14 : 12;
+    rrect(b, cx + 1, cy + 4, cw, ch, 12, 'rgba(0,0,0,0.35)'); rrect(b, cx, cy, cw, ch, 12, CARD); rrect(b, cx + 11, cy + 10, 24, 24, 6, BLUE);
+    T('답안봇', cx + 45, cy + 13, 8.5, '#9aa3b4', 'left', 700); T('지금', cx + cw - 12, cy + 13, 8.5, '#9aa3b4', 'right', 700); T(head, cx + 45, cy + 28, 13, '#ffffff', 'left', 800); T(sub, cx + 45, cy + 41, 8.5, '#c9d0dc', 'left', 700); }
+  function chatGuide(k, L, gd, t, touch) {
+    const W = L.W, HH = L.H, held = c => down.has(c);
+    if (gd.k === 'hold') { if (touch) chatSpot(k, 372, 196, t, gd.on ? '읽는 중' : '꾹 누르기', 'hold', gd.on); else chatSpot(k, W / 2, HH - 40, t, gd.on ? '읽는 중' : '꾹 누르기', 'hold', gd.on, 'SPACE'); chatCard(k, L, touch ? '책상을 꾹 눌러 보세요' : 'Space를 꾹 눌러 보세요', '카메라가 문제를 읽어서 답을 보내 드려요', false); }
+    else if (gd.k === 'up') { chatSpot(k, W / 2, touch ? 44 : 36, t, '정면 보기', 'up', !touch && (held('ArrowUp') || held('KeyW')), touch ? null : '↑'); chatCard(k, L, touch ? '화면 위쪽을 누르면 정면을 봐요' : '↑ 키를 누르면 정면을 봐요', '감독관이 어디 있는지 확인하세요', true); }
+    else if (gd.k === 'sides') { chatSpot(k, 51, 173, t, '왼쪽 보기', 'left', !touch && (held('ArrowLeft') || held('KeyA')), touch ? null : '←'); chatSpot(k, W - 51, 173, t, '오른쪽 보기', 'right', !touch && (held('ArrowRight') || held('KeyD')), touch ? null : '→'); chatCard(k, L, touch ? '양옆을 누르면 고개를 돌려요' : '← → 키로 고개를 돌려요', '옆자리와 창가 쪽도 볼 수 있어요', false); }
+  }
   function altGuide(k, L, gd, t, touch) {
+    if (GS === 'chat') return chatGuide(k, L, gd, t, touch);
     const W = L.W, HH = L.H, held = c => down.has(c), cap = s => k.SUB(s, W / 2, HH - 30, 22, '#ffffff', 'center');
     if (gd.k === 'hold') { if (touch) altSpot(k, 372, 196, t, gd.on ? '읽는 중' : '꾹 누르기', 'hold', gd.on); else altSpot(k, W / 2, HH - 64, t, gd.on ? '읽는 중' : '꾹 누르기', 'hold', gd.on, 'SPACE'); cap(touch ? '책상을 꾹 누르면 카메라가 문제를 읽는다' : 'Space를 꾹 누르면 카메라가 문제를 읽는다'); }
     else if (gd.k === 'up') { altSpot(k, W / 2, touch ? 46 : 40, t, '정면 보기', 'up', !touch && (held('ArrowUp') || held('KeyW')), touch ? null : '↑'); cap(touch ? '화면 위쪽을 누르면 정면을 본다' : '↑ 키를 누르면 정면을 본다'); }
