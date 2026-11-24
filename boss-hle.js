@@ -218,7 +218,7 @@ BOSS.hle = (() => {
   }
 
   // ---- 3D: 눈 · 빔 · 파편 · 거울 속 나 ----
-  const W3 = { sc: null }, SCP = 0.56, SCF = 76; // 대본 단계의 시선: Ω가 화면 위쪽에 오도록 고개를 조금만 든다
+  const W3 = { sc: null }, SCP = 0.5, SCF = 60; // 대본 단계의 시선: Ω가 화면 위쪽에 오도록 고개를 조금만 든다
   function radialTex(Ax, col) { const t = Ax.canvasTex(64, 64, true), g = t.g, gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); t.t.needsUpdate = true; return t.t; }
   function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
   function build(Ax) {
@@ -235,31 +235,39 @@ BOSS.hle = (() => {
       const irisM = Ax.glowMat(0x3a6aff), iris = new THREE.Mesh(irisGeo, irisM); iris.position.z = 0.25; lid.add(iris); const pup = new THREE.Mesh(pupGeo, Ax.glowMat(0x050508)); pup.position.z = 0.256; lid.add(pup);
       const ray = new THREE.Mesh(cg, beamMat(0xff2a3a)); ray.visible = false; ray.frustumCulled = false; sc.add(ray);
       g.visible = false; W3.eyes.push({ g, lid, irisM, ray, home: g.position.clone(), a, open: 0, aim: new THREE.Vector3(MY.x, 0.75, MY.z || 0), ph: rnd() * 6.28, sp: (0.5 + rnd() * 0.7) * (i % 2 ? 1 : -1), rho: 1.3 + rnd() * 1.3, tum: [rnd() * 8 - 4, rnd() * 8 - 4] }); }
-    { // 대본 단계의 면접관: 글자로 이루어진 거대한 형상. 눈들이 쏜 빛이 허공에 '글자의 몸'을 짠다 (갑옷은 흰 글자, 옷자락은 푸른 글자와 금빛 무늬, 얼굴은 텅 빈 어둠, 머리 뒤에 빛의 관)
-      // 따로 둔 장면에 형상을 세우고, 작은 화면(GW x GH 칸)에 밝기·재질만 찍어 낸 뒤, 렌즈 화면에서 칸마다 글자로 바꿔 그린다
-      const hs = new THREE.Scene(), g = new THREE.Group(); hs.add(g);
-      const VS = 'varying vec3 vN; varying float vY; void main(){ vN = normalize(normalMatrix * normal); vY = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
-      const FS = 'uniform float uC; uniform float uB; uniform float uBand; varying vec3 vN; varying float vY; void main(){ vec3 n = normalize(vN); float l = 0.16 + 0.84 * max(dot(n, normalize(vec3(0.35, 0.25, 0.9))), 0.0); l *= 1.0 - uBand * 0.55 * step(0.5, fract(vY * 2.2)); gl_FragColor = vec4(clamp(l * uB, 0.0, 1.0), uC, 0.0, 1.0); }';
-      const sm = (cls, br = 1, band = 0) => new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, uniforms: { uC: { value: cls }, uB: { value: br }, uBand: { value: band } }, side: THREE.DoubleSide });
-      const ARM = 0.0, ROBE = 0.33, GOLD = 0.66, EMI = 1.0, add = (geo, par, x, y, z, m) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.frustumCulled = false; par.add(o); return o; };
-      const mA = sm(ARM, 1, 1), mA2 = sm(ARM, 1, 0), mR = sm(ROBE, 1, 0), mG = sm(GOLD, 1, 0), mV = sm(ARM, 0, 0), mE = sm(EMI, 1, 0);
-      add(new THREE.CylinderGeometry(0.98, 1.75, 5.3, 20, 8), g, 0, 2.65, 0, mR);                                            // 옷자락
-      add(new THREE.BoxGeometry(0.7, 4.7, 0.12), g, 0, 2.85, 1.36, mG).rotation.x = -0.145;                                // 앞자락의 금빛 띠
-      add(new THREE.CylinderGeometry(1.1, 1.14, 0.4, 20), g, 0, 5.3, 0, mG);                                               // 허리띠
-      add(new THREE.CylinderGeometry(1.55, 1.04, 2.3, 16, 4), g, 0, 6.45, 0, mA);                                          // 가슴 갑옷 (가로 줄무늬)
-      for (const sx of [-1, 1]) { add(new THREE.SphereGeometry(0.9, 12, 8), g, sx * 2.0, 7.55, 0, mA2).scale.set(1.2, 0.72, 1.05); add(new THREE.SphereGeometry(0.62, 10, 6), g, sx * 2.55, 7.15, 0, mA).scale.set(1.1, 0.7, 1); } // 겹친 어깨 갑옷
-      add(new THREE.CylinderGeometry(0.34, 0.5, 0.6, 10), g, 0, 8.0, 0, mA2);                                              // 목 가리개
-      const head = new THREE.Group(); head.position.set(0, 9.55, 0); head.scale.setScalar(1.5); g.add(head);
-      add(new THREE.SphereGeometry(0.78, 14, 10), head, 0, 0, 0, mV).scale.set(1, 1.28, 1);                                // 얼굴: 텅 빈 어둠
-      const crown = new THREE.Group(); crown.position.set(0, 0.15, -0.75); head.add(crown); const r5 = seeded(5);          // 머리 뒤의 빛의 관: 사방으로 뻗는 가시
-      for (let c = 0; c < 40; c++) { const a = -0.6 + c / 39 * (Math.PI + 1.2), len = 1.1 + r5() * 1.7, sp = add(new THREE.ConeGeometry(0.2, len, 4), crown, Math.cos(a) * (1.45 + len / 2), Math.sin(a) * (1.45 + len / 2), 0, mE); sp.rotation.z = a - Math.PI / 2; }
-      add(new THREE.TorusGeometry(1.42, 0.2, 5, 30), crown, 0, 0, 0, mE);
-      const arm = sx => { const pv = new THREE.Group(); pv.position.set(sx * 2.05, 7.35, 0); g.add(pv); add(new THREE.CylinderGeometry(0.4, 0.34, 2.6, 10, 3), pv, 0, -1.3, 0, mA); add(new THREE.CylinderGeometry(0.36, 0.95, 2.5, 12, 3), pv, 0, -3.6, 0.1, mR); add(new THREE.BoxGeometry(0.5, 0.7, 0.4), pv, 0, -5.1, 0.15, mA2); return pv; }; // 넓은 소매
-      const armL = arm(-1), armR = arm(1), sword = new THREE.Group(); sword.position.set(0, -5.2, 0.3); armR.add(sword);  // 오른손의 빛나는 칼: 이것으로 대본을 내리친다
-      add(new THREE.BoxGeometry(0.2, 7.2, 0.5), sword, 0, -3.9, 0, mE); add(new THREE.BoxGeometry(1.5, 0.22, 0.4), sword, 0, -0.35, 0, mG); sword.rotation.set(0.25, 0, -0.95);
-      const chest = new THREE.Object3D(); chest.position.set(0, 6.6, 1.4); g.add(chest);
-      const GW = 96, GH = 34, rt = new THREE.WebGLRenderTarget(GW, GH, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true });
-      W3.holo = { hs, g, head, crown, armL, armR, sword, chest, rt, GW, GH, buf: new Uint8Array(GW * GH * 4), on: false, fx: { reveal: 1, erode: 0, hot: 0, green: 0 }, hp: new THREE.Vector3(), sp: new THREE.Vector3() }; }
+    { // 대본 단계의 면접관: 눈들이 쏜 빛이 허공에 세우는 거대한 형상. 관을 쓰고 두 팔을 벌린 채 내려다본다. 얼굴은 텅 빈 어둠, 머리 뒤에 빛 고리
+      // 두 가지 모습을 같이 만들어 둔다 (주소에 holo=b / holo=d): b 반투명한 저폴리곤 수정 · d 빛의 실로 짠 형상. 둘 다 장면 속의 3D 요소라 다른 것들처럼 거칠게 찍힌다
+      const MODE = params.get('holo') === 'd' ? 'd' : 'b', rr = seeded(41), g = new THREE.Group(); g.visible = false; sc.add(g); const parts = [];
+      const fm = () => new THREE.MeshBasicMaterial({ color: 0x66d8ff, vertexColors: true, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+      const lm = (c, o) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+      const piece = (lo, hi, par, x, y, z, lv, gold = 0.12) => { const o = new THREE.Group(); o.position.set(x, y, z); par.add(o); const P = { o, lv };
+        if (MODE === 'b') { const gl = lo.index ? lo.toNonIndexed() : lo.clone(), n = gl.getAttribute('position').count, col = new Float32Array(n * 3); for (let t = 0; t < n; t += 3) { const v = 0.22 + 0.78 * rr() * rr(); for (let q = 0; q < 9; q++) col[t * 3 + q] = v; } gl.setAttribute('color', new THREE.BufferAttribute(col, 3)); /* 면마다 밝기가 다른 수정 조각 */
+          P.fill = new THREE.Mesh(gl, fm()); P.edge = new THREE.LineSegments(new THREE.EdgesGeometry(lo, 12), lm(0xc8f4ff, 0.95)); P.fill.frustumCulled = P.edge.frustumCulled = false; o.add(P.fill, P.edge); }
+        else { const wf = new THREE.WireframeGeometry(hi).getAttribute('position').array, hp = hi.getAttribute('position'), a = [], b2 = []; /* 실: 표면을 따라 흐르는 가닥 + 표면의 두 점을 잇는 가닥 */
+          for (let t = 0; t < wf.length; t += 6) { if (rr() < 0.42) continue; (rr() < gold ? b2 : a).push(wf[t], wf[t + 1], wf[t + 2], wf[t + 3], wf[t + 4], wf[t + 5]); }
+          for (let c = 0; c < hp.count * 0.5; c++) { const i0 = Math.floor(rr() * hp.count), i1 = Math.floor(rr() * hp.count); if (Math.abs(hp.getY(i0) - hp.getY(i1)) > 1.6) continue; (rr() < gold ? b2 : a).push(hp.getX(i0), hp.getY(i0), hp.getZ(i0), hp.getX(i1), hp.getY(i1), hp.getZ(i1)); }
+          const mk = (arr, m) => { const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr), 3)); const l = new THREE.LineSegments(ge, m); l.frustumCulled = false; o.add(l); return l; };
+          P.th = mk(a, lm(0x9fe8ff, 0.75)); P.nA = a.length / 6; P.tg = mk(b2, lm(0xffcf5a, 0.9)); P.nG = b2.length / 6; P.hi = hi; }
+        parts.push(P); return o; };
+      const cyl = (rt, rb, h, s, hs) => [new THREE.CylinderGeometry(rt, rb, h, s, 1, true), new THREE.CylinderGeometry(rt, rb, h, s * 3, hs, true)];
+      const cloak = piece(...cyl(1.25, 4.3, 6.6, 7, 9), g, 0, 3.3, 0, 0); cloak.scale.z = 0.55;                                   // 양옆으로 넓게 퍼지는 옷자락
+      piece(...cyl(1.6, 1.15, 2.5, 6, 4), g, 0, 6.75, 0, 1);                                                                    // 가슴
+      piece(new THREE.BoxGeometry(4.3, 0.6, 1.3), new THREE.BoxGeometry(4.3, 0.6, 1.3, 8, 2, 3), g, 0, 7.9, 0, 1);              // 어깨
+      const head = new THREE.Group(); head.position.set(0, 9.6, 0); head.scale.setScalar(1.35); g.add(head);
+      const voidM = new THREE.Mesh(new THREE.IcosahedronGeometry(0.72, 1), new THREE.MeshBasicMaterial({ color: 0x02030a, fog: false })); voidM.scale.set(1, 1.2, 0.9); voidM.position.z = 0.1; head.add(voidM); // 얼굴: 텅 빈 어둠
+      const hood = piece(new THREE.ConeGeometry(1.25, 2.6, 6, 1, true), new THREE.ConeGeometry(1.25, 2.6, 16, 5, true), head, 0, 0.35, -0.25, 2); hood.scale.z = 0.8; // 두건
+      for (let c = 0; c < 5; c++) { const a = (c - 2) * 0.42, hgt = 1.3 - Math.abs(c - 2) * 0.28; piece(new THREE.ConeGeometry(0.2, hgt, 4), new THREE.ConeGeometry(0.2, hgt, 6, 3), head, Math.sin(a) * 0.8, 1.15 + hgt / 2 - Math.abs(c - 2) * 0.12, Math.cos(a) * 0.35 - 0.1, 2, 0.6); } // 관
+      const halo = piece(new THREE.TorusGeometry(2.0, 0.07, 4, 28), new THREE.TorusGeometry(2.0, 0.1, 5, 56), g, 0, 10.0, -0.9, 3, 0.75);  // 머리 뒤의 빛 고리
+      { const ra = []; for (let c = 0; c < 40; c++) { const a = c / 40 * Math.PI * 2, r0 = 2.15, r1 = c % 2 ? 2.5 : 3.2; ra.push(Math.cos(a) * r0, Math.sin(a) * r0, 0, Math.cos(a) * r1, Math.sin(a) * r1, 0); } const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ra), 3)); const rays = new THREE.LineSegments(ge, lm(MODE === 'd' ? 0xffcf5a : 0xc8f4ff, 0.7)); rays.frustumCulled = false; halo.add(rays); halo.userData.rays = rays; }
+      const arm = sx => { const pv = new THREE.Group(); pv.position.set(sx * 2.05, 7.75, 0); g.add(pv); // 넓은 소매와 펼친 손
+        piece(...cyl(0.5, 1.2, 2.5, 6, 4), pv, 0, -1.25, 0, 1); piece(...cyl(0.36, 0.45, 1.0, 5, 2), pv, 0, -2.9, 0, 1);
+        const hand = new THREE.Group(); hand.position.set(0, -3.85, 0); hand.rotation.x = -0.9; hand.scale.setScalar(1.25); pv.add(hand); piece(new THREE.BoxGeometry(0.95, 0.9, 0.3), new THREE.BoxGeometry(0.95, 0.9, 0.3, 3, 3, 1), hand, 0, 0, 0, 1);
+        for (let f = 0; f < 4; f++) piece(new THREE.BoxGeometry(0.19, 0.85, 0.2), new THREE.BoxGeometry(0.19, 0.85, 0.2, 1, 3, 1), hand, -0.36 + f * 0.24, -0.85, 0.08, 1).rotation.x = 0.35;
+        piece(new THREE.BoxGeometry(0.2, 0.6, 0.2), new THREE.BoxGeometry(0.2, 0.6, 0.2, 1, 2, 1), hand, sx * -0.6, -0.1, 0.1, 1).rotation.z = sx * 0.7; return pv; };
+      const armL = arm(-1), armR = arm(1), chest = piece(new THREE.OctahedronGeometry(0.45, 0), new THREE.OctahedronGeometry(0.45, 1), g, 0, 6.9, 1.2, 1, 0.5); // 가슴 앞의 수정: 빛줄기가 모이는 곳
+      let fan = null, fanT = null; if (MODE === 'd') { const NF = 12, ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NE * NF * 6), 3)); fan = new THREE.LineSegments(ge, lm(0x8fe0ff, 0.5)); fan.frustumCulled = false; fan.visible = false; sc.add(fan); /* 눈에서 부채처럼 퍼져 형상에 가 닿는 실 */
+        fanT = []; for (let c = 0; c < NE * NF; c++) { const a = (rr() - 0.5) * 2.2, y = 1.0 + rr() * 8.2, w2 = y < 6 ? lerp(4.0, 1.3, y / 6) : y < 8.2 ? 1.9 : 1.0; fanT.push(new THREE.Vector3(Math.sin(a) * w2, y, 0.45 * Math.cos(a))); } }
+      W3.holo = { MODE, g, parts, head, halo, armL, armR, chest, fan, fanT, NF: 12, on: false, hp: new THREE.Vector3() }; }
     // 큰 눈이 깨질 때: 눈알 위로 번지는 금, 튀는 파편, 충격파
     const om = EX.staff[0]; W3.cr = null;
     if (om && om.head) { const r2 = seeded(31), segs = [], P = new THREE.Vector3(), D = new THREE.Vector3(), N = new THREE.Vector3(), Q = new THREE.Vector3();
@@ -310,18 +318,24 @@ BOSS.hle = (() => {
       if (SC) om.irisMat.color.setHex(mi ? (Math.floor(now * 12) % 2 ? 0x8dffb0 : 0x3a6aff) : !scLive ? 0x3a6aff : SC.st === 'scan' ? (b.k === 2 ? 0xff2e47 : b.k === 1 ? 0xffa030 : 0x3a6aff) : SC.st === 'smash' || SC.st === 'suck' ? 0xff2e47 : SC.st === 'input' && SC.lid > 0.7 ? 0xffa030 : 0x3a6aff);
       if (W3.beam.visible) { const rad = w * 2.1; aimCone(W3.beam, W3.v, W3.v2, rad, (b.k === 2 ? 0.24 : 0.13) * fade); W3.pool.position.set(W3.v2.x, ty + 0.003, tz); W3.pool.scale.setScalar(rad * 1.6); W3.pool.material.opacity = (b.k === 2 ? 1 : 0.75) * fade; }
       if (W3.beamB.visible) { const rad = w * 1.5; W3.v3.set(MX, ty, tz + b2.u * 1.5); aimCone(W3.beamB, W3.v, W3.v3, rad, b2.k === 2 ? 0.26 : 0.14); W3.poolB.position.set(MX, ty + 0.004, W3.v3.z); W3.poolB.scale.setScalar(rad * 1.7); W3.poolB.material.opacity = b2.k === 2 ? 1 : 0.75; } }
-    if (clOn) { const C = W3.cc || (W3.cc = new THREE.Vector3()), Ho = W3.holo, HS = 1.6; /* 글자의 형상: 눈들 너머에 우뚝 선다. 발은 바닥 아래, 머리는 까마득히 위 */
-      const gt = ga ? ga.t - 1.2 : 9, lid = scLive && SC.st === 'input' ? cl(SC.lid, 0, 1) : 0, watch = scLive && SC.st === 'scan' && b.k === 2, hot = watch || (scLive && (SC.st === 'smash' || SC.st === 'suck'));
-      let K = 1; W3.v.set(W3.burst.x, -4.6, W3.burst.z - 3.0); if (mi) { const k = ez(cl((mi.t - 0.6) / 1.25, 0, 1)); W3.v.lerp(W3.v2.set(W3.mx, 1.0, W3.mz), k); K = 1 - 0.97 * k; } W3.clK = K;
-      Ho.g.position.copy(W3.v); Ho.g.scale.setScalar(HS * K);
-      Ho.head.rotation.x = lerp(Ho.head.rotation.x, scLive && SC.st === 'scan' && !watch ? 0.1 : 0.5, 0.12); Ho.head.rotation.y = lerp(Ho.head.rotation.y, scLive && SC.st === 'scan' && !watch ? cl(b.u, -1.4, 1.4) * 0.6 : 0, 0.12); /* 볼 때는 고개를 숙여 나를 내려다본다 */
-      Ho.crown.rotation.z = Math.sin(now * 0.7) * 0.04;
-      const sm = scLive && SC.st === 'smash' ? cl(SC.t / 0.16, 0, 1) : 0, up = scLive && SC.st === 'show' ? ez(cl(SC.t / Math.max(0.2, tune.hle_sc_show), 0, 1)) : scLive && SC.st === 'smash' ? 1 - sm : 0; /* 대본이 떠 있는 동안 칼을 치켜들었다가 내리친다 */
-      Ho.armR.rotation.x = lerp(-0.1, -2.5, up) - (scLive && SC.st === 'smash' && sm >= 1 ? 0.75 * Math.max(0, 1 - (SC.t - 0.16) / 0.3) : 0); Ho.armR.rotation.z = -0.08 - 0.3 * up; Ho.armL.rotation.set(-0.1, 0, 0.08); Ho.sword.rotation.set(lerp(0.25, -0.5, up), 0, lerp(-0.95, -0.1, up));
-      Ho.hs.updateMatrixWorld(true); Ho.chest.getWorldPosition(C); Ho.head.getWorldPosition(W3.v3); Ho.hp.copy(W3.v3); Ho.sword.getWorldPosition(Ho.sp);
-      Ho.on = gt >= 0; Ho.fx.reveal = ga ? cl(gt / 2.6, 0, 1) : 1; Ho.fx.erode = lid; Ho.fx.hot = lerp(Ho.fx.hot, hot ? 1 : 0, 0.25); Ho.fx.green = mi ? cl((mi.t - 0.3) / 0.6, 0, 1) : 0; Ho.fx.dim = mi ? cl(1 - (mi.t - 1.5) / 0.35, 0, 1) : 1;
+    if (clOn) { const C = W3.cc || (W3.cc = new THREE.Vector3()), Ho = W3.holo, HS = 2.1, D = Ho.MODE === 'd'; /* 형상은 눈들 너머에 우뚝 선다. 발은 바닥 아래, 머리는 까마득히 위 */
+      const gt = ga ? ga.t - 1.2 : 9, lid = scLive && SC.st === 'input' ? cl(SC.lid, 0, 1) : 0, watch = scLive && SC.st === 'scan' && b.k === 2, hot = watch || (scLive && (SC.st === 'smash' || SC.st === 'suck')), warm = scLive && ((SC.st === 'scan' && b.k === 1) || (SC.st === 'input' && lid > 0.75));
+      let K = 1; W3.v.set(W3.burst.x, -9.0, W3.burst.z - 7.0); if (mi) { const k = ez(cl((mi.t - 0.6) / 1.25, 0, 1)); W3.v.lerp(W3.v2.set(W3.mx, 1.0, W3.mz), k); K = 1 - 0.97 * k; } W3.clK = K;
+      Ho.g.visible = gt >= 0; Ho.g.position.copy(W3.v); Ho.g.scale.setScalar(HS * K);
+      const tint = hot ? 0xff4a5e : warm ? 0xffb040 : mi ? 0x8dffb0 : 0x66d8ff, flick = (lid > 0.6 ? 0.6 + 0.4 * Math.sin(now * (20 + lid * 40)) : 1) * (0.93 + 0.07 * Math.sin(now * 3.1)) * (Math.floor(now * 24) % 13 ? 1 : 0.78);
+      const grow = lv => ga ? cl((gt - lv * 0.5) / 0.9, 0, 1) : 1, left = lv => cl(((1 - lid) - [0.6, 0.35, 0, 0.15][lv]) / 0.15, 0, 1); /* 발치부터 서고, 시간이 줄면 옷자락 → 몸 → 빛 고리 → 머리 순으로 꺼진다 */
+      for (const P of Ho.parts) { const v = grow(P.lv) * left(P.lv);
+        if (D) { P.th.material.color.setHex(hot ? 0xff8a96 : warm ? 0xffd9a0 : mi ? 0xb8ffcf : 0x9fe8ff); P.th.material.opacity = 0.95 * flick; P.tg.material.opacity = 0.9 * flick; P.th.geometry.setDrawRange(0, 2 * Math.floor(P.nA * v)); P.tg.geometry.setDrawRange(0, 2 * Math.floor(P.nG * v)); } /* 실이 한 가닥씩 짜인다 */
+        else { P.fill.material.color.setHex(tint); P.fill.material.opacity = 0.5 * v * flick; P.edge.material.color.setHex(hot ? 0xffc2c8 : warm ? 0xffe2b0 : mi ? 0xd8ffe4 : 0xc8f4ff); P.edge.material.opacity = 0.95 * v * flick; P.fill.visible = P.edge.visible = v > 0.01; } }
+      { const rv = grow(3) * left(3), ry = Ho.halo.userData.rays; ry.material.opacity = 0.7 * rv * flick * (0.7 + 0.3 * Math.sin(now * 5)); ry.rotation.z = now * 0.06; if (!D) ry.material.color.setHex(hot ? 0xffc2c8 : 0xc8f4ff); }
+      Ho.chest.rotation.set(now * 0.9, now * 1.3, 0); Ho.chest.scale.setScalar(1 + 0.2 * Math.sin(now * (hot ? 18 : 2.4)));
+      Ho.head.rotation.x = lerp(Ho.head.rotation.x, scLive && SC.st === 'scan' && !watch ? 0.1 : 0.55, 0.12); Ho.head.rotation.y = lerp(Ho.head.rotation.y, scLive && SC.st === 'scan' && !watch ? cl(b.u, -1.4, 1.4) * 0.6 : 0, 0.12); /* 볼 때는 고개를 숙여 나를 내려다본다 */
+      const sm = scLive && SC.st === 'smash' ? cl(SC.t / 0.16, 0, 1) : 0, up = scLive && SC.st === 'show' ? ez(cl(SC.t / Math.max(0.2, tune.hle_sc_show), 0, 1)) : scLive && SC.st === 'smash' ? 1 - sm : 0, sway = Math.sin(now * 0.8) * 0.03; /* 대본이 떠 있는 동안 오른팔을 치켜들었다가 내리친다 */
+      Ho.armL.rotation.set(-0.45, 0, -0.3 + sway); Ho.armR.rotation.set(lerp(-0.45, -0.25, up) - (sm >= 1 ? 0.8 : 0), 0, lerp(0.3 - sway, 2.5, up));
+      Ho.g.updateMatrixWorld(true); Ho.chest.getWorldPosition(C); Ho.head.getWorldPosition(W3.v3); Ho.on = gt >= 0;
+      if (Ho.fan) { const fv = Ho.g.visible && !mi ? grow(1) * (1 - lid * 0.0) : 0; Ho.fan.visible = fv > 0; if (fv > 0) { const pa = Ho.fan.geometry.getAttribute('position'), a = pa.array, NF = Ho.NF; let n = 0; W3.eyes.forEach((e, i) => { const shut = scLive && SC.st === 'input' && (NE - 1 - i) < Math.floor(lid * NE + 0.001); if (shut || e.home.z > EX.eye.z - 0.8) return; for (let f = 0; f < NF; f++) { W3.v2.copy(Ho.fanT[i * NF + f]).applyMatrix4(Ho.g.matrixWorld); a[n++] = e.home.x; a[n++] = e.home.y; a[n++] = e.home.z; a[n++] = W3.v2.x; a[n++] = W3.v2.y; a[n++] = W3.v2.z; } }); pa.needsUpdate = true; Ho.fan.geometry.setDrawRange(0, Math.floor(n / 3 * fv / 2) * 2); Ho.fan.material.color.setHex(hot ? 0xff6a7a : 0x8fe0ff); Ho.fan.material.opacity = 0.3 * flick; } }
       W3.v2.set(MX + b.u * 2.1, ty, tz); if (W3.beam.visible) { const rad = w * 2.1; aimCone(W3.beam, W3.v3, W3.v2, rad, b.k === 2 ? 0.24 : 0.13); W3.pool.position.set(W3.v2.x, ty + 0.003, tz); W3.pool.scale.setScalar(rad * 1.6); W3.pool.material.opacity = b.k === 2 ? 1 : 0.75; } }
-    else if (W3.holo) W3.holo.on = false;
+    else if (W3.holo) { W3.holo.g.visible = false; W3.holo.on = false; if (W3.holo.fan) W3.holo.fan.visible = false; }
     // 금 · 파편 · 충격파
     if (W3.cr) { W3.cr.visible = !!((sh && tau < 0 && sh.t > 0.3) || (SC && omOn)); if (W3.cr.visible) W3.cr.geometry.setDrawRange(0, sh ? 2 * Math.floor(W3.crN * Math.pow(cl((sh.t - 0.3) / (T_BURST - 0.55), 0, 1), 1.6)) : 2 * W3.crN); } /* 다시 뭉친 Ω에는 금이 그대로 남아 있다 */
     if (W3.lidO) { W3.lidO.visible = !!(SC && omOn); const lk = scLive && SC.st === 'input' ? cl(SC.lid, 0, 1) : scLive && SC.st === 'suck' ? cl(1 - SC.t / 0.12, 0, 1) : ga ? Math.max(0, 1 - Math.abs(ga.t - 3.4) / 0.16) : 0; W3.lidO.rotation.x = lerp(-0.62, 0.62, lk); W3.omIris.forEach(m => { m.scale.y = W3.lidO.visible ? Math.max(0.03, 1 - lk * lk) : 1; }); } /* 눈꺼풀: 감길수록 남은 시간이 없다 */
@@ -340,7 +354,7 @@ BOSS.hle = (() => {
       let st = 0, p = e.home, fly = 1, rays = live;
       if (clOn) { p = e.home; e.g.scale.setScalar(mi ? cl(W3.clK * 1.2, 0, 1) : 1); /* 제자리에 뜬 채 한 점으로 빛을 쏜다: 그 빛이 겹친 곳에 홀로그램이 선다 */
         const shut = scLive && SC.st === 'input' && (NE - 1 - i) < Math.floor(cl(SC.lid, 0, 1) * NE + 0.001); /* 남은 시간: 눈이 하나씩 감기며 빛줄기가 꺼진다 */
-        rays = !shut && (!ga || ga.t > 0.2 + ((i * 5) % NE) * 0.06) && !(mi && mi.t > 1.7);
+        rays = !shut && (!ga || ga.t > 0.2 + ((i * 5) % NE) * 0.06) && !(mi && mi.t > 1.7) && !(W3.holo.MODE === 'd' && W3.holo.on);
         st = shut ? -1 : !scLive ? 0 : SC.st === 'scan' ? (b.k === 2 ? 3 : b.k === 1 ? 1 : 0) : SC.st === 'smash' || SC.st === 'suck' ? 3 : SC.st === 'input' && SC.lid > 0.75 ? 1 : 0; }
       else if (sh) { const d = (i % 8) * 0.035, q = cl((tau - d) / 1.3, 0, 1); fly = 1 - Math.pow(1 - q, 3); W3.v.copy(W3.burst).lerp(e.home, fly); W3.v.y += Math.sin(fly * Math.PI) * 0.7; p = W3.v; e.g.scale.setScalar(0.35 + 0.65 * fly);
         const o = tau - (1.6 + ((i * 5) % NE) / NE * 0.9); st = fly >= 1 && o > 0 && tau < 3.05 ? 3 : 0; rays = st === 3; } // 자리를 잡으면 차례로 뜬다 → 한꺼번에 감는다
@@ -377,9 +391,6 @@ BOSS.hle = (() => {
       cam.rotation.set(pitch, yaw, 0, 'YXZ'); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); } }
     else if (SC) { cam.rotation.set(SCP, 0.1, 0, 'YXZ'); if (Math.abs(cam.fov - SCF) > 0.01) { cam.fov = SCF; cam.updateProjectionMatrix(); } } /* 대본 단계: 고개를 들고 Ω를 마주 본다 */
     cam.updateMatrixWorld(); EX.scene.updateMatrixWorld();
-    if (W3.holo && W3.holo.on && Ax.renderer) { const Ho = W3.holo, rn = Ax.renderer(); if (rn) { const prev = rn.getRenderTarget(), ca = rn.getClearAlpha(), cc0 = W3.cc0 || (W3.cc0 = new THREE.Color()); rn.getClearColor(cc0);
-        rn.setRenderTarget(Ho.rt); rn.setClearColor(0x000000, 0); rn.clear(); rn.render(Ho.hs, cam); rn.readRenderTargetPixels(Ho.rt, 0, 0, Ho.GW, Ho.GH, Ho.buf); rn.setRenderTarget(prev); rn.setClearColor(cc0, ca);
-        const pj = (v, o) => { W3.v3.copy(v).project(cam); o[0] = (W3.v3.x + 1) * 320; o[1] = (1 - W3.v3.y) * 180; }; pj(Ho.hp, Ho.h2 || (Ho.h2 = [0, 0])); pj(Ho.sp, Ho.s2 || (Ho.s2 = [0, 0])); } }
     if (SC && W3.cc) { W3.v3.copy(W3.cc); W3.v3.project(cam); SC.ox = (W3.v3.x + 1) * 320; SC.oy = (1 - W3.v3.y) * 180; } /* 렌즈 화면에서 Ω가 있는 곳 */
   }
 
@@ -396,30 +407,6 @@ BOSS.hle = (() => {
     if (H.flash > 0) { k.b.globalAlpha = Math.min(1, H.flash); k.R(0, 0, L.W, L.H, '#ffffff'); k.b.globalAlpha = 1; }
     if (H.say) { const a = Math.min(1, (H.say.dur - H.say.t) / 0.4, H.say.t / 0.2); k.b.globalAlpha = cl(a, 0, 1); k.SUB(H.say.text, L.W / 2, L.H - 30, 12, '#ffffff', 'center'); k.b.globalAlpha = 1; }
   }
-  // ---- 글자의 형상 그리기: 칸마다 밝기를 글자로 바꾼다 ----
-  const GCH = " .:-=csxe%68&@/\\()|_^+*A$~", GRAMP = '.:-=csxe%68&@', GAT = {};
-  function gAtlas(col) { if (GAT[col]) return GAT[col]; const c = document.createElement('canvas'), AW = 20, AH = 32; c.width = AW * GCH.length; c.height = AH; const g = c.getContext('2d'); g.fillStyle = col; g.font = 'bold 27px ui-monospace, Menlo, Consolas, "Courier New", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (let i = 0; i < GCH.length; i++) g.fillText(GCH[i], i * AW + AW / 2, AH / 2 + 1); return (GAT[col] = c); }
-  const gh = (i, j, k) => { const v = Math.sin(i * 12.9898 + j * 78.233 + k * 37.719) * 43758.5453; return v - Math.floor(v); };
-  function drawGlyphs(k, now) { const Ho = W3.holo; if (!Ho || !Ho.on) return; const d = Ho.buf, GW = Ho.GW, GH = Ho.GH, cw = 640 / GW, chh = 360 / GH, fx = Ho.fx, hot = fx.hot, dim = fx.dim == null ? 1 : fx.dim; if (dim <= 0.01) return;
-    const W0 = gAtlas(fx.green > 0.5 ? '#b8ffcf' : '#ffffff'), WH0 = gAtlas('#ffd0c4'), BL = gAtlas(fx.green > 0.5 ? '#3fae6a' : '#4660f0'), BL2 = gAtlas('#b83a58'), GO = gAtlas('#f0c050'), ICE = gAtlas('#cfe2ff'), ICE2 = gAtlas('#6f98ff'), F1 = gAtlas('#ffe9a0'), F2 = gAtlas('#ff9a3a'), F3 = gAtlas('#ff5a2a');
-    const at = (i, j) => (i < 0 || j < 0 || i >= GW || j >= GH) ? 0 : d[((GH - 1 - j) * GW + i) * 4 + 3], tk = Math.floor(now * 9), tk2 = Math.floor(now * 2.5), revRow = GH * (1 - fx.reveal * 1.04);
-    hudDraw(k, c => { c.imageSmoothingEnabled = true;
-      if (Ho.h2) { c.globalCompositeOperation = 'lighter'; const glow = (x, y, r, col, a) => { const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col.replace('A', String(a))); g.addColorStop(1, col.replace('A', '0')); c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); };
-        const hc = hot > 0.5 ? 'rgba(255,120,40,A)' : fx.green > 0.5 ? 'rgba(90,255,150,A)' : 'rgba(90,130,255,A)', ga0 = dim * fx.reveal * (1 - fx.erode * 0.6) * (0.85 + 0.15 * Math.sin(now * 7)); if (fx.reveal > 0.7) glow(Ho.h2[0], Ho.h2[1] - 6, 95 * W3.clK, hc, 0.5 * ga0); glow(Ho.s2[0], Ho.s2[1], 70 * W3.clK, hot > 0.5 ? 'rgba(255,140,50,A)' : 'rgba(210,225,255,A)', 0.32 * ga0); c.globalCompositeOperation = 'source-over'; }
-      c.fillStyle = '#04050a'; for (let j = Math.max(0, Math.floor(revRow)); j < GH; j++) { let run = -1; for (let i = 0; i <= GW; i++) { const on = i < GW && d[((GH - 1 - j) * GW + i) * 4 + 3] >= 128; if (on && run < 0) run = i; else if (!on && run >= 0) { c.globalAlpha = 0.9 * dim * (1 - cl(fx.erode * 1.7 - (1 - j / GH) * 0.75, 0, 1)); c.fillRect(run * cw - 0.5, j * chh - 0.2, (i - run) * cw + 1, chh + 0.4); run = -1; } } } /* 글자 사이는 어둠: 형상이 뒤의 빛을 가린다 */
-      for (let j = 0; j < GH; j++) { if (j < revRow - 1) continue; const front = j < revRow + 1.5, er = cl(fx.erode * 1.7 - (1 - j / GH) * 0.75, 0, 1);
-        for (let i = 0; i < GW; i++) { const o = ((GH - 1 - j) * GW + i) * 4; if (d[o + 3] < 128) continue; const sh = d[o] / 255, cls = d[o + 1], h = gh(i, j, 1);
-          let A = W0, ch = ' ', al = 1;
-          if (cls > 212) { const hf = gh(i, j, tk); if (h < er * 0.8) continue; ch = hot > 0.5 ? (hf < 0.5 ? '^' : hf < 0.8 ? 'A' : '*') : (hf < 0.45 ? '+' : hf < 0.75 ? '^' : '*'); A = hot > 0.5 ? (hf < 0.35 ? F1 : hf < 0.75 ? F2 : F3) : (hf < 0.6 ? W0 : hf < 0.85 ? ICE : ICE2); al = 0.55 + 0.45 * gh(i, j, tk + 3); }
-          else { if (h < er) continue;
-            if (cls > 127) { ch = h < 0.5 ? '$' : h < 0.8 ? '8' : '&'; A = GO; al = 0.6 + 0.4 * sh; }
-            else if (cls > 42) { if (sh < 0.3 && h > 0.5) continue; ch = h < 0.07 ? '$' : 'xse%~x'[Math.floor(gh(i, j, 2) * 6)]; A = h < 0.07 ? GO : hot > 0.5 ? BL2 : BL; al = 0.35 + 0.5 * sh; }
-            else { if (sh < 0.05 || (sh < 0.34 && h > 0.35)) continue; const lv = Math.min(GRAMP.length - 1, Math.floor(sh * GRAMP.length + (gh(i, j, tk2) < 0.12 ? 1 : 0)));
-              const eL = !at(i - 1, j), eR = !at(i + 1, j), eT = !at(i, j - 1), eB = !at(i, j + 1); ch = eL && eT ? '/' : eR && eT ? '\\' : eL ? '(' : eR ? ')' : eT ? '-' : eB ? '_' : GRAMP[lv]; A = hot > 0.5 ? WH0 : W0; al = 0.5 + 0.5 * sh; } }
-          if (front) { ch = GCH[1 + Math.floor(gh(i, j, tk) * (GCH.length - 1))]; A = W0; al = 1; } /* 짜이는 중인 줄: 글자가 마구 바뀐다 */
-          c.globalAlpha = al * dim; c.drawImage(A, GCH.indexOf(ch) * 20, 0, 20, 32, i * cw - 0.4, j * chh, cw + 0.8, chh); } }
-      c.globalAlpha = 1; });
-  }
   function blk(k, w, cx, cy, o) { // 어절 블록 하나
     const tw = k.TW(w, 10, 700), bw = tw + 16, bh = 22, x = cx - bw / 2, y = cy - bh / 2, col = o.col;
     hudDraw(k, c => { c.globalAlpha = o.a == null ? 1 : o.a; c.fillStyle = o.fill || 'rgba(4,10,16,0.84)'; c.fillRect(x, y, bw, bh); c.strokeStyle = o.first ? WH : rgba(col, 0.85); c.lineWidth = o.first ? 1.6 : 1; c.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
@@ -429,7 +416,7 @@ BOSS.hle = (() => {
   }
   function hudScript(k, L, E, now) { // 쪼개진 대본: 위에 Ω의 질문, 가운데 흩어진 블록, 아래에 내가 맞추는 문장
     const H = E.H, C = H.sc, QA = SC_QA[C.i], col = ink(E), n = QA.b.length, hits = [], c0 = k.b, WX = 320, WY = 312, WW = 380, WHh = 30; C.hits = hits;
-    drawGlyphs(k, now); c0.globalAlpha = 0.04; for (let y = 1; y < L.H; y += 3) k.R(0, y, L.W, 1, col); c0.globalAlpha = 1;
+    c0.globalAlpha = 0.04; for (let y = 1; y < L.H; y += 3) k.R(0, y, L.W, 1, col); c0.globalAlpha = 1;
     if (E.sus > 0.02) { c0.globalAlpha = Math.min(1, 0.15 + E.sus * 0.9) * (E.rising ? 0.7 + 0.3 * Math.sin(now * 16) : 1); c0.drawImage(lensGlow('A', '#ff5a5a'), 0, 0); c0.globalAlpha = 1; }
     const sec = Math.max(0, Math.ceil(E.timeLeft)), low = E.timeLeft < 15 && Math.floor(now * 4) % 2;
     k.M(`ORAL ${C.i + 1}/${scN()}`, 24, 28, 7.5, rgba(col, 0.9), 'left', 700); k.M(`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, 616, 28, 9, low ? RED : WH, 'right', 700);
@@ -463,7 +450,7 @@ BOSS.hle = (() => {
     if (!(H.tr || H.theft)) return false; // 연출 중에는 렌즈 화면을 비우고 장면만
     if (H.theft && H.theft.t > 0.55) return false;
     if (H.theft) { k.b.globalAlpha = 0.6 + 0.4 * Math.sin(now * 50); k.b.drawImage(lensGlow('A', '#ff5a5a'), 0, 0); k.b.globalAlpha = 1; }
-    drawGlyphs(k, now); hudFx(k, L, E, now); return true; }
+    hudFx(k, L, E, now); return true; }
   function gazeBar(k, b, x0, y, w, col, lab, hot, now) { // 빔 하나가 어디 있나: 가운데 꺾쇠가 내 자리
     const cx = x0 + w / 2, bw = tune.hle_beam / 1.1 * w;
     hudDraw(k, c => { c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(x0, y, w, 1); for (const f of [0, 0.25, 0.75, 1]) c.fillRect(x0 + w * f - 0.5, y - 2, 1, 5);
