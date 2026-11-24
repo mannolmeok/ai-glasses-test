@@ -1051,7 +1051,7 @@ function updateExam(dt) {
   if (T.id === 'afterlife') { stepUnderworld(T, dt); if (E.caught) return; } // [저승] 세 번 부르기 · 물방울 망자
   E.float = T.mech.includes('float') ? 0.5 + 0.5 * Math.sin(E.clockT * 1.1) : 0;
   if (T.mech.includes('signal')) seaSignal(dt); // [용궁] 물속 신호
-  const q = E.qs[E.qi], th = threat(), listen = q.kind === 'listen';
+  const q = E.qs[E.qi], th = E.boss && BOSS[E.boss].threat ? BOSS[E.boss].threat(threat()) : threat(), listen = q.kind === 'listen'; // 보스전은 의심 규칙을 덮어쓸 수 있다
   E.danger = th.r > 0.02;
   const atDesk = E.staff.some(s => s.phase === 'check' && s.check.stage === 'at');
   const manual = onPaper && !listen && held && !(atDesk && g.autooff >= 2); // 자동 소등 2단계: 책상 앞이면 스캔도 멈춘다

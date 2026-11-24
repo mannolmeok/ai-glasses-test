@@ -121,9 +121,14 @@ window.CONFIG = {
   ib3_q: { value: 18, min: 6, max: 40, step: 1 },                  // [해외 보스 3] 질문 수 (함정 포함)
   ib3_life: { value: 8, min: 3, max: 20, step: 0.5 },              // [해외 보스 3] 첫 질문의 제한 시간(초). 갈수록 짧아진다
   ib3_scan: { value: 0.6, min: 0.1, max: 3, step: 0.05 },          // [해외 보스 3] 안경이 질문 하나를 읽어 답을 만드는 시간(초)
-  hle_beam: { value: 0.22, min: 0.05, max: 0.6, step: 0.01 },      // [외계 보스 1] 시선 빔의 폭 (방 너비 대비)
-  hle_race_q: { value: 8, min: 3, max: 20, step: 1 },              // [외계 보스 3] 거울 속 나와 겨루는 문제 수
-  hle_mirror: { value: 1.15, min: 0.5, max: 2, step: 0.05 },        // [외계 보스 3] 거울 속 내가 한 문제에 쓰는 시간 배율 (작을수록 빠르다)
+  hle_beam: { value: 0.3, min: 0.05, max: 0.6, step: 0.01 },       // [외계 보스 1] 시선 빔의 폭 (방 너비 대비)
+  hle_press: { value: 1.5, min: 1, max: 3, step: 0.05 },           // [외계 보스] Ω 앞에서 스캔이 느려지는 배율 (틈의 길이도 여기에 맞춰진다)
+  hle_sus: { value: 2.5, min: 0.5, max: 10, step: 0.1 },           // [외계 보스] Ω가 보는 동안 스캔하면 초당 오르는 의심 (은신 장비 무시)
+  hle_bait: { value: 0.4, min: 0, max: 0.7, step: 0.02 },          // [외계 보스] 스캔이 안 끝나는 미끼 틈의 비율 (1단계 기준, 2·3단계는 조금 낮다)
+  hle_q: { value: 6, min: 3, max: 12, step: 1 },                   // [외계 보스 1·2] 단계마다 문제 수
+  hle_time: { value: 70, min: 30, max: 180, step: 1 },             // [외계 보스 1·2] 단계마다 제한 시간(초)
+  hle_race_q: { value: 12, min: 3, max: 15, step: 1 },             // [외계 보스 3] 거울 속 나와 겨루는 문제 수
+  hle_mirror: { value: 1.35, min: 0.5, max: 2, step: 0.05 },        // [외계 보스 3] 거울 속 내가 한 문제에 쓰는 시간 배율 (작을수록 빠르다)
   omega_strip: { value: 2, min: 1, max: 8, step: 1 },              // Ω: 이만큼 문제를 풀 때마다 안경이 한 단계씩 내려간다          // Ω에게 박자를 읽히면 오르는 의심도
 
   // ---- 장비 효과 ----
