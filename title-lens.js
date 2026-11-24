@@ -218,7 +218,7 @@
     b.globalAlpha = 1;
   }
   const NB = { x: 452, y: 272, w: 169, h: 20 }; // 새로 하기 버튼 (저장이 있을 때만, 시작 창 바로 아래)
-  const NEW_OK = (() => { try { return String(scenes.title.update).indexOf("'new'") >= 0; } catch (e) { return false; } })(); // 게임 쪽이 '새로 하기'를 받을 때만 버튼을 띄운다 (예전 game.js가 캐시에 남아 있으면 안 띄움)
+  let NB_ON = false; // 이번 장면에 '새로 하기' 버튼이 떠 있는가 (누른 자리 판정용)
   function newButton(k, arm, a, tm) { // 테두리만 있는 작은 HUD 버튼. 한 번 누르면 3초 동안 빨갛게 '한 번 더'를 기다린다
     const b = k.b, { x, y, w, h } = NB, on = arm > 0, blink = on && Math.floor(tm * 4) % 2 === 0;
     b.save(); b.globalAlpha = a; b.fillStyle = on ? 'rgba(60,8,10,0.78)' : 'rgba(4,22,12,0.45)'; b.fillRect(x, y, w, h);
@@ -295,11 +295,12 @@
         deco(b, al); art(k, A.title, TBOX, al, P.logo >= 1 ? P.jit : 0, tm); b.restore();
       }
       if (ua > 0 && rk <= 0 && P.logo >= 1) {
-        if (info.ios) { b.globalAlpha = 0.85 * ua; k.M('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', 621, hasSave && NEW_OK ? 312 : 282, 7.5, CREAM, 'right', 500); }
+        if (info.ios) { b.globalAlpha = 0.85 * ua; k.M('아이폰은 공유 → "홈 화면에 추가"로 열면 전체 화면', 621, hasSave ? 312 : 282, 7.5, CREAM, 'right', 500); }
         b.globalAlpha = 1;
       }
       if (P.btn > 0 && ua > 0) startPanel(k, hasSave ? '이어서 하기' : '시험 시작', P.btn * ua, tm);
-      if (hasSave && NEW_OK && P.btn > 0 && ua > 0 && rk <= 0) { newButton(k, info.newArm || 0, P.btn * ua, tm); btns.push({ x: NB.x - 4, y: NB.y - 4, w: NB.w + 8, h: NB.h + 8, key: 'new' }); } // 저장이 있으면 '새로 하기'도 (화면 아무 데나 누르기는 그대로 이어서 하기)
+      NB_ON = hasSave && P.btn > 0 && ua > 0 && rk <= 0;
+      if (NB_ON) { newButton(k, STATE.newArm || 0, P.btn * ua, tm); btns.push({ x: NB.x - 4, y: NB.y - 4, w: NB.w + 8, h: NB.h + 8, key: 'new' }); } // 저장이 있으면 '새로 하기'도 (화면 아무 데나 누르기는 그대로 이어서 하기)
       if (P.tick > 0 && ua > 0) {
         const rows = RK.rows || [], str = rows.length ? rows.slice(0, 10).map((r, i) => `${i + 1}등 ${r.name} ${fmtRunT(r.t)}`).join('   ·   ') + '   ·   ' : '아직 기록이 없습니다 · 엔딩을 보면 석차표에 오릅니다   ·   ';
         ticker(k, str, Math.round(P.tick * ua * 4) / 4, tm);
@@ -338,6 +339,27 @@
       if (posterBad || !loaded(poster) || Q.get('hud') === '0') return origDraw.call(this, B);
       const r = WORLD.renderExam; WORLD.renderExam = function () { };
       try { return origDraw.call(this, B); } finally { WORLD.renderExam = r; }
+    };
+  }
+  // ---- 새로 하기: 게임 본체는 그대로 두고 여기서 받는다. 두 번 눌러야 저장을 지우고(지우기 전 한 벌은 남김) 바로 튜토리얼로. 석차표 기록은 남는다 ----
+  addEventListener('pointerdown', e => {
+    if (typeof scene === 'undefined' || scene !== 'title' || !NB_ON || e.target !== canvas) return;
+    const [x, y] = toBuf(e); if (x < NB.x - 4 || x > NB.x + NB.w + 4 || y < NB.y - 4 || y > NB.y + NB.h + 4) return;
+    e.stopImmediatePropagation(); e.preventDefault(); startAudio(); STATE.newTap = true; // 이 손가락은 '이어서 하기'로 넘기지 않는다
+  }, true);
+  if (typeof scenes !== 'undefined' && scenes.title) {
+    const tUpd = scenes.title.update;
+    scenes.title.update = function (dt) {
+      STATE.newArm = Math.max(0, (STATE.newArm || 0) - dt);
+      const RK = STATE.rank, busy = RK && (RK.open || RK.k > 0), tap = STATE.newTap; STATE.newTap = false;
+      if (G.stats.exams > 0 && !busy && (tap || pressed('KeyN'))) {
+        takeTaps(); takeReleases();
+        if (STATE.newArm > 0) { STATE.newArm = 0; backupSave(); wipe(); titleExam(); sfx.buy(); const T0 = STATE.titleE; STATE.titleE = null; leaveTitle(T0); }
+        else { STATE.newArm = 3; sfx.no(); }
+        return;
+      }
+      if (STATE.newArm > 0 && pressed('Escape')) { STATE.newArm = 0; return; }
+      return tUpd.call(this, dt);
     };
   }
   window.drawTitle = lensTitle;

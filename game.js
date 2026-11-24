@@ -1559,7 +1559,6 @@ const scenes = {
       takeReleases(); titleExam();
       const RK = STATE.rank || (STATE.rank = { open: false, k: 0, page: 0 }), taps = takeTaps();
       RK.k = clamp(RK.k + (RK.open ? 1 : -1) * dt / 0.6, 0, 1); // 석차표: 화면은 그대로, 글자만 0.6초에 걸쳐 바뀐다
-      STATE.newArm = Math.max(0, (STATE.newArm || 0) - dt); // 새로 하기: 한 번 누르면 3초 동안 '한 번 더'를 기다린다
       const start = () => { const T0 = STATE.titleE; STATE.titleE = null; if (G.stats.exams > 0) { E = null; goHub(null); } else leaveTitle(T0); };
       let key = null; for (const [x, y] of taps) { const h = (BTNS || []).find(q => x >= q.x && x <= q.x + q.w && y >= q.y && y <= q.y + q.h); if (h) key = h.key; }
       if (RK.open) {
@@ -1570,17 +1569,12 @@ const scenes = {
       }
       if (RK.k > 0) return;
       if (key === 'rank:open' || pressed('KeyR')) { RK.open = true; RK.page = 0; sfx.news(); if (netOn()) netLoad(100); return; }
-      if (G.stats.exams > 0 && (key === 'new' || pressed('KeyN'))) { // 저장이 있을 때만: 두 번 눌러야 저장을 지우고(지우기 전 한 벌은 남겨 둔다) 바로 튜토리얼부터. 석차표 기록은 남는다
-        if (STATE.newArm > 0) { STATE.newArm = 0; backupSave(); wipe(); titleExam(); sfx.buy(); start(); } else { STATE.newArm = 3; sfx.no(); }
-        return;
-      }
-      if (STATE.newArm > 0 && pressed('Escape')) { STATE.newArm = 0; return; }
       if (key === 'start' || pressed('Enter') || pressed('Space')) start();
     },
     draw(B) {
       titleExam(); WORLD.renderExam(E, now); // 타이틀: 첫 시험장의 내 책상. 안경이 답을 잡은 순간
       const recs = loadRecords(), RK = STATE.rank || { k: 0, page: 0 };
-      BTNS = drawTitle(B.k, B.L, now, G.stats.exams > 0, { best: recs.length ? `${recs[0].name} ${fmtRun(recs[0].t)}` : '', ios: STATE.ios && !STATE.standalone, newArm: STATE.newArm || 0, rank: (rows => ({ k: RK.k, page: RK.page, rows, total: rankTotal(rows), listed: netOn() && NET.rows ? Math.max(NET.total, rows.length) : rows.length, runs: rankRuns(), online: netOn() && !!NET.rows }))(rankRows()) });
+      BTNS = drawTitle(B.k, B.L, now, G.stats.exams > 0, { best: recs.length ? `${recs[0].name} ${fmtRun(recs[0].t)}` : '', ios: STATE.ios && !STATE.standalone, rank: (rows => ({ k: RK.k, page: RK.page, rows, total: rankTotal(rows), listed: netOn() && NET.rows ? Math.max(NET.total, rows.length) : rows.length, runs: rankRuns(), online: netOn() && !!NET.rows }))(rankRows()) });
     },
   },
   rankin: {
