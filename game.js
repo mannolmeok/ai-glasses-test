@@ -300,6 +300,22 @@ function fit() {
   canvas.style.imageRendering = 'auto';
 }
 addEventListener('resize', () => { fitSig = ''; });
+// 카메라 구멍 쪽 띠를 기기가 비워 두면(그 띠에는 못 그린다) 반대쪽에 같은 폭을 비워 게임 화면을 기기 한가운데에 둔다
+function fitCutout() {
+  const app = document.getElementById('app'); if (!app) return;
+  let l = '', r = '';
+  try {
+    const full = isFullscreen() || fsDisplay() || matchMedia('(display-mode: standalone)').matches;
+    const d = Math.round(screen.width - innerWidth), land = innerWidth > innerHeight;
+    if (full && land && d > 8 && d < 220) {
+      const room = Math.max(0, innerWidth - Math.min(innerWidth, innerHeight * 16 / 9)), p = Math.min(d, room) + 'px';
+      if (/secondary/.test((screen.orientation && screen.orientation.type) || '')) l = p; else r = p;
+    }
+  } catch (_) { }
+  if (app.style.paddingLeft !== l || app.style.paddingRight !== r) { app.style.paddingLeft = l; app.style.paddingRight = r; fitSig = ''; }
+}
+for (const ev of ['resize', 'fullscreenchange', 'webkitfullscreenchange', 'orientationchange']) addEventListener(ev, () => setTimeout(fitCutout, 60));
+setTimeout(fitCutout, 300);
 function hudSet() { const h = PAL.hud; return { c: h, c2: mix(h, '#0d0b13', 0.3), c3: mix(h, '#0d0b13', 0.78) }; }
 
 // ---- 전체 화면: PC·안드로이드는 첫 입력에, 아이폰은 홈 화면 앱으로 ----------------------------
