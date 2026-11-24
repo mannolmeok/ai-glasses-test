@@ -304,7 +304,7 @@
       }
       if (P.btn > 0 && ua > 0) startPanel(k, hasSave ? '이어서 하기' : '시험 시작', P.btn * ua, tm);
       NB_ON = hasSave && P.btn > 0 && ua > 0 && rk <= 0;
-      if (NB_ON) { newButton(k, STATE.newArm || 0, P.btn * ua, tm); btns.push({ x: NB.x - 4, y: NB.y - 4, w: NB.w + 8, h: NB.h + 8, key: 'new' }); } // 저장이 있으면 '새로 하기'도 (화면 아무 데나 누르기는 그대로 이어서 하기)
+      if (NB_ON) { newButton(k, STATE.newArm || 0, P.btn * ua, tm); btns.push({ x: NB.x - 4, y: NB.y - 4, w: NB.w + 8, h: NB.h + 8, key: 'new' }); } // 저장이 있으면 '새로 하기'도 (시작·이어서 하기도 버튼을 눌러야 한다)
       if (P.tick > 0 && ua > 0) {
         const rows = RK.rows || [], str = rows.length ? rows.slice(0, 10).map((r, i) => `${i + 1}등 ${r.name} ${fmtRunT(r.t)}`).join('   ·   ') + '   ·   ' : '아직 기록이 없습니다 · 엔딩을 보면 석차표에 오릅니다   ·   ';
         ticker(k, str, Math.round(P.tick * ua * 4) / 4, tm);
@@ -318,7 +318,7 @@
       if (P.black > 0) { b.globalAlpha = Math.ceil(P.black * 4) / 4; b.fillStyle = '#000000'; b.fillRect(0, 0, W, H); b.globalAlpha = 1; } // 네 단계로 밝아진다
     }
     b.globalAlpha = 1; b.textAlign = 'left';
-    if (rk <= 0) { btns.push({ x: 0, y: 322, w: W, h: H - 322, key: 'rank:open' }); btns.push({ x: 0, y: 0, w: W, h: H, key: 'start' }); }
+    if (rk <= 0) { btns.push({ x: 0, y: 322, w: W, h: H - 322, key: 'rank:open' }); btns.push({ x: 446, y: 220, w: 181, h: 50, key: 'start' }); } // 시작은 버튼을 눌러야 (빈 곳을 누르면 소리만 켜진다)
     return btns;
   }
 
@@ -345,6 +345,20 @@
       try { return origDraw.call(this, B); } finally { WORLD.renderExam = r; }
     };
   }
+  // 타이틀 배경음 (파일 없이 소리를 만들어 낸다): 시험 직전의 조용한 긴장. 낮은 음 위에 단조 화음이 한 음씩, 벽시계 초침.
+  // 영상 속 감독관이 다가오면 빨라지고 심장 소리가 붙고, 지켜볼 때는 불안한 음이 얹힌다. 물러나면 다시 잦아든다. 브라우저 규칙상 화면을 한 번 누른 뒤부터 난다
+  const BG = { t: 0, i: 0 }, BG_CH = [[110, 220, 261.6, 329.6], [110, 220, 261.6, 329.6], [87.3, 174.6, 220, 261.6], [98, 196, 246.9, 293.7]];
+  function titleBgm(dt) {
+    if (typeof audio === 'undefined' || !audio || muted || audio.ac.state !== 'running' || (CONFIG.sound && CONFIG.sound.music === false) || (STATE.rank && STATE.rank.open)) return;
+    const s = story(curV), step = 60 / (74 + 30 * s.p) / 2;
+    BG.t += dt; if (BG.t < step) return; BG.t = Math.min(BG.t - step, step);
+    const i = BG.i++ % 32, ch = BG_CH[i >> 3], k = i % 8, near = s.p > 0.5;
+    if (k === 0) { toneAt(ch[0], step * 7, 'sine', 0.085); toneAt(ch[0] * 2, step * 6, 'triangle', 0.02); }
+    toneAt(ch[[1, 2, 3, 2, 1, 3, 2, 3][k]] * (near && k % 4 === 3 ? 2 : 1), step * 1.9, 'triangle', 0.034 + 0.014 * s.p);
+    if (k % 2 === 0) toneAt(k % 4 === 0 ? 2400 : 1900, 0.012, 'square', 0.009); // 초침
+    if (near && (k === 0 || k === 4)) { toneAt(82.4, 0.11, 'sine', 0.11 * s.p); toneAt(82.4, 0.1, 'sine', 0.08 * s.p, 0.17); } // 심장
+    if (s.st === 'watch' && k === 4) toneAt(466.2, step * 3, 'square', 0.011);
+  }
   // 시작 소리: 눌렀다는 '딸깍' 세 음 + 안경 HUD가 꺼지며 시험장으로 넘어가는 낮은 '치익'
   const startSnd = () => { try { toneAt(660, 0.05, 'square', 0.07); toneAt(990, 0.06, 'square', 0.07, 0.05); toneAt(1320, 0.12, 'triangle', 0.06, 0.1); noiseAt(0.28, 0.03, 0.12, 700, 0.7); } catch (_) { } };
   // ---- 새로 하기: 게임 본체는 그대로 두고 여기서 받는다. 두 번 눌러야 저장을 지우고(지우기 전 한 벌은 남김) 바로 튜토리얼로. 석차표 기록은 남는다 ----
@@ -365,6 +379,7 @@
         return;
       }
       if (STATE.newArm > 0 && pressed('Escape')) { STATE.newArm = 0; return; }
+      titleBgm(dt);
       const was = scene, r = tUpd.call(this, dt);
       if (was === 'title' && scene !== 'title') startSnd(); // 시험 시작 · 이어서 하기를 누른 소리
       return r;

@@ -3,7 +3,7 @@
 //  1) 시험·고시원 화면 왼쪽 위 작은 버튼 둘(소리 · 일시정지). 결과 화면은 소리만. 소리 끔은 이 기기에 기억한다
 //  2) 뒤로 가기: 게임 중에는 일시정지 창을 열고, 창에서 다시 누르면 닫는다. 타이틀에서는 원래대로 사이트를 나간다
 //  3) 일시정지 창: 계속하기 · 소리 · 타이틀로. 시험 중에 타이틀로 가려면 두 번 눌러야 하고, 그 시험은 포기(점수 없음, 낸 응시료는 그대로)
-//  4) PC(키보드·마우스)에서는 첫 시험 조작 안내와 힌트를 '화면 어디를 누르기' 대신 '어느 키'로 보여 준다
+//  4) 첫 시험 조작 안내는 안경 HUD 모양(초록 꺾쇠). 손가락이면 누를 자리, PC(키보드)면 키와 '어느 키' 힌트. ?guide=old 는 예전 흰 고리
 //  5) 자막은 넷플릭스(OTT) 모양: 흰 보통 굵기 글자 + 얇은 테두리 + 옅은 그림자. 글꼴(Pretendard Medium)을 게임에 넣어 기기마다 같게.
 //     주소에 ?sub=orig 를 붙이면 원래 자막, ?sub=film|docu|tv|vhs|scope 는 다른 시안 미리 보기
 'use strict';
@@ -197,26 +197,54 @@
     const origHint = examHint;
     window.examHint = function () { const h = origHint.apply(this, arguments); if (!h || STATE.touchUI) return h; return PC_HINT[h] || h.replace(/를 눌러 마킹 \(1~4\)$/, '를 클릭하거나 1~4 키로 마킹'); };
   }
-  if (typeof drawExamOverlays === 'function') { // 첫 시험 조작 안내: 누를 자리 고리 대신 키보드 키 그림
+  if (typeof drawExamOverlays === 'function') { // 첫 시험 조작 안내: 흰 고리·키보드 그림 대신 안경 HUD 모양 (초록 모서리 꺾쇠 + 어두운 판 + HUD 글자). 손가락이면 누를 자리, PC면 키
     const origOv = drawExamOverlays;
     window.drawExamOverlays = function (k, L, E0, now0, H) {
       const gd = E0 && E0.guide;
-      if (!gd || STATE.touchUI || gd.k === 'end') return origOv.apply(this, arguments);
+      if (!gd || gd.k === 'end' || Q.get('guide') === 'old') return origOv.apply(this, arguments);
       E0.guide = null; try { origOv.apply(this, arguments); } finally { E0.guide = gd; }
-      if (!E0.caught && !E0.over && E0.start <= 0) keyGuide(k, L, gd);
+      if (!E0.caught && !E0.over && E0.start <= 0) (STATE.touchUI ? touchGuide : keyGuide)(k, L, gd, now0);
     };
   }
-  function keyGuide(k, L, gd) {
-    const W = L.W, HH = L.H, held = c => down.has(c), cap = s => k.SUB(s, W / 2, HH - 30, 22, '#ffffff', 'center');
-    if (gd.k === 'hold') { keycap(k, W / 2, HH - 76, 'SPACE', 104, gd.on); cap('Space를 꾹 누르면 카메라가 문제를 읽는다'); }
-    else if (gd.k === 'up') { keycap(k, W / 2, 46, '↑', 34, held('ArrowUp') || held('KeyW')); cap('↑ 키를 누르면 정면을 본다'); }
-    else if (gd.k === 'sides') { keycap(k, 51, 173, '←', 34, held('ArrowLeft') || held('KeyA')); keycap(k, W - 51, 173, '→', 34, held('ArrowRight') || held('KeyD')); cap('← → 키를 누르면 그쪽으로 고개를 돌린다'); }
+  const HG = '#74ff8e', HD = '#04160c', HHI = '#c8ffd8';
+  function brackets(k, x, y, w, h, p, col) { // 네 모서리 꺾쇠. p만큼 바깥으로 숨 쉬듯 벌어진다
+    const R = k.R, n = 8, t = 2, x0 = x - p, y0 = y - p, x1 = x + w + p, y1 = y + h + p;
+    R(x0, y0, n, t, col); R(x0, y0, t, n, col); R(x1 - n, y0, n, t, col); R(x1 - t, y0, t, n, col);
+    R(x0, y1 - t, n, t, col); R(x0, y1 - n, t, n, col); R(x1 - n, y1 - t, n, t, col); R(x1 - t, y1 - n, t, n, col);
   }
-  function keycap(k, cx, cy, label, w, isDown) { // 키보드 키 (점 그림): 밝은 윗면과 아래 두께. 누르고 있으면 내려앉는다
-    const R = k.R, h = 24, x = Math.round(cx - w / 2), y = Math.round(cy - h / 2), d = isDown ? 3 : 0;
-    R(x - 2, y - 2 + d, w + 4, h + 8 - d, '#0b0a10');
-    R(x, y + d + h - 2, w, 6 - d, '#8f8a7c');
-    R(x, y + d, w, h - 2, '#f4f1e8'); R(x + 2, y + d + 2, w - 4, 1, '#ffffff');
-    k.T(label, cx, y + d + (h - 2) / 2, label.length > 1 ? 10 : 15, '#1a1822', 'center', 800);
+  function arrow(k, cx, cy, dir, col) { // 점 그림 화살표
+    const P = k.poly, R = k.R;
+    if (dir === 'up') { P([[cx, cy - 9], [cx + 9, cy + 1], [cx - 9, cy + 1]], col); R(cx - 2, cy + 1, 4, 8, col); }
+    else if (dir === 'left') { P([[cx - 9, cy], [cx + 1, cy - 9], [cx + 1, cy + 9]], col); R(cx + 1, cy - 2, 8, 4, col); }
+    else { P([[cx + 9, cy], [cx - 1, cy - 9], [cx - 1, cy + 9]], col); R(cx - 9, cy - 2, 8, 4, col); }
+  }
+  function tag(k, str, cx, y, col) { const b = k.b, w = k.TW(str, 8, 700) + 10; b.globalAlpha = 0.72; k.R(Math.round(cx - w / 2), y - 7, w, 13, HD); b.globalAlpha = 1; k.M(str, cx, y, 8, col, 'center', 700); }
+  function spotHud(k, cx, cy, t, label, glyph, on) { // 누를 자리: 어두운 판 + 꺾쇠 + 가운데 그림 + 아래 이름표
+    const b = k.b, R = k.R, r = 25, p = on ? 0 : Math.round(2 + 2 * Math.sin(t * 5)), blink = Math.floor(t * 3) % 2 === 0;
+    b.globalAlpha = on ? 0.3 : 0.55; R(cx - r, cy - r, r * 2, r * 2, on ? HG : HD); b.globalAlpha = 1;
+    brackets(k, cx - r, cy - r, r * 2, r * 2, p, HG);
+    if (glyph === 'hold') { R(cx - 12, cy - 1, 7, 2, HG); R(cx + 5, cy - 1, 7, 2, HG); R(cx - 1, cy - 12, 2, 7, HG); R(cx - 1, cy + 5, 2, 7, HG); if (on || blink) R(cx - 3, cy - 3, 6, 6, on ? HHI : HG); }
+    else arrow(k, cx, cy, glyph, blink ? HHI : HG);
+    tag(k, label, cx, cy + r + 13, on ? HHI : HG);
+  }
+  function touchGuide(k, L, gd, t) {
+    const W = L.W, HH = L.H, cap = s => k.SUB(s, W / 2, HH - 30, 22, '#ffffff', 'center');
+    if (gd.k === 'hold') { spotHud(k, 372, 196, t, gd.on ? '읽는 중' : '꾹 누르기', 'hold', gd.on); cap('책상을 꾹 누르면 카메라가 문제를 읽는다'); }
+    else if (gd.k === 'up') { spotHud(k, W / 2, 46, t, '정면 보기', 'up', false); cap('화면 위쪽을 누르면 정면을 본다'); }
+    else if (gd.k === 'sides') { spotHud(k, 51, 173, t, '왼쪽 보기', 'left', false); spotHud(k, W - 51, 173, t, '오른쪽 보기', 'right', false); cap('양옆을 누르면 그쪽으로 고개를 돌린다'); }
+  }
+  function keyGuide(k, L, gd, t) {
+    const W = L.W, HH = L.H, held = c => down.has(c), cap = s => k.SUB(s, W / 2, HH - 30, 22, '#ffffff', 'center');
+    if (gd.k === 'hold') { keyHud(k, W / 2, HH - 78, 'SPACE', 110, gd.on, t, gd.on ? '읽는 중' : '꾹 누르기'); cap('Space를 꾹 누르면 카메라가 문제를 읽는다'); }
+    else if (gd.k === 'up') { keyHud(k, W / 2, 42, 'up', 36, held('ArrowUp') || held('KeyW'), t, '정면 보기'); cap('↑ 키를 누르면 정면을 본다'); }
+    else if (gd.k === 'sides') { keyHud(k, 51, 173, 'left', 36, held('ArrowLeft') || held('KeyA'), t, '왼쪽 보기'); keyHud(k, W - 51, 173, 'right', 36, held('ArrowRight') || held('KeyD'), t, '오른쪽 보기'); cap('← → 키를 누르면 그쪽으로 고개를 돌린다'); }
+  }
+  function keyHud(k, cx, cy, label, w, isDown, t, name) { // 키: HUD 창 모양 (어두운 판, 얇은 초록 테두리, 왼쪽 굵은 줄). 누르면 초록으로 찬다
+    const b = k.b, R = k.R, h = 26, x = Math.round(cx - w / 2), y = Math.round(cy - h / 2), p = isDown ? 0 : Math.round(2 + 2 * Math.sin(t * 5)), ink = isDown ? HD : HG;
+    b.globalAlpha = isDown ? 0.92 : 0.72; R(x, y, w, h, isDown ? HG : HD); b.globalAlpha = 1;
+    k.frame(x, y, w, h, HG, 1); R(x, y, 2, h, HG); brackets(k, x - 3, y - 3, w + 6, h + 6, p, HG);
+    if (label.length > 2 && label === label.toUpperCase()) { k.M(label, cx, cy + 0.5, 11, ink, 'center', 700); if (!isDown && Math.floor(t * 3) % 2 === 0) R(x + w - 9, y + 5, 3, 3, HG); }
+    else arrow(k, cx, cy, label, ink);
+    tag(k, name, cx, y + h + 15, isDown ? HHI : HG);
   }
 })();
