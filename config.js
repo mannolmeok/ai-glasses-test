@@ -133,8 +133,13 @@ window.CONFIG = {
   hle_bait: { value: 0.4, min: 0, max: 0.7, step: 0.02 },          // [외계 보스] 스캔이 안 끝나는 미끼 틈의 비율 (1단계 기준, 2·3단계는 조금 낮다)
   hle_q: { value: 6, min: 3, max: 12, step: 1 },                   // [외계 보스 1·2] 단계마다 문제 수
   hle_time: { value: 70, min: 30, max: 180, step: 1 },             // [외계 보스 1·2] 단계마다 제한 시간(초)
-  hle_race_q: { value: 12, min: 3, max: 15, step: 1 },             // [외계 보스 3] 거울 속 나와 겨루는 문제 수
-  hle_mirror: { value: 1.35, min: 0.5, max: 2, step: 0.05 },        // [외계 보스 3] 거울 속 내가 한 문제에 쓰는 시간 배율 (작을수록 빠르다)
+  hle_race_q: { value: 12, min: 3, max: 15, step: 1 },             // [외계 보스 4] 거울 속 나와 겨루는 문제 수
+  hle_mirror: { value: 1.35, min: 0.5, max: 2, step: 0.05 },        // [외계 보스 4] 거울 속 내가 한 문제에 쓰는 시간 배율 (작을수록 빠르다)
+  hle_sc_n: { value: 8, min: 2, max: 8, step: 1 },                  // [외계 보스 3 대본] 문장 수
+  hle_sc_time: { value: 120, min: 40, max: 240, step: 5 },          // [외계 보스 3 대본] 전체 제한 시간(초)
+  hle_sc_base: { value: 2.5, min: 0.5, max: 8, step: 0.1 },         // [외계 보스 3 대본] Ω 눈꺼풀이 다 감기기까지: 기본 시간(초)
+  hle_sc_per: { value: 1.0, min: 0.3, max: 3, step: 0.05 },         // [외계 보스 3 대본] 블록 하나마다 더해지는 시간(초)
+  hle_sc_show: { value: 1.0, min: 0.3, max: 3, step: 0.1 },         // [외계 보스 3 대본] 쪼개지기 전에 대본이 온전히 보이는 시간(초)
   omega_strip: { value: 2, min: 1, max: 8, step: 1 },              // Ω: 이만큼 문제를 풀 때마다 안경이 한 단계씩 내려간다          // Ω에게 박자를 읽히면 오르는 의심도
 
   // ---- 장비 효과 ----

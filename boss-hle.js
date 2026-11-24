@@ -53,7 +53,9 @@ BOSS.hle = (() => {
     E.staff.forEach(s => { s.bossCtl = true; s.phase = 'stand'; s.t = 0; s.dur = 1; });
     E.jam = tune.hle_press; moreQ(Math.round(tune.hle_q)); E.timeLeft = E.timeTotal = tune.hle_time;
     const J = Number(params.get('hleph') || 0); // check only: 바로 2·3·최종 단계부터
-    for (let p = 1; p <= Math.min(3, J - 1); p++) { E.qs.forEach((q, i) => { if (E.answers[i] == null) { E.answers[i] = q.answer; E.via[i] = 'ai'; } }); closePart(); beginPart(p, false); E.breakT = 0; if (E.H.tr) E.H.tr = null; if (p === 1) E.H.eyesOut = 1; if (p === 3) finalNow(); }
+    const JP = J >= 5 ? 3 : J >= 3 ? 2 : J - 1; // hleph: 2 눈의 폭풍 · 3 쪼개진 대본 · 4 거울 경주 · 5 최종
+    for (let p = 1; p <= JP; p++) { E.qs.forEach((q, i) => { if (E.answers[i] == null) { E.answers[i] = q.answer; E.via[i] = 'ai'; } }); closePart(); beginPart(p, false); E.breakT = 0; if (E.H.tr) E.H.tr = null; if (p === 1) E.H.eyesOut = 1; if (p === 3) finalNow(); }
+    if (J >= 4 && E.H.sc) { E.H.sc = null; E.timeLeft = E.timeTotal + 30; }
     if (J >= 2) { E.start = 0.6; E.H.tr = null; }
     if (J >= 3) { E.H.stolen = true; const cur = ORDER.indexOf(hudStage(E)); E.omegaDown = 2; E.stageForce = ORDER[Math.min(ORDER.length - 1, Math.max(0, cur) + 2)]; } // 2단계에서 렌즈를 빼앗긴 상태로
   }
@@ -62,7 +64,7 @@ BOSS.hle = (() => {
     const E0 = E, H = E0.H; if (!H) return;
     E0.noStartLine = true; H.t = 0; E0.sigRate = null;
     if (p === 1) { moreQ(Math.round(tune.hle_q)); E0.timeLeft = tune.hle_time; H.tr = { kind: 'shatter', t: 0, dur: 5.2 }; E0.breakT = 5.2; H.st = { t: 0, ev: [], end: 1.4, last: '', n: 0, baits: 0 }; }
-    else if (p === 2) { moreQ(Math.round(tune.hle_race_q)); E0.timeLeft = E0.timeTotal + 30; H.tr = { kind: 'mirror', t: 0, dur: 5.8 }; E0.breakT = 5.8; H.mir = null; }
+    else if (p === 2) { moreQ(Math.round(tune.hle_race_q)); E0.timeLeft = tune.hle_sc_time; H.tr = { kind: 'gather', t: 0, dur: 4.4 }; E0.breakT = 4.4; H.mir = null; H.sc = newScript(); H.beamB = null; } // 먼저 쪼개진 대본(구술), 그다음 거울 경주
     else if (p === 3) { E0.jam = 1; if (G.ended) { E0.over = true; E0.all = true; E0.endT = 0; return; } E0.qs = E0.qs.filter(q => q.final).slice(-1); if (!E0.qs.length) { E0.over = true; E0.all = true; return; }
       H.tr = { kind: 'end', t: 0, dur: 3.2 }; E0.breakT = 3.2; }
   }
@@ -115,7 +117,51 @@ BOSS.hle = (() => {
     return k;
   }
 
-  // ---- 3단계: 거울 속 나 ----
+  // ---- 3단계: 쪼개진 대본 (구술) ----
+  // Ω가 묻는다 → 틈에 스캔 → 대본이 뜬다 → Ω가 대본 창을 내리쳐 어절로 쪼갠다 → 순서대로 눌러 문장을 만든다 (첫 블록만 표시)
+  // 남은 시간은 숫자가 아니라 Ω의 눈꺼풀: 다 감기면 번쩍 뜨며 블록을 빨아들이고, 다시 스캔해야 한다. 틀린 순서는 문장을 다 채웠을 때 알려 준다
+  const SC_QA = [
+    { q: '당신은 누구입니까?', b: ['저는', '지구에서', '온', '평범한', '수험생입니다'] },
+    { q: '왜 이 시험을 봅니까?', b: ['떨어지면', '돌아갈', '곳이', '없기', '때문입니다'] },
+    { q: '인간은 무엇을 가장 잘합니까?', b: ['모르는', '것도', '아는', '척을', '가장', '잘합니다'] },
+    { q: '그 안경은 무엇입니까?', b: ['눈이', '나빠서', '쓰는', '아주', '평범한', '안경입니다'] },
+    { q: '답은 어디에서 옵니까?', b: ['밤새', '공부한', '제', '머릿속에서', '전부', '나온', '답입니다'] },
+    { q: '기계를 믿습니까?', b: ['기계는', '믿지', '않지만', '제', '실력은', '굳게', '믿습니다'] },
+    { q: '남의 답을 본 적이 있습니까?', b: ['맹세코', '저는', '단', '한', '번도', '남의', '답을', '보지 않았습니다'] },
+    { q: '마지막으로 할 말이 있습니까?', b: ['이', '시험이', '끝나면', '저는', '제', '힘으로', '다시', '공부하겠습니다'] },
+  ];
+  const scN = () => Math.min(SC_QA.length, Math.round(tune.hle_sc_n));
+  function newScript() { return { i: 0, st: 'ask', t: 0, scan: 0, bad: 0, lid: 0, pool: [], placed: [], hits: [], judge: null, wrong: 0, rescans: 0, ox: 320, oy: 110 }; }
+  function scScatter(C) { // 블록을 화면 아래쪽 여덟 칸에 흩는다
+    const b = SC_QA[C.i].b, cells = []; for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) cells.push([c, r]);
+    for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
+    C.pool = b.map((w, j) => ({ w, j, x: 104 + cells[j][0] * 144 + between(-18, 18), y: 204 + cells[j][1] * 42 + between(-7, 7) })); C.placed = []; C.judge = null;
+  }
+  function stepScript(dt, taps) {
+    const H = E.H, C = H.sc, QA = SC_QA[C.i], n = QA.b.length, s = E.staff[0], hold = down.has('Space') || ptrs.size > 0; C.t += dt; let k = 0; E.holding = false; E.rising = false;
+    const tick = () => { E.timeLeft -= dt; if (E.timeLeft > 0) return false; E.timeLeft = 0; lose('Ω: "대답이 너무 늦습니다."'); return true; };
+    if (C.st === 'ask') { if (C.t >= 1.1) { C.st = 'scan'; C.t = 0; C.scan = 0; H.beam = newBeam(between(0.9, 1.4), rng() < 0.5 ? 1 : -1); } }
+    else if (C.st === 'scan') { if (tick()) return;
+      k = stepOne(H.beam, dt, tune.hle_beam, null);
+      if (hold && k === 2) { C.bad += dt; if (C.bad > 0.1) { E.sus += tune.hle_sus * dt; E.rising = true; E.source = { how: 'watch', by: s }; } } // 보는 중에 스캔
+      else { C.bad = 0; E.sus = Math.max(0, E.sus - 0.04 * dt); if (hold) { C.scan += dt / scanS(); C.snd = (C.snd || 0) - dt; if (C.snd <= 0) { C.snd = 0.12; S.scratch(); } } else C.scan = Math.max(0, C.scan - 1.5 * dt); } // 손을 떼면 금방 날아간다
+      if (E.sus >= 1) { E.sus = 1; if (s) s.phase = 'watch'; getCaught(); return; }
+      if (C.scan >= 1) { C.st = 'show'; C.t = 0; H.beam.k = 0; sfx.ai(); } }
+    else if (C.st === 'show') { if (C.t >= tune.hle_sc_show) { C.st = 'smash'; C.t = 0; scScatter(C); S.crack(); S.crack(); S.pop(); H.flash = 0.3; } }
+    else if (C.st === 'smash') { if (C.t >= 0.5) { C.st = 'input'; C.t = 0; C.lid = 0; } }
+    else if (C.st === 'input') { if (tick()) return;
+      if (!(C.judge && C.judge.ok)) C.lid += dt / (tune.hle_sc_base + tune.hle_sc_per * n);
+      if (C.judge) { C.judge.t += dt; if (C.judge.t >= 0.8) { if (C.judge.ok) { C.st = 'said'; C.t = 0; } else C.placed = []; C.judge = null; } }
+      else for (const [x, y] of taps) { const h = C.hits.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); if (!h) continue;
+        if (h.kind === 'pool') { const bl = C.pool.find(p => p.j === h.j); if (bl && !C.placed.includes(bl)) { C.placed.push(bl); S.tick(); } } else { C.placed = C.placed.filter(p => p.j !== h.j); sfx.flip(); } // 놓은 블록을 누르면 도로 뺀다
+        if (C.placed.length === n) { const ok = C.placed.every((p, i) => p.w === QA.b[i]); C.judge = { ok, t: 0 }; if (ok) sfx.ai(); else { sfx.no(); C.wrong++; } break; } } // 문장을 다 채웠을 때 맞았는지 알려 준다
+      if (C.lid >= 1 && C.st === 'input' && !(C.judge && C.judge.ok)) { C.st = 'suck'; C.t = 0; C.judge = null; C.rescans++; S.blink(); S.suck(); } } // 눈꺼풀이 다 감겼다: 번쩍 뜨며 블록을 빨아들인다
+    else if (C.st === 'suck') { if (tick()) return; if (C.t >= 1.0) { C.st = 'scan'; C.t = 0; C.scan = 0; C.pool = []; C.placed = []; H.beam = newBeam(between(0.7, 1.1), rng() < 0.5 ? 1 : -1); } }
+    else if (C.st === 'said') { if (C.t >= 1.4) { C.i++; C.pool = []; C.placed = []; if (C.i >= scN()) { C.st = 'out'; H.tr = { kind: 'mirror', t: 0, dur: 5.8 }; events.push({ type: 'bossPhase', boss: 'hle', ph: 'script', wrong: C.wrong, rescans: C.rescans }); } else { C.st = 'ask'; C.t = 0; } } }
+    if (s) { s.phase = k === 2 ? 'watch' : k === 1 ? 'tell' : 'stand'; s.asleep = false; s.away = false; }
+  }
+
+  // ---- 4단계: 거울 속 나 ----
   function newMirror() {
     const base = ((scanS() + 1.3) / 0.7 + 0.5) * tune.hle_mirror; // 틈을 거의 놓치지 않는 사람이 한 문제에 쓰는 시간쯤
     return { done: 0, prog: 0, per: E.qs.map((_, i) => base * (1 - 0.012 * i) * between(0.92, 1.08)), st: 'solve', t: 0, dur: 1.8, baits: 0, scr: 0, fast: false, jam: { st: 'idle', t: 0, dur: between(4, 6) } };
@@ -137,15 +183,16 @@ BOSS.hle = (() => {
     E.sigRate = J.st === 'on' ? 0 : null;
     return M.st === 'look' ? 2 : M.st === 'tell' ? 1 : 0;
   }
-  function lose() { const H = E.H; H.lost = true; E.forceFail = true; E.over = true; E.all = false; E.endT = -1.3; E.endLine = '거울 속 나: "내가 먼저 냈어."'; while (E.answers.length < E.qs.length) E.answers.push(null); sfx.fail(); }
+  function lose(line) { const H = E.H; H.lost = true; E.forceFail = true; E.over = true; E.all = false; E.endT = -1.3; E.endLine = line || '"내가 먼저 냈어."'; while (E.answers.length < E.qs.length) E.answers.push(null); sfx.fail(); }
 
   // ---- 연출 진행 ----
   function stepTrans(dt) {
     const H = E.H, R = H.tr, t0 = R.t; R.t += dt; const at = s => t0 < s && R.t >= s;
     if (R.kind === 'shatter') { if (at(0.05)) S.rumble(); if (at(0.4)) S.crack(); if (at(0.75)) S.crack(); if (at(1.05)) S.crack(); if (at(1.3)) { S.crack(); S.crack(); }
       if (at(T_BURST)) { S.shatter(); H.flash = 0.55; } for (let i = 0; i < 5; i++) if (at(T_BURST + 1.6 + i * 0.18)) S.blink(); if (at(T_BURST + 3.0)) S.blink(); }
-    else if (R.kind === 'mirror') { if (at(0.05)) S.hum(); if (at(0.6)) S.suck(); if (at(1.85)) { S.pop(); H.flash = 0.85; } if (at(3.7)) sfx.ai(); if (at(4.0)) H.say = { text: '거울 속 나: "같이 풀자. 누가 먼저인지."', t: 0, dur: 2.4 }; }
-    else if (R.kind === 'end') { if (at(0.1)) { S.crack(); H.mirCrack = 1; } if (at(1.3)) H.say = { text: '거울 속 나: "…그럼, 마지막 문제."', t: 0, dur: 1.9 }; if (at(3.0)) { sfx.warp(); finalNow(); } }
+    else if (R.kind === 'gather') { if (at(0.05)) S.hum(); if (at(0.3)) S.suck(); if (at(1.7)) { S.pop(); S.crack(); H.flash = 0.5; } if (at(2.3)) H.say = { text: 'Ω: "…이번에는 말로 답하십시오."', t: 0, dur: 1.9 }; if (at(3.3)) S.blink(); }
+    else if (R.kind === 'mirror') { if (at(0.05)) S.hum(); if (at(0.6)) S.suck(); if (at(1.85)) { S.pop(); H.flash = 0.85; } if (at(3.7)) sfx.ai(); if (at(4.0)) H.say = { text: '"같이 풀자. 누가 먼저인지."', t: 0, dur: 2.4 }; }
+    else if (R.kind === 'end') { if (at(0.1)) { S.crack(); H.mirCrack = 1; } if (at(1.3)) H.say = { text: '"…그럼, 마지막 문제."', t: 0, dur: 1.9 }; if (at(3.0)) { sfx.warp(); finalNow(); } }
     if (R.t >= R.dur) H.tr = null;
   }
   function step(dt, taps) {
@@ -156,6 +203,10 @@ BOSS.hle = (() => {
     if (H.theft) { const F = H.theft, f0 = F.t; F.t += dt; E.holding = false; E.scan = E.ai ? E.scan : 0;
       if (f0 < 0.55 && F.t >= 0.55) { S.crack(); S.crack(); H.crack = 1; const cur = ORDER.indexOf(hudStage(E)); E.omegaDown = 2; E.stageForce = ORDER[Math.min(ORDER.length - 1, Math.max(0, cur) + 2)]; H.say = { text: 'Ω: "그 렌즈는 이미 배웠습니다."', t: 0, dur: 2.6 }; }
       if (F.t >= 2.1) { H.theft = null; } return true; } // 렌즈를 빼앗기는 동안은 멈춘다
+    if (H.sc && !(E.start > 0 || E.breakT > 0 || E.over || E.caught)) { // 쪼개진 대본: 이 구간은 규칙을 통째로 맡는다 (거울로 넘어가는 연출까지)
+      if (H.tr) return true;
+      if (H.sc.st === 'out') { H.sc = null; E.timeLeft = E.timeTotal + 30; H.t = 0; E.sus = Math.min(E.sus, 0.5); E.scan = 0; E.ai = false; return false; }
+      stepScript(dt, taps); return true; }
     if (E.start > 0 || E.breakT > 0 || E.over || E.caught || E.finalQ || H.tr) return false;
     H.t += dt; let k = 0;
     for (const q of E.qs) if (q.pre) q.pre = false; // Ω 앞에서는 한 번 스캔에 한 문제만 (광각 렌즈의 미리 읽기가 막힌다)
@@ -167,7 +218,7 @@ BOSS.hle = (() => {
   }
 
   // ---- 3D: 눈 · 빔 · 파편 · 거울 속 나 ----
-  const W3 = { sc: null };
+  const W3 = { sc: null }, SCP = -0.05, SCF = 66; // 대본 단계의 시선: Ω가 화면 위쪽에 오도록 고개를 조금만 든다
   function radialTex(Ax, col) { const t = Ax.canvasTex(64, 64, true), g = t.g, gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); t.t.needsUpdate = true; return t.t; }
   function seeded(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
   function build(Ax) {
@@ -191,6 +242,7 @@ BOSS.hle = (() => {
           const a = P.clone(); P.addScaledVector(D, 0.2 + r2() * 0.12).normalize().multiplyScalar(1.012); segs.push({ t: t0 + j, a, b: P.clone() }); if (n > 5 && (j === 2 || j === 5) && r2() < 0.8) { const sp = P.clone(), sd = D.clone().applyAxisAngle(N, (r2() < 0.5 ? 1 : -1) * (0.7 + r2() * 0.6)); const keepP = P.clone(), keepD = D.clone(); walk(sp, sd, 4, t0 + j + 1); P.copy(keepP); D.copy(keepD); } } };
       for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283 + r2() * 0.5; walk(new THREE.Vector3(Math.cos(a) * 0.3, Math.sin(a) * 0.3, 1).normalize().multiplyScalar(1.012), new THREE.Vector3(Math.cos(a), Math.sin(a), 0), 10, r2() * 2); }
       segs.sort((x, y) => x.t - y.t); const arr = new Float32Array(segs.length * 6); segs.forEach((sg, i) => { arr.set([sg.a.x, sg.a.y, sg.a.z, sg.b.x, sg.b.y, sg.b.z], i * 6); });
+      W3.lidO = new THREE.Mesh(new THREE.SphereGeometry(1.05, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2), Ax.psx(new THREE.MeshLambertMaterial({ color: 0x4a3d6e, flatShading: true, side: THREE.DoubleSide }))); W3.lidO.visible = false; om.head.add(W3.lidO); W3.omIris = om.head.children.filter(m => m.geometry && m.geometry.type === 'CircleGeometry'); /* 큰 눈의 눈꺼풀: 대본 단계에서 남은 시간을 보여 준다 */
       const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(arr, 3)); W3.cr = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xffffff, fog: false })); W3.cr.visible = false; W3.crN = segs.length; om.head.add(W3.cr); }
     const src = new THREE.IcosahedronGeometry(1.0, 1), sp0 = (src.index ? src.toNonIndexed() : src).getAttribute('position').array, nf = sp0.length / 9, r3 = seeded(53);
     W3.sh = { base: new Float32Array(sp0), n: nf, c: [], v: [], ax: [], w: [] };
@@ -218,32 +270,38 @@ BOSS.hle = (() => {
     if (W3.sc !== EX.scene) build(Ax);
     const om = EX.staff[0], R = H.tr, cam = EX.cam, MX = EX.my ? EX.my.x : 0.6, MZ = EX.my ? EX.my.z : 0; W3.om = om; W3.EX = EX;
     const sh = R && R.kind === 'shatter' ? R : null, tau = sh ? sh.t - T_BURST : -9; // tau: 터진 뒤 흐른 시간
+    const SC = H.sc || null, ga = R && R.kind === 'gather' ? R : null, mi = R && R.kind === 'mirror' ? R : null, scLive = SC && !R ? SC : null; // 대본 단계 · 눈들이 다시 뭉치는 연출 · 거울로 바뀌는 연출
     // Ω: 1단계에는 크게 떠서 빔 끝을 바라본다. 터진 뒤에는 없다 (three.js는 visible === false 만 숨기므로 꼭 true/false로)
-    const omOn = !!((E.part === 0 && !R) || (sh && tau < 0));
+    const omOn = !!((E.part === 0 && !R) || (sh && tau < 0) || (SC && (!R || (ga && ga.t >= 1.7) || (mi && mi.t < 1.9))));
     if (om) { om.root.visible = omOn; if (omOn) { om.root.scale.setScalar(1.7);
+        if (ga) om.root.scale.setScalar(1.7 * (1 + 0.3 * Math.exp(-(ga.t - 1.7) * 7))); /* 뭉치며 툭 불거진다 */
+        if (mi && SC) { const k = ez(cl((mi.t - 0.6) / 1.25, 0, 1)); om.root.position.lerp(W3.v2.set(W3.mx, 1.25, W3.mz), k); om.root.scale.setScalar(1.7 * (1 - 0.88 * k)); om.root.position.x += Math.sin(now * 70) * 0.02 * k; } /* 내 말을 다 배운 Ω가 한 점으로 오그라든다 → 거울 속 나 */
         if (sh) { const k = cl(sh.t / T_BURST, 0, 1), still = sh.t > T_BURST - 0.25, amp = still ? 0 : 0.012 + k * 0.05; om.root.position.x += Math.sin(now * 61) * amp; om.root.position.y += Math.sin(now * 83) * amp * 0.7; // 떨림이 커지다가 터지기 직전에 멎는다
           if (om.rings) om.rings.forEach((r, i) => { r.rotation.z += (0.02 + k * 0.25) * (i % 2 ? -1 : 1); r.rotation.x += k * 0.05; }); } } }
-    const b = H.beam, b2 = H.beamB, ty = 0.752, tz = MZ - 0.02, w = tune.hle_beam, beamOn = !!(omOn && !sh && E.start <= 0 && !E.over), fade = sh ? cl(1 - sh.t / 0.3, 0, 1) : 1;
-    W3.beam.visible = W3.pool.visible = beamOn || (omOn && fade > 0 && Math.floor(now * 30) % 2 === 0); W3.beamB.visible = W3.poolB.visible = !!(beamOn && b2);
-    if (om && omOn) { om.root.updateMatrixWorld(); om.root.getWorldPosition(W3.v); W3.burst.copy(W3.v); W3.v2.set(MX + b.u * 2.1, ty, tz); if (!sh) om.head.lookAt(W3.v2);
+    const b = H.beam, b2 = H.beamB, ty = 0.752, tz = MZ - 0.02, w = tune.hle_beam, beamOn = !!(omOn && !sh && E.start <= 0 && !E.over && (!SC || (scLive && SC.st === 'scan'))), fade = sh ? cl(1 - sh.t / 0.3, 0, 1) : 1;
+    W3.beam.visible = W3.pool.visible = beamOn || !!(!SC && omOn && fade > 0 && Math.floor(now * 30) % 2 === 0); W3.beamB.visible = W3.poolB.visible = !!(beamOn && b2);
+    if (om && omOn) { om.root.updateMatrixWorld(); om.root.getWorldPosition(W3.v); if (!mi) W3.burst.copy(W3.v); W3.v2.set(MX + b.u * 2.1, ty, tz); if (SC && !(scLive && SC.st === 'scan')) om.head.lookAt(EX.eye); else if (!sh) om.head.lookAt(W3.v2);
       const kk = Math.max(b.k, b2 ? b2.k : 0); om.irisMat.color.setHex(sh ? (Math.floor(now * (8 + sh.t * 14)) % 2 ? 0x5a0a14 : 0xff2e47) : kk === 2 ? 0xff2e47 : kk === 1 || b.arm ? 0xffa030 : 0x3a6aff);
+      if (SC) om.irisMat.color.setHex(mi ? (Math.floor(now * 12) % 2 ? 0x8dffb0 : 0x3a6aff) : !scLive ? 0x3a6aff : SC.st === 'scan' ? (b.k === 2 ? 0xff2e47 : b.k === 1 ? 0xffa030 : 0x3a6aff) : SC.st === 'smash' || SC.st === 'suck' ? 0xff2e47 : SC.st === 'input' && SC.lid > 0.7 ? 0xffa030 : 0x3a6aff);
       if (W3.beam.visible) { const rad = w * 2.1; aimCone(W3.beam, W3.v, W3.v2, rad, (b.k === 2 ? 0.24 : 0.13) * fade); W3.pool.position.set(W3.v2.x, ty + 0.003, tz); W3.pool.scale.setScalar(rad * 1.6); W3.pool.material.opacity = (b.k === 2 ? 1 : 0.75) * fade; }
       if (W3.beamB.visible) { const rad = w * 1.5; W3.v3.set(MX, ty, tz + b2.u * 1.5); aimCone(W3.beamB, W3.v, W3.v3, rad, b2.k === 2 ? 0.26 : 0.14); W3.poolB.position.set(MX, ty + 0.004, W3.v3.z); W3.poolB.scale.setScalar(rad * 1.7); W3.poolB.material.opacity = b2.k === 2 ? 1 : 0.75; } }
     // 금 · 파편 · 충격파
-    if (W3.cr) { W3.cr.visible = !!(sh && tau < 0 && sh.t > 0.3); if (W3.cr.visible) W3.cr.geometry.setDrawRange(0, 2 * Math.floor(W3.crN * Math.pow(cl((sh.t - 0.3) / (T_BURST - 0.55), 0, 1), 1.6))); }
-    W3.core.intensity = sh ? (tau < 0 ? Math.pow(cl(sh.t / T_BURST, 0, 1), 2) * 5 : Math.max(0, 7 - tau * 9)) : 0; W3.core.position.copy(W3.burst);
+    if (W3.cr) { W3.cr.visible = !!((sh && tau < 0 && sh.t > 0.3) || (SC && omOn)); if (W3.cr.visible) W3.cr.geometry.setDrawRange(0, sh ? 2 * Math.floor(W3.crN * Math.pow(cl((sh.t - 0.3) / (T_BURST - 0.55), 0, 1), 1.6)) : 2 * W3.crN); } /* 다시 뭉친 Ω에는 금이 그대로 남아 있다 */
+    if (W3.lidO) { W3.lidO.visible = !!(SC && omOn); const lk = scLive && SC.st === 'input' ? cl(SC.lid, 0, 1) : scLive && SC.st === 'suck' ? cl(1 - SC.t / 0.12, 0, 1) : ga ? Math.max(0, 1 - Math.abs(ga.t - 3.4) / 0.16) : 0; W3.lidO.rotation.x = lerp(-0.62, 0.62, lk); W3.omIris.forEach(m => { m.scale.y = W3.lidO.visible ? Math.max(0.03, 1 - lk * lk) : 1; }); } /* 눈꺼풀: 감길수록 남은 시간이 없다 */
+    W3.core.intensity = sh ? (tau < 0 ? Math.pow(cl(sh.t / T_BURST, 0, 1), 2) * 5 : Math.max(0, 7 - tau * 9)) : ga ? Math.max(0, 6 - Math.abs(ga.t - 1.7) * 8) : scLive && SC.st === 'smash' ? Math.max(0, 4 - SC.t * 12) : 0; W3.core.position.copy(W3.burst);
     const shOn = !!(sh && tau >= 0 && tau < 2.0); W3.shards.visible = shOn;
     if (shOn) { const S0 = W3.sh, pos = W3.shards.geometry.getAttribute('position'), a = pos.array, drag = (1 - Math.exp(-1.9 * tau)) / 1.9, shrink = cl(1 - tau / 2.0, 0, 1), V = W3.v, C = W3.v2;
       for (let f = 0; f < S0.n; f++) { C.copy(S0.c[f]).addScaledVector(S0.v[f], drag); C.y -= 0.35 * tau * tau; const ang = S0.w[f] * tau;
         for (let j = 0; j < 3; j++) { const o = f * 9 + j * 3; V.set(S0.base[o] - S0.c[f].x, S0.base[o + 1] - S0.c[f].y, S0.base[o + 2] - S0.c[f].z).applyAxisAngle(S0.ax[f], ang).multiplyScalar(shrink).add(C); a[o] = V.x; a[o + 1] = V.y; a[o + 2] = V.z; } }
       pos.needsUpdate = true; W3.shards.position.copy(W3.burst); W3.shards.scale.setScalar(1.7); W3.shards.material.opacity = cl(1.6 - tau, 0, 1); }
-    const wvOn = !!(sh && tau >= 0 && tau < 0.8); W3.wave.visible = wvOn; if (wvOn) { W3.wave.position.copy(W3.burst); W3.wave.lookAt(cam.position); W3.wave.scale.setScalar(1.5 + tau * 16); W3.wave.material.opacity = 0.8 * (1 - tau / 0.8); }
+    const gtau = ga ? ga.t - 1.7 : -9; if (ga && gtau >= 0 && gtau < 0.7) { W3.wave.visible = true; W3.wave.position.copy(W3.burst); W3.wave.lookAt(cam.position); W3.wave.scale.setScalar(1.5 + gtau * 12); W3.wave.material.opacity = 0.7 * (1 - gtau / 0.7); }
+    const wvOn = !!(sh && tau >= 0 && tau < 0.8); if (!ga) W3.wave.visible = wvOn; if (wvOn) { W3.wave.position.copy(W3.burst); W3.wave.lookAt(cam.position); W3.wave.scale.setScalar(1.5 + tau * 16); W3.wave.material.opacity = 0.8 * (1 - tau / 0.8); }
     // 눈 열여섯 개: 평소에는 허공을 훑고, 볼 때는 광선이 내 책상으로 모인다
-    const eyesOn = !!((E.part === 1 && !(sh && tau < 0)) || (R && R.kind === 'mirror' && R.t < 1.9)), live = E.part === 1 && !R && E.start <= 0 && !E.over;
+    const eyesOn = !!((E.part === 1 && !(sh && tau < 0)) || (ga && ga.t < 1.75)), live = E.part === 1 && !R && E.start <= 0 && !E.over;
     let seen = 0, warn = 0;
     W3.eyes.forEach((e, i) => { e.g.visible = eyesOn; e.ray.visible = false; if (!eyesOn) return;
       let st = 0, p = e.home, fly = 1, rays = live;
-      if (R && R.kind === 'mirror') { st = 3; const k = ez(cl((R.t - 0.6) / 1.25, 0, 1)); W3.v.copy(e.home).lerp(W3.v2.set(W3.mx, 1.25, W3.mz), k); p = W3.v; e.g.scale.setScalar(1 - 0.85 * k); rays = R.t < 0.6; }
+      if (ga) { const q = cl((ga.t - 0.2 - (i % 8) * 0.045) / 1.05, 0, 1), fl = q * q; W3.v.copy(e.home).lerp(W3.burst, fl); W3.v.y += Math.sin(fl * Math.PI) * 0.6; p = W3.v; e.g.scale.setScalar(1 - 0.7 * fl); rays = false; } /* 눈을 감고 한 점으로 되돌아간다 */
       else if (sh) { const d = (i % 8) * 0.035, q = cl((tau - d) / 1.3, 0, 1); fly = 1 - Math.pow(1 - q, 3); W3.v.copy(W3.burst).lerp(e.home, fly); W3.v.y += Math.sin(fly * Math.PI) * 0.7; p = W3.v; e.g.scale.setScalar(0.35 + 0.65 * fly);
         const o = tau - (1.6 + ((i * 5) % NE) / NE * 0.9); st = fly >= 1 && o > 0 && tau < 3.05 ? 3 : 0; rays = st === 3; } // 자리를 잡으면 차례로 뜬다 → 한꺼번에 감는다
       else { e.g.scale.setScalar(1); if (H.theft) st = 3; else if (H.st && live) st = eyeState(H.st, i); }
@@ -252,13 +310,13 @@ BOSS.hle = (() => {
       W3.v3.set(cx, 0.75, cz); if (st < 2 && !(R && R.kind === 'mirror')) { const rr = st === 1 ? e.rho * 0.45 : e.rho; W3.v3.x += Math.cos(th) * rr; W3.v3.z += Math.sin(th) * rr * 0.8; W3.v3.y = 0.2; }
       e.aim.lerp(W3.v3, st >= 2 ? 0.4 : 0.12);
       if (sh && fly < 1) e.g.rotation.set(tau * e.tum[0], tau * e.tum[1], 0); else e.g.lookAt(e.aim);
-      const want = sh ? (st === 3 ? 1 : fly < 1 ? 0.75 : 0.1) : st >= 2 ? 1 : st === 1 ? 0.5 + 0.2 * Math.sin(now * 40 + i) : 0.6; e.open = lerp(e.open, want, 0.35); e.lid.scale.set(1, Math.max(0.08, e.open), 1);
+      const want = ga ? 0.5 : sh ? (st === 3 ? 1 : fly < 1 ? 0.75 : 0.1) : st >= 2 ? 1 : st === 1 ? 0.5 + 0.2 * Math.sin(now * 40 + i) : 0.6; e.open = lerp(e.open, want, 0.35); e.lid.scale.set(1, Math.max(0.08, e.open), 1);
       e.irisM.color.setHex(st === 3 ? 0xff2e47 : st >= 1 ? 0xffa030 : 0x3a6aff);
       if (rays) { e.ray.visible = true; e.ray.material.color.setHex(st >= 2 ? 0xff2a3a : st === 1 ? 0xffa030 : 0x5a7dff); aimCone(e.ray, e.g.position, e.aim, st >= 2 ? 0.16 : 0.1, st === 3 ? 0.3 : st >= 1 ? 0.2 : 0.07); }
       if (st === 3) seen++; else if (st >= 1) warn++; });
     if (E.part === 1 && live) { W3.pool.visible = seen + warn > 0; W3.pool.position.set(MX, ty + 0.003, tz); W3.pool.scale.setScalar(seen ? 1.25 : 0.8); W3.pool.material.opacity = seen ? 1 : 0.45; } // 눈들이 보면 시험지가 붉게 물든다
     // 거울 속 나
-    const mirOn = !!(E.part >= 2 && !(R && R.kind === 'mirror' && R.t < 2.75)); W3.mirror.visible = mirOn; W3.jamRay.visible = false;
+    const mirOn = !!(E.part >= 2 && !(R && R.kind === 'mirror' && R.t < 2.75) && !(SC && !mi)); W3.mirror.visible = mirOn; W3.jamRay.visible = false;
     if (mirOn) { const M = H.mir, fin = E.part >= 3, rise = R && R.kind === 'mirror' ? ez(cl((R.t - 2.75) / 1.1, 0, 1)) : 1, J = M && !fin && !R ? M.jam : null, jam = J && J.st !== 'idle';
       W3.spot.intensity = 2.4 * rise; const look = fin || jam || (M && (M.st === 'look' || (M.st === 'tell' && M.t > 0.2))) || (R && R.kind === 'mirror' && R.t < 4.4) || (R && R.kind === 'end' && R.t > 0.6);
       const eyesUp = fin || (M && (M.st === 'look' || (M.st === 'tell' && M.t > 0.2))) || !!R, writing = !look && !fin && (!R || R.t > 4.6), hp = look ? (fin ? -0.04 : eyesUp ? 0.0 : 0.3) : 0.5; // 방해할 때는 고개를 반만 든다 (보는 것과 구별)
@@ -273,10 +331,13 @@ BOSS.hle = (() => {
     if (R) { let yaw = 0.1, pitch = 0.18, fov = 60;
       if (sh) { if (tau < 0) { const k = cl(sh.t / T_BURST, 0, 1); fov = 60 - 9 * ez(k); pitch = 0.18 + 0.03 * k; } // 천천히 다가간다
         else { const q = ez(cl((tau - 0.9) / 2.3, 0, 1)), jit = Math.max(0, 1 - tau / 0.5) * 0.035; fov = 60 + 8 * Math.exp(-tau * 5) - 9 * Math.exp(-tau * 14); yaw = 0.1 + 0.85 * Math.sin(q * Math.PI * 2) + Math.sin(now * 97) * jit; pitch = 0.2 - 0.1 * Math.sin(q * Math.PI) + Math.sin(now * 113) * jit; } } // 충격으로 흔들리고, 흩어진 눈들을 따라 좌우를 본다
-      else if (R.kind === 'mirror') { const k = ez(cl((R.t - 0.4) / 1.6, 0, 1)); pitch = lerp(0.18, -0.02, k); yaw = lerp(0.1, 0, k); fov = lerp(60, 54, k); }
+      else if (ga) { const k = ez(cl(ga.t / 1.7, 0, 1)); fov = 60 - 5 * Math.sin(k * Math.PI) + 5 * Math.exp(-Math.max(0, gtau) * 6) * (gtau >= 0 ? 1 : 0); yaw = 0.1 + 0.45 * Math.sin(k * Math.PI * 2) * (1 - k); const k2 = ez(cl((ga.t - 2.3) / 1.7, 0, 1)); pitch = lerp(0.18, SCP, k2); fov = lerp(fov, SCF, k2); }
+      else if (R.kind === 'mirror') { const k = ez(cl((R.t - 0.4) / 1.6, 0, 1)); pitch = lerp(SC ? SCP : 0.18, -0.02, k); yaw = lerp(0.1, 0, k); fov = lerp(SC ? SCF : 60, 54, k); }
       else { pitch = -0.02; yaw = 0; fov = 50 + (1 - cl(R.t / 2.5, 0, 1)) * 4; }
       cam.rotation.set(pitch, yaw, 0, 'YXZ'); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); } }
+    else if (SC) { cam.rotation.set(SCP, 0.1, 0, 'YXZ'); if (Math.abs(cam.fov - SCF) > 0.01) { cam.fov = SCF; cam.updateProjectionMatrix(); } } /* 대본 단계: 고개를 들고 Ω를 마주 본다 */
     cam.updateMatrixWorld(); EX.scene.updateMatrixWorld();
+    if (SC && om && omOn) { om.root.getWorldPosition(W3.v3); W3.v3.project(cam); SC.ox = (W3.v3.x + 1) * 320; SC.oy = (1 - W3.v3.y) * 180; } /* 렌즈 화면에서 Ω가 있는 곳 */
   }
 
   // ---- 렌즈 화면 ----
@@ -292,7 +353,47 @@ BOSS.hle = (() => {
     if (H.flash > 0) { k.b.globalAlpha = Math.min(1, H.flash); k.R(0, 0, L.W, L.H, '#ffffff'); k.b.globalAlpha = 1; }
     if (H.say) { const a = Math.min(1, (H.say.dur - H.say.t) / 0.4, H.say.t / 0.2); k.b.globalAlpha = cl(a, 0, 1); k.SUB(H.say.text, L.W / 2, L.H - 30, 12, '#ffffff', 'center'); k.b.globalAlpha = 1; }
   }
-  function hud(k, L, E, now, H0) { const H = E.H; if (!H || !(H.tr || H.theft)) return false; // 연출 중에는 렌즈 화면을 비우고 장면만
+  function blk(k, w, cx, cy, o) { // 어절 블록 하나
+    const tw = k.TW(w, 10, 700), bw = tw + 16, bh = 22, x = cx - bw / 2, y = cy - bh / 2, col = o.col;
+    hudDraw(k, c => { c.globalAlpha = o.a == null ? 1 : o.a; c.fillStyle = o.fill || 'rgba(4,10,16,0.84)'; c.fillRect(x, y, bw, bh); c.strokeStyle = o.first ? WH : rgba(col, 0.85); c.lineWidth = o.first ? 1.6 : 1; c.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+      if (o.first) { c.fillStyle = WH; c.fillRect(x - 1, y - 8, 11, 9); } });
+    const a0 = k.b.globalAlpha; k.b.globalAlpha = o.a == null ? 1 : o.a; if (o.first) k.M('1', x + 4.5, y - 3.5, 6.5, '#041018', 'center', 800); k.T(w, cx, cy + 0.5, 10, o.ink || WH, 'center', 700); k.b.globalAlpha = a0;
+    return { x: x - 3, y: y - 4, w: bw + 6, h: bh + 8 };
+  }
+  function hudScript(k, L, E, now) { // 쪼개진 대본: 위에 Ω의 질문, 가운데 흩어진 블록, 아래에 내가 맞추는 문장
+    const H = E.H, C = H.sc, QA = SC_QA[C.i], col = ink(E), n = QA.b.length, hits = [], c0 = k.b, WX = 320, WY = 312, WW = 380, WHh = 30; C.hits = hits;
+    c0.globalAlpha = 0.04; for (let y = 1; y < L.H; y += 3) k.R(0, y, L.W, 1, col); c0.globalAlpha = 1;
+    if (E.sus > 0.02) { c0.globalAlpha = Math.min(1, 0.15 + E.sus * 0.9) * (E.rising ? 0.7 + 0.3 * Math.sin(now * 16) : 1); c0.drawImage(lensGlow('A', '#ff5a5a'), 0, 0); c0.globalAlpha = 1; }
+    const sec = Math.max(0, Math.ceil(E.timeLeft)), low = E.timeLeft < 15 && Math.floor(now * 4) % 2;
+    k.M(`ORAL ${C.i + 1}/${scN()}`, 24, 28, 7.5, rgba(col, 0.9), 'left', 700); k.M(`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, 616, 28, 9, low ? RED : WH, 'right', 700);
+    hudDraw(k, c => { for (let i = 0; i < scN(); i++) { c.fillStyle = i < C.i ? col : i === C.i ? WH : 'rgba(255,255,255,0.25)'; c.fillRect(24 + i * 9, 36, 6, 2); } });
+    hudDraw(k, c => { const tw = k.TW(`Ω: "${QA.q}"`, 12, 700) + 28; c.fillStyle = 'rgba(4,8,14,0.62)'; c.fillRect(L.W / 2 - tw / 2, 14, tw, 26); });
+    k.SUB(`Ω: "${QA.q}"`, L.W / 2, 28, 12, '#ffffff', 'center');
+    const frame = (a, hot) => hudDraw(k, c => { c.globalAlpha = a; c.fillStyle = 'rgba(4,10,16,0.72)'; c.fillRect(WX - WW / 2, WY - WHh / 2, WW, WHh); c.strokeStyle = rgba(hot || col, 0.8); c.lineWidth = 1; c.strokeRect(WX - WW / 2 + 0.5, WY - WHh / 2 + 0.5, WW - 1, WHh - 1); });
+    if (C.st === 'ask') frame(cl(C.t / 0.3, 0, 1) * 0.6);
+    else if (C.st === 'scan') { const b = H.beam; gazeBar(k, b, 250, WY - 28, 140, col, 'GAZE', RED, now); frame(1, b.k === 2 ? RED : null);
+      hudDraw(k, c => { const w = (WW - 4) * cl(C.scan, 0, 1); c.fillStyle = rgba(col, 0.22); c.fillRect(WX - WW / 2 + 2, WY - WHh / 2 + 2, w, WHh - 4); if (C.scan > 0) { c.fillStyle = col; c.fillRect(WX - WW / 2 + 2 + w, WY - WHh / 2 + 2, 1.4, WHh - 4); } });
+      k.M(C.scan > 0 ? `SCRIPT ${Math.round(cl(C.scan, 0, 1) * 100)}%` : C.rescans && C.t < 1.2 && Math.floor(now * 6) % 2 ? 'RESCAN' : 'SCRIPT', WX, WY + 0.5, 8, C.scan > 0 ? WH : rgba(col, 0.8), 'center', 700);
+      if (C.i === 0 && !C.rescans) k.M(STATE.touchUI ? '안 볼 때 길게 눌러 스캔' : 'SPACE · 안 볼 때 스캔', WX, WY + 26, 7, rgba(WH, 0.7), 'center', 700); }
+    else if (C.st === 'show') { frame(1); const a = cl(C.t / 0.15, 0, 1); c0.globalAlpha = a; k.T(QA.b.join(' '), WX, WY + 0.5, 10.5, WH, 'center', 700); c0.globalAlpha = 1; }
+    else if (C.st === 'smash') { const q = cl(C.t / 0.42, 0, 1), e = 1 - Math.pow(1 - q, 3); frame(1 - q, RED);
+      hudDraw(k, c => { if (C.t < 0.16) { c.strokeStyle = rgba(RED, 0.9); c.lineWidth = 3 - C.t * 12; c.beginPath(); c.moveTo(C.ox, C.oy); c.lineTo(WX, WY); c.stroke(); } c.globalAlpha = 1 - q; cracks(c, WX, WY, 150, cl(C.t / 0.2, 0.2, 1), 7 + C.i); });
+      for (const p of C.pool) blk(k, p.w, lerp(WX, p.x, e), lerp(WY, p.y, e) - Math.sin(q * Math.PI) * 26, { col, first: p.j === 0 }); }
+    else if (C.st === 'input') { const J = C.judge, bad = J && !J.ok, good = J && J.ok;
+      hudDraw(k, c => { c.fillStyle = 'rgba(4,10,16,0.6)'; c.fillRect(WX - 250, WY - 17, 500, 34); c.fillStyle = bad ? RED : rgba(col, 0.7); c.fillRect(WX - 250, WY + 16, 500, 1); });
+      for (const p of C.pool) { if (C.placed.includes(p)) { hudDraw(k, c => { c.strokeStyle = rgba(col, 0.25); c.setLineDash([2, 3]); const tw = k.TW(p.w, 10, 700) + 16; c.strokeRect(p.x - tw / 2 + 0.5, p.y - 10.5, tw - 1, 21); }); continue; }
+        const r = blk(k, p.w, p.x, p.y + Math.sin(now * 2 + p.j) * 1.5, { col, first: p.j === 0 }); if (!J) hits.push(Object.assign(r, { kind: 'pool', j: p.j })); }
+      const ws = C.placed.map(p => k.TW(p.w, 10, 700) + 16), tot = ws.reduce((a, b) => a + b, 0) + Math.max(0, ws.length - 1) * 4; let x = WX - tot / 2;
+      C.placed.forEach((p, i) => { const sx = bad ? Math.sin(now * 70 + i) * 3 : 0, r = blk(k, p.w, x + ws[i] / 2 + sx, WY, { col: bad ? RED : col, fill: good ? rgba(col, 0.3) : bad ? 'rgba(48,6,10,0.85)' : null, ink: bad ? '#ffd0d0' : WH }); if (!J) hits.push(Object.assign(r, { kind: 'placed', j: p.j })); x += ws[i] + 4; });
+      if (bad) k.M('✕', WX + tot / 2 + 16, WY + 0.5, 12, RED, 'center', 800);
+      if (C.i === 0 && !C.placed.length && !C.rescans) k.M('순서대로 눌러 문장 만들기', WX, WY + 0.5, 7.5, rgba(WH, 0.6), 'center', 700); }
+    else if (C.st === 'suck') { const q = cl(C.t / 0.75, 0, 1), e = q * q;
+      for (const p of C.pool) blk(k, p.w, lerp(p.x, C.ox, e), lerp(p.y, C.oy, e), { col: RED, a: 1 - e, first: false }); if (C.t > 0.5) frame(cl((C.t - 0.5) / 0.4, 0, 1) * 0.6); }
+    else if (C.st === 'said') { const a = cl(Math.min(C.t / 0.2, (1.4 - C.t) / 0.3), 0, 1); c0.globalAlpha = a; k.SUB(`"${QA.b.join(' ')}."`, L.W / 2, WY, 12, '#ffffff', 'center'); c0.globalAlpha = 1; }
+  }
+  function hud(k, L, E, now, H0) { const H = E.H; if (!H) return false;
+    if (H.sc && H.sc.st !== 'out' && !H.tr && !(E.breakT > 0) && E.start <= 0) { hudScript(k, L, E, now); hudFx(k, L, E, now); return true; }
+    if (!(H.tr || H.theft)) return false; // 연출 중에는 렌즈 화면을 비우고 장면만
     if (H.theft && H.theft.t > 0.55) return false;
     if (H.theft) { k.b.globalAlpha = 0.6 + 0.4 * Math.sin(now * 50); k.b.drawImage(lensGlow('A', '#ff5a5a'), 0, 0); k.b.globalAlpha = 1; }
     hudFx(k, L, E, now); return true; }
@@ -326,5 +427,5 @@ BOSS.hle = (() => {
       if (H.nope > 0) k.SUB('(읽지 않은 문제는 낼 수 없다)', L.W / 2, L.H - 56, 10, '#ffd0d0', 'center'); }
     hudFx(k, L, E, now);
   }
-  return { start, step, part, canMark, threat, world, hud, hudTop, _W3: W3, _eye: eyeState };
+  return { start, step, part, canMark, threat, world, hud, hudTop, _W3: W3, _eye: eyeState, SC_QA };
 })();
