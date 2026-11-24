@@ -314,7 +314,7 @@ function drawResultHud(k, L, Rz, now, H) { // 결과 화면: 위에는 연동해
   return btns;
 }
 function drawResults(k, L, Rz, now, H) {
-  const extras = (Rz.perfect ? 1 : 0) + (Rz.coach > 1 ? 1 : 0) + (Rz.bonus > 0 ? 1 : 0);
+  const extras = (Rz.perfect && Rz.jack !== false ? 1 : 0) + (Rz.coach > 1 ? 1 : 0) + (Rz.bonus > 0 ? 1 : 0);
   const { R, T, TO } = k, C = PAL, w = Math.min(L.W - 40, 420), x = (L.W - w) / 2;
   const h = 138 + (Rz.fee > 0 ? 18 : 0) + 19 + (extras ? 16 : 0) + 16 + (Rz.tut ? 0 : 16) + (Rz.unlock ? 16 : 0) + 50, y = Math.round((L.H - h) / 2);
   k.b.globalAlpha = 0.6; R(0, 0, L.W, L.H, PAL.dark); k.b.globalAlpha = 1;
@@ -336,7 +336,7 @@ function drawResults(k, L, Rz, now, H) {
   if (Rz.fee > 0) { T(`응시료 -${won(Rz.fee)}원`, L.W / 2, ly, 11, '#d6a0a0', 'center', 700); ly += 18; }
   T(Rz.reward > 0 ? `${Rz.pay} +${won(Rz.reward)}원` : '보상 없음', L.W / 2, ly, 15, Rz.reward > 0 ? C.gold : '#8f89a3', 'center', 800); ly += 19;
   const extra = [];
-  if (Rz.perfect) extra.push(`만점 x${tune.jackpot_mult}`);
+  if (Rz.perfect && Rz.jack !== false) extra.push(`만점 x${tune.jackpot_mult}`);
   if (Rz.coach > 1) extra.push(`면접 x${Rz.coach.toFixed(2)}`);
   if (Rz.bonus > 0) extra.push(`시간 x${(1 + Rz.bonus).toFixed(2)}`);
   if (extra.length) { T(extra.join(' · '), L.W / 2, ly, 11, H.c, 'center', 700); ly += 16; }

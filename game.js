@@ -1272,10 +1272,10 @@ function finishExam() {
   const T = E.T, pass = Math.round(tune.pass_mark * 100);
   if (E.caught && E.done.length < E.parts * T.qn) { closePart(); while (E.done.length < E.parts * T.qn) E.done.push({ r: '-' }); }
   const marks = E.done, qn = marks.length, correct = marks.filter(m => m.r === 'O').length + marks.reduce((a, m) => a + (m.part || 0), 0) + (E.ivScore != null ? E.ivScore - (E.ivPass || 0) : 0), score = Math.round(correct / qn * 100);
-  let passed = !E.caught && !E.forceFail && correct / qn >= tune.pass_mark - 1e-9, perfect = passed && correct === qn, audited = false;
+  let passed = !E.caught && !E.forceFail && correct / qn >= tune.pass_mark - 1e-9, perfect = passed && correct === qn, audited = false; const jack = perfect && !(G.best[E.tier] >= 100); // 만점 보너스는 시험마다 처음 한 번만
   const heat0 = 0, tut = T.mech.includes('tutorial'), lamps0 = G.lamps || 0;
   const bonus = passed ? tune.time_bonus * (E.leftSum / (E.timeTotal * E.parts)) : 0, coach = passed ? coachMult() : 1;
-  const reward = passed ? Math.round(correct * T.reward * tune.reward_scale * (1 + bonus) * coach * (perfect ? tune.jackpot_mult : 1)) : 0;
+  const reward = passed ? Math.round(correct * T.reward * tune.reward_scale * (1 + bonus) * coach * (jack ? tune.jackpot_mult : 1)) : 0;
   G.stats.exams++; if (passed) G.stats.passes++; else if (!E.caught) G.stats.fails++; if (perfect) G.stats.tops++;
   if (G.black && G.black.seen) reportByBroker('답이 없으시네. 그럼 제보합니다'); else if (G.black) G.black.seen = true; // 협박을 시험 한 번 넘기도록 내버려 두면 제보당한다
   let unlock = '';
@@ -1294,12 +1294,12 @@ function finishExam() {
     }
   }
   G.pending = (G.pending || 0) + reward; loop('result'); if (reward > 0) loop('reward'); // 돈은 고시원에 돌아갈 때 입금 문자로 들어온다
-  if (reward > 0) addNews('bank', `[입금] ${T.pay} ${won(reward)}원${perfect ? ` (수석 x${tune.jackpot_mult})` : ''}`);
+  if (reward > 0) addNews('bank', `[입금] ${T.pay} ${won(reward)}원${jack ? ` (수석 x${tune.jackpot_mult})` : ''}`);
   if (!tut) G.mail = { tier: E.tier, tierName: T.name, marks, correct, qn, pass, score, caught: E.caught, passed, stamp: audited ? '합격 취소' : E.caught ? '부정행위' : perfect ? '수석 합격' : passed ? '합격' : '불합격' };
   if (T.id === 'leet') G.flags.leet = true; // LEET를 한 번 치르고 나면 책상에 초콜릿이 놓여 있다
   let lampLine = null;
   if (!tut && passed) G.lastPass = { tier: E.tier, tierName: T.name, reward, mail: G.mail };
-  if (!tut && perfect && !final && !G.audit && E.tier >= tune.lamp_from) { // 만점은 상금이 크지만 TV 밑 빨간 등이 하나 켜진다 (쉬운 초반 시험은 만점이어도 의심받지 않는다)
+  if (!tut && jack && !final && !G.audit && E.tier >= tune.lamp_from) { // 만점은 상금이 크지만 TV 밑 빨간 등이 하나 켜진다 (쉬운 초반 시험은 만점이어도 의심받지 않는다)
     const n = G.flags.perfN = (G.flags.perfN || 0) + 1;
     if (n === 1) { tvNews({ tag: '사회', h: `${T.name} 사상 첫 만점자 나왔다`, s: '출제위원 "만점이 나올 수 없게 낸 시험인데…"', tk: ['수험생 커뮤니티 "사람 맞나" 술렁', '시험관리위 "답안지 원본 확인 중"', '내일 전국 흐리고 비'], icon: 'room', cap: '자료 화면 · 시험장' }); }
     else tvNews({ tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T.name}에서도 만점 · 같은 수험번호`, tk: ['시험관리위 "고득점자 답안 재검증 준비"', '전자기기 반입 단속 강화', 'AI 안경 판매량 석 달 새 4배'], icon: 'paper', cap: '자료 화면 · 답안지' });
@@ -1308,7 +1308,7 @@ function finishExam() {
   }
   if (!tut && passed && G.lamps >= 3 && !G.audit) addLamp(); // 제보로 먼저 셋이 찼다면 이번 합격이 재검증 대상
   if (final && !G.ended) { G.ended = true; addRecord(); }
-  RZ = { tier: E.tier, tierName: T.name, passed, perfect, caught: E.caught, correct, qn, score, pass, reward, bonus, coach, pay: T.pay, fee: E.fee,
+  RZ = { tier: E.tier, tierName: T.name, passed, perfect, jack, caught: E.caught, correct, qn, score, pass, reward, bonus, coach, pay: T.pay, fee: E.fee,
     marks, self: E.selfN, ai: E.aiN, heat0, heat: 0, lamps0, lamps: G.lamps, lampLine, audited, tut, unlock, final, next: passed ? (final ? 'end' : E.tier + 1) : null, focus: passed ? 'next' : 'retry', canRetry: true, canNext: true };
   perfect ? sfx.top() : passed ? sfx.pass() : sfx.fail();
   RZ.stamp = audited ? '합격 취소' : E.caught ? '부정행위' : perfect ? '수석 합격' : passed ? '합격' : '불합격';
