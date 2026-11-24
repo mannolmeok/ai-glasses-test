@@ -4,23 +4,30 @@
 //  2) 뒤로 가기: 게임 중에는 일시정지 창을 열고, 창에서 다시 누르면 닫는다. 타이틀에서는 원래대로 사이트를 나간다
 //  3) 일시정지 창: 계속하기 · 소리 · 타이틀로. 시험 중에 타이틀로 가려면 두 번 눌러야 하고, 그 시험은 포기(점수 없음, 낸 응시료는 그대로)
 //  4) PC(키보드·마우스)에서는 첫 시험 조작 안내와 힌트를 '화면 어디를 누르기' 대신 '어느 키'로 보여 준다
-//  5) 자막 글씨 시안 고르는 중: 주소에 ?sub=ott|film|docu|tv|vhs|scope 를 붙이면 그 모양으로 (없으면 원래 자막)
+//  5) 자막은 넷플릭스(OTT) 모양: 흰 보통 굵기 글자 + 얇은 테두리 + 옅은 그림자. 글꼴(Pretendard Medium)을 게임에 넣어 기기마다 같게.
+//     주소에 ?sub=orig 를 붙이면 원래 자막, ?sub=film|docu|tv|vhs|scope 는 다른 시안 미리 보기
 'use strict';
 (function () {
   if (typeof scenes === 'undefined' || typeof makeKit !== 'function' || !scenes.pause) return;
   const Q = new URLSearchParams(location.search);
 
-  // ---- 5) 자막 글씨 시안 (고르는 중): ?sub=ott|film|docu|tv|vhs|scope 로 미리 본다. 주소에 없으면 원래 자막 그대로 ----
+  // ---- 5) 자막 글씨: 넷플릭스(OTT) 모양이 기본. ?sub=orig 원래 자막, ?sub=film|docu|tv|vhs|scope 다른 시안 ----
   const GOTHIC = FONT_SUB, SERIF = '"Noto Serif KR","AppleMyungjo","Apple Myungjo","Noto Serif CJK KR","Batang","바탕",serif';
   const SUBS = { // sh: [x, y, 번짐, 색] (화면 1칸 단위)
-    ott: { font: GOTHIC, w: 500, k: 1.02, fill: '#ffffff', stroke: 0.9, sCol: 'rgba(0,0,0,0.9)', sh: [0, 0.8, 2.5, 'rgba(0,0,0,0.8)'] }, // 넷플릭스·OTT: 흰 글자, 얇은 테두리 + 옅은 그림자
+    ott: { font: '"aig-sub",' + GOTHIC, w: 500, k: 1.02, fill: '#ffffff', stroke: 0.9, sCol: 'rgba(0,0,0,0.9)', sh: [0, 0.8, 2.5, 'rgba(0,0,0,0.8)'] }, // 넷플릭스·OTT: 흰 글자, 얇은 테두리 + 옅은 그림자
     film: { font: GOTHIC, w: 400, k: 1.0, fill: '#f2eee4', sp: 0.06, sh: [0, 1, 5, 'rgba(0,0,0,0.95)'], twice: true }, // 극장 영화: 가는 글자, 자간 넓게, 테두리 없이 번진 그림자
     docu: { font: SERIF, w: 500, k: 1.0, fill: '#ffffff', sp: 0.03, sh: [0, 1, 4, 'rgba(0,0,0,0.9)'], twice: true, name: true }, // 다큐: 명조, 말하는 사람 이름은 작게 회색
     tv: { font: GOTHIC, w: 700, k: 0.92, fill: '#ffffff', box: 'rgba(0,0,0,0.66)', pad: [7, 3] }, // 방송 자막: 글자에 맞춘 반투명 검은 상자
     vhs: { font: GOTHIC, w: 800, k: 1.0, fill: '#ffe14d', stroke: 1.8, sCol: '#000000', sh: [1, 1.5, 0, 'rgba(0,0,0,0.85)'] }, // 비디오 자막: 노란 굵은 글자 + 검은 테두리
     scope: { font: GOTHIC, w: 500, k: 0.98, fill: '#f6f6f6', band: 'rgba(0,0,0,0.9)' }, // 레터박스: 화면 아래 검은 띠 안에 흰 글자
   };
-  const SUB = SUBS[Q.get('sub')] ? Q.get('sub') : null;
+  const QSUB = Q.get('sub'), SUB = QSUB === 'orig' ? null : SUBS[QSUB] ? QSUB : 'ott';
+  if (SUB === 'ott') { // 자막 글꼴: Pretendard Medium(자주 쓰는 한글 묶음, OFL). 다 받기 전에는 기기 글꼴로 그리고, 받으면 자막만 다시 그린다
+    const css = document.createElement('style');
+    css.textContent = '@font-face{font-family:"aig-sub";src:url(assets/fonts/Pretendard-Medium.subset.woff2?v=1) format("woff2");font-weight:500;font-style:normal;font-display:swap}';
+    document.head.appendChild(css);
+    if (document.fonts && document.fonts.load) document.fonts.load('500 16px "aig-sub"', '자막').then(() => { for (const k of Array.from(TEXT_CACHE.keys())) if (String(k).startsWith('sub2|')) TEXT_CACHE.delete(k); }).catch(() => {});
+  }
   function subCanvas(str, size, col, S, st) {
     const px = size * st.k * S, m = document.createElement('canvas'), g = m.getContext('2d');
     const white = /^#(fff|ffffff|f4f1e8|f2f5ee)$/i.test(col), fill = white ? st.fill : col; // 흰 자막만 시안의 색으로 (빨강·회색처럼 뜻이 있는 색은 그대로)

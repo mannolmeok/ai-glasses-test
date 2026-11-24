@@ -44,3 +44,10 @@
   model: "minimax_h3"
   date: 2026-11-24
   ships: true
+- path: assets/fonts/Pretendard-Medium.subset.woff2
+  origin: licensed
+  source: {vendor: "Kil Hyung-jin", product: "Pretendard 1.3.9 (Medium, 웹용 subset — 배포판 그대로)", url: https://github.com/orioncactus/pretendard}
+  licence: {id: OFL-1.1}
+  tool: "npm pack pretendard@1.3.9 → dist/web/static/woff2-subset. 자막(넷플릭스 모양) 글꼴. 저작권·사용 허락 글은 assets/fonts/Pretendard-LICENSE.txt"
+  date: 2026-11-24
+  ships: true
