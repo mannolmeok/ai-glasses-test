@@ -5,7 +5,7 @@
   const QS = new URLSearchParams(location.search), ROOM = QS.get('assets') === 'gen';
   if ((QS.get('proctor') !== 'gen' && !ROOM) || typeof THREE === 'undefined') return;
   // ?assets=gen: 시험장 전체(책상·학생·문·사물함)도 생성 모델로. world3d.js가 읽기 전에 모델 묶음을 먼저 싣는다
-  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=8"><\/script>');
+  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=9"><\/script>');
   // 장면마다 한 번: 생성 모델 색 맞추기와 소품 놓기
   let CALM = false;
   function mood(scene, snap) {
@@ -98,8 +98,19 @@
     }
   }
   function restore(m) { if (m._genHid) { for (const o of m._genHid) o.visible = true; m._genHid = null; } if (m.gen2) m.gen2.visible = false; }
+  // ---- 필기구: 연필·샤프·볼펜을 각진 통으로 빚는다 (끝이 원점, 몸통이 +y) ----
+  const PENS = [{ body: 0xe2b23a, tip: 0xd9b88a, lead: 0x2a2a2e, cap: 0xd98a8a, band: 0xb9bcc4 }, { body: 0x26262c, tip: 0xb9bcc4, lead: 0x8a8d94, cap: 0x26262c, band: 0xb9bcc4 }, { body: 0x2f4f9a, tip: 0x2f4f9a, lead: 0xd8d8de, cap: 0x1c2f66, band: 0x1c2f66 }], PM = {};
+  const pm = c => PM[c] || (PM[c] = new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
+  function pen(kind, len) {
+    const k = PENS[((kind | 0) % PENS.length + PENS.length) % PENS.length], g = new THREE.Group(), L = len || 0.15, r = 0.006;
+    const part = (geo, c, y) => { const m = new THREE.Mesh(geo, pm(c)); m.position.y = y; g.add(m); return m; };
+    part(new THREE.ConeGeometry(r * 0.35, 0.007, 6), k.lead, 0.0035).rotation.x = Math.PI;
+    const cone = new THREE.CylinderGeometry(r, r * 0.35, 0.016, 6); part(cone, k.tip, 0.015);
+    part(new THREE.CylinderGeometry(r, r, L - 0.045, 6), k.body, 0.023 + (L - 0.045) / 2); part(new THREE.CylinderGeometry(r * 1.05, r * 1.05, 0.008, 6), k.band, L - 0.018); part(new THREE.CylinderGeometry(r * 0.95, r * 0.95, 0.014, 6), k.cap, L - 0.007);
+    return g;
+  }
   // ---- 학생: 앉은 동작을 뼈대로 돌리고, 그 위에 시험 치는 자세(숙이기·팔 올리기)와 글씨 쓰기·고개 들기를 얹는다 ----
-  const SR = {}, STUS = [], AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+  const DESK_Y = 0.775, _hv = new THREE.Vector3(), PENPOSE = { along: 0.17, down: 0.035, off: 0, back: 0.55, up: 0.8, side: 0.25 }, SR = {}, STUS = [], AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
   function loadRig(name) {
     const R = SR[name] = { ok: false };
     Promise.all([fetch('assets/gen/' + name + '-rig.json' + V).then(r => r.json()), fetch('assets/gen/' + name + '-rig.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {
@@ -119,7 +130,13 @@
     const mesh = new THREE.SkinnedMesh(R.geo, R.mat), bones = [], A = R.rest; mesh.frustumCulled = false;
     for (let j = 0; j < R.nj; j++) { const b = new THREE.Bone(), k = j * 7; b.quaternion.set(A[k], A[k + 1], A[k + 2], A[k + 3]); b.position.set(A[k + 4], A[k + 5], A[k + 6]); bones.push(b); }
     R.meta.parents.forEach((pj, j) => { if (pj < 0) mesh.add(bones[j]); else bones[pj].add(bones[j]); });
-    mesh.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton(bones)); return { mesh, bones };
+    mesh.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton(bones));
+    // 오른손에 필기구: 손뼈 기준으로 손끝 방향·손바닥 방향을 구해, 끝은 손끝 아래 종이 쪽에, 몸통은 손등 위로 비스듬히 기대게
+    const hb = bones[R.J.RightHand], fb = bones[R.J.RightForeArm], hp = new THREE.Vector3().setFromMatrixPosition(hb.matrixWorld), ax = hp.clone().sub(new THREE.Vector3().setFromMatrixPosition(fb.matrixWorld)).normalize();
+    const palm = new THREE.Vector3(0, -1, 0); palm.addScaledVector(ax, -palm.dot(ax)).normalize(); const qi = hb.getWorldQuaternion(new THREE.Quaternion()).invert(); ax.applyQuaternion(qi); palm.applyQuaternion(qi);
+    const side = new THREE.Vector3().crossVectors(ax, palm), dir = ax.clone().multiplyScalar(-PENPOSE.back).addScaledVector(palm, -PENPOSE.up).addScaledVector(side, PENPOSE.side).normalize();
+    const hold = { p: ax.clone().multiplyScalar(PENPOSE.along).addScaledVector(palm, PENPOSE.down).addScaledVector(side, PENPOSE.off), q: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir) };
+    return { mesh, bones, hold, ax };
   }
   const _p = new THREE.Quaternion(), _r = new THREE.Quaternion(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
   function turn(mesh, bone, axis, ang) { // 그 뼈와 아래 뼈들을 몸 기준 축으로 돌린다 (x +: 앞으로 숙이기)
@@ -140,18 +157,23 @@
       turn(m, B[J.Spine01], 'x', s.lean - lift * 0.1 + Math.sin(t * 0.5) * 0.012); turn(m, B[J.Spine02], 'x', Math.sin(t * 1.5) * 0.012); // 숨 turn(m, B[J.neck], 'x', 0.32 - lift * 0.36); turn(m, B[J.Head], 'y', lift * s.look);
       turn(m, B[J.LeftArm], 'x', -0.75); turn(m, B[J.RightArm], 'x', -0.75 + scr * 0.3); turn(m, B[J.LeftForeArm], 'x', -0.4); turn(m, B[J.RightForeArm], 'x', -0.4);
       turn(m, B[J.LeftArm], 'y', 0.3); turn(m, B[J.RightArm], 'y', -0.08 + scr); turn(m, B[J.RightForeArm], 'y', scr * 0.8);
+      // 손이 책상 위에 뜨거나 파묻히지 않게: 손목 높이를 재서 팔을 그만큼 내리거나 올린다 (모델마다 팔 길이가 달라서)
+      if (s.fix === undefined || s.lift0 !== (lift > 0.01)) { s.lift0 = lift > 0.01; s.g.updateMatrixWorld(true); s.fix = [J.LeftHand, J.RightHand].map(j => Math.max(-0.35, Math.min(0.35, (_hv.setFromMatrixPosition(B[j].matrixWorld).y - s.g.position.y - DESK_Y) / 0.3)));
+        s.wr = Math.asin(Math.max(-1, Math.min(1, _hv.copy(s.ax).transformDirection(B[J.RightHand].matrixWorld).y))) + 0.12; s.wr = Math.max(-0.1, Math.min(0.3, s.wr)); } // 손끝이 들려 있으면 손목을 그만큼 숙인다
+      turn(m, B[J.LeftArm], 'x', s.fix[0]); turn(m, B[J.RightArm], 'x', s.fix[1]); turn(m, B[J.LeftHand], 'x', s.wr); turn(m, B[J.RightHand], 'x', s.wr);
     }
   }
   function student(name, x, y, z, yaw, scene) { // world3d.js가 자리마다 부른다. 뼈대 묶음이 아직 안 실렸으면 null (그때는 굳은 모델을 쓴다)
     const R = SR[name]; if (!R || !R.ok || !R.clip.sit) return null;
     const g = new THREE.Group(), sk = skinned(R), base = R.clip.sit.base, chair = gen('chair'), h = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
-    sk.mesh.position.set(-base[0], -base[1], -base[2]); g.add(sk.mesh); if (chair) { chair.position.set(0, 0, -0.05); g.add(chair); }
+    sk.mesh.position.set(-base[0], -base[1], -base[2]); g.add(sk.mesh);
+    const pn = pen(Math.floor(h * 97) % 3, 0.14 + (h * 5 % 1) * 0.02); pn.position.copy(sk.hold.p); pn.quaternion.copy(sk.hold.q); sk.bones[R.J.RightHand].add(pn); if (chair) { chair.position.set(0, 0, -0.05); g.add(chair); }
     g.position.set(x, y, z); g.rotation.y = Math.PI + yaw; scene.add(g);
-    STUS.push({ g, R, mesh: sk.mesh, bones: sk.bones, ph: h * 40, per: 9 + h * 9, lean: 0.24 + (h * 7 % 1) * 0.1, look: ((h * 13 % 1) - 0.5) * 0.5 });
+    STUS.push({ g, R, mesh: sk.mesh, bones: sk.bones, ax: sk.ax, ph: h * 40, per: 9 + h * 9, lean: 0.24 + (h * 7 % 1) * 0.1, look: ((h * 13 % 1) - 0.5) * 0.5 });
     return g;
   }
   window.PROCTOR_GEN = {
-    student,
+    student, pen, _stus: STUS, PENPOSE,
     data: D,
     // 게임이 감독관마다 매 프레임 부른다. true를 돌려주면 상자 몸은 숨기고 생성 모델을 세운다 (시야 부채꼴은 그대로 둔다)
     pose(m, o) {

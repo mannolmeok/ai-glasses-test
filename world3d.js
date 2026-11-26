@@ -454,9 +454,10 @@ const WORLD = (() => {
     const ticket = canvasTex(128, 80, false);
     { const g = ticket.g; g.fillStyle = '#eef4f8'; g.fillRect(0, 0, 128, 80); g.fillStyle = '#2b5f8a'; g.fillRect(0, 0, 128, 16); g.fillStyle = '#ffffff'; g.font = `800 11px ${FONT}`; g.fillText('수 험 표', 44, 12); g.fillStyle = '#2a2838'; g.font = `700 10px ${FONT}`; g.fillText('수험번호 ' + (31000000 + ti * 1234567), 8, 36); g.fillText('성명  김수험', 8, 54); g.fillStyle = '#c9b8a6'; g.fillRect(92, 26, 28, 36); ticket.t.needsUpdate = true; }
     plane(sc, 0.11, 0.07, psx(new THREE.MeshLambertMaterial({ map: ticket.t })), MY.x - 0.24, 0.743, MY.z - 0.16, -Math.PI / 2);
-    const HSK = 0xd9a57c, SLV = 0x3f5285, hands = pivot(sc, 0, 0, 0), HANDS = PXD && PXD.sprites.handL ? PXD.sprites : GEN_ROOM && window.FX ? window.FX.sprites : null;
+    const HSK = 0xd9a57c, SLV = 0x3f5285, hands = pivot(sc, 0, 0, 0), HANDS = PXD && PXD.sprites.handL ? PXD.sprites : null, ARMS = GEN_ROOM && window.MODELS.armL && window.MODELS.armR;
     const hand = (x, z, side) => {
       const g = pivot(hands, x, 0.752, z); g.rotation.y = side * 0.35;
+      if (ARMS) { const a = modelInst(side < 0 ? 'armL' : 'armR'); a.position.set(0, -0.008, 0); g.add(a); return g; } // 생성 시험장: 다른 수험생과 같은 모델의 팔·손
       if (HANDS) { // 위에서 내려다본 손 그림을 책상에 눕힌다
         const d = HANDS[side < 0 ? 'handL' : 'handR'], L = 0.4, m = new THREE.Mesh(new THREE.PlaneGeometry(L * d.w / d.h, L), new THREE.MeshBasicMaterial({ map: pxTex(d.src), alphaTest: 0.5, color: PXD ? 0xe4e0dc : 0xffffff }));
         m.rotation.x = -Math.PI / 2; m.position.set(side < 0 ? -0.07 : 0.03, 0.004, L / 2 - 0.1); g.add(m); return g;
@@ -471,7 +472,9 @@ const WORLD = (() => {
     const watch = pivot(lh, 0, 0.02, 0.06);
     bx(watch, 0.06, 0.012, 0.05, 0x20303a, 0, 0, 0); bx(watch, 0.044, 0.004, 0.036, 0, 0, 0.007, 0, glowMat(0x45e5ee));
     const pen = pivot(sc, MY.x + 0.15, 0.772, MY.z + 0.13); pen.rotation.set(0.3, 0.75, 0);
-    if (!HANDS) { bx(pen, 0.009, 0.009, 0.1, 0x24242c, 0, 0, 0); bx(pen, 0.01, 0.01, 0.018, 0xdedee6, 0, 0, -0.058); } // 그림 손은 펜을 쥐고 있다
+    const gpen = ARMS && window.PROCTOR_GEN && window.PROCTOR_GEN.pen && window.PROCTOR_GEN.pen(1, 0.15);
+    if (gpen) { gpen.rotation.x = Math.PI / 2; gpen.position.set(0, 0, -0.075); pen.add(gpen); } // 생성 시험장: 샤프
+    else if (!HANDS) { bx(pen, 0.009, 0.009, 0.1, 0x24242c, 0, 0, 0); bx(pen, 0.01, 0.01, 0.018, 0xdedee6, 0, 0, -0.058); } // 그림 손은 펜을 쥐고 있다
     // 안경 전 단계의 책상 위 소품: 필통 속 폰 · 지우개 액정 (스캔할 때만 열리고 켜진다)
     const gx = MY.x - 0.25, gz = MY.z - 0.045;
     const pcase = pivot(sc, gx, 0.744, gz); pcase.rotation.y = 0.14; pcase.visible = false;
