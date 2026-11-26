@@ -685,7 +685,8 @@ const WORLD = (() => {
       B.box(0.24, 0.004, 0.32, R.candles ? 0xe8d8b0 : 0xf4f1e6, x - 0.04, 0.743 + fy, dz + 0.02, 0, 0.1);
       const cl = CLOTH[Math.floor(rnd() * CLOTH.length)], hr = HAIRS[Math.floor(rnd() * HAIRS.length)], lean = 0.18 + rnd() * 0.12, sk = SKINS[Math.floor(rnd() * SKINS.length)];
       const front = x === MY.x && z === Math.max(...ROWS.filter(r => r < MY.z - 0.01), -99), mole = m => { if (!front || !m || !(tier.mech.includes('mole') || tier.id === 'bar')) return; const eyes = pivot(sc, x, 1.02, z + 0.56); bx(eyes, 0.035, 0.025, 0.01, 0, -0.045, 0, 0, glowMat(0xff3048)); bx(eyes, 0.035, 0.025, 0.01, 0, 0.045, 0, 0, glowMat(0xff3048)); eyes.visible = false; MOLE = { obj: m, eyes, y0: m.position.y, ry0: m.rotation.y, sx: m.scale.x, sprite: !!m.isSprite || !!(m.material && m.material.map && !m.children.length), sc }; };
-      if (GENR) { const sn = 'stu' + (1 + Math.floor(rnd() * 3)); mole(put(sn, x + (rnd() - 0.5) * 0.04, 0, z + 0.47, 1.2, 1.2, 1.2, STU_YAW[sn] + (rnd() - 0.5) * 0.1)); return; }
+      if (GENR) { const sn = 'stu' + (1 + Math.floor(rnd() * 3)), jx = x + (rnd() - 0.5) * 0.04, jy = (rnd() - 0.5) * 0.1, PG = window.PROCTOR_GEN;
+        mole((PG && PG.student && PG.student(sn, jx, 0, z + 0.47, jy, sc)) || put(sn, jx, 0, z + 0.47, 1.2, 1.2, 1.2, STU_YAW[sn] + jy)); return; } // 뼈대 학생(움직인다). 아직 안 실렸으면 굳은 모델
       if (PXS) { // 내 자리에서 보이는 방향에 맞춰 뒷모습이나 옆모습 그림을 세운다
         const ex = MY.x, ez = MY.z + 0.45, sx = x, sz = z + 0.42, dx = sx - ex, dz = sz - ez, sideOn = z >= MY.z - 0.1;
         const sp = pxSprite((sideOn ? 'ss' : 'sb') + Math.floor(rnd() * 3), sideOn ? 1.2 : 1.22);

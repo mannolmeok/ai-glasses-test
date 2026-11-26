@@ -5,7 +5,7 @@
   const QS = new URLSearchParams(location.search), ROOM = QS.get('assets') === 'gen';
   if ((QS.get('proctor') !== 'gen' && !ROOM) || typeof THREE === 'undefined') return;
   // ?assets=gen: 시험장 전체(책상·학생·문·사물함)도 생성 모델로. world3d.js가 읽기 전에 모델 묶음을 먼저 싣는다
-  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=6"><\/script>');
+  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=8"><\/script>');
   // 장면마다 한 번: 생성 모델 색 맞추기와 소품 놓기
   let CALM = false;
   function mood(scene, snap) {
@@ -44,7 +44,7 @@
     if (sky) { sky.polygonOffset = true; sky.polygonOffsetFactor = -3; sky.polygonOffsetUnits = -8; }
   }
   // ---- 감독관: 뼈대째 실어 뼈를 돌려 움직인다 (자세 몇 장을 이어 붙이던 방식은 팔다리가 찌그러졌다) ----
-  const D = { ok: false }, V = '?v=5';
+  const D = { ok: false }, V = '?v=6';
   Promise.all([fetch('assets/gen/proctor-rig.json' + V).then(r => r.json()), fetch('assets/gen/proctor-rig.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {
     const n = meta.n, nj = meta.joints.length; let o = 0; const take = (bytes) => { const a = buf.slice(o, o + bytes); o += bytes; return a; };
     const p16 = new Int16Array(take(n * 6)), pos = new Float32Array(n * 3); for (let i = 0; i < n * 3; i++) pos[i] = p16[i] / meta.q;
@@ -98,12 +98,65 @@
     }
   }
   function restore(m) { if (m._genHid) { for (const o of m._genHid) o.visible = true; m._genHid = null; } if (m.gen2) m.gen2.visible = false; }
+  // ---- 학생: 앉은 동작을 뼈대로 돌리고, 그 위에 시험 치는 자세(숙이기·팔 올리기)와 글씨 쓰기·고개 들기를 얹는다 ----
+  const SR = {}, STUS = [], AX = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
+  function loadRig(name) {
+    const R = SR[name] = { ok: false };
+    Promise.all([fetch('assets/gen/' + name + '-rig.json' + V).then(r => r.json()), fetch('assets/gen/' + name + '-rig.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {
+      const n = meta.n, nj = meta.joints.length; let o = 0; const take = bytes => { const a = buf.slice(o, o + bytes); o += bytes; return a; };
+      const p16 = new Int16Array(take(n * 6)), pos = new Float32Array(n * 3); for (let i = 0; i < n * 3; i++) pos[i] = p16[i] / meta.q;
+      const uv = new Float32Array(take(n * 8)), idx = new Uint16Array(take(meta.tris * 6)), si = new Uint16Array(new Uint8Array(take(n * 4))), w8 = new Uint8Array(take(n * 4)), sw = new Float32Array(n * 4); for (let i = 0; i < n * 4; i++) sw[i] = w8[i] / 255;
+      R.rest = new Float32Array(take(nj * 28)); R.clip = {};
+      for (const k of Object.keys(meta.clips)) R.clip[k] = Object.assign({ data: new Float32Array(take(meta.clips[k].frames * nj * 28)) }, meta.clips[k]);
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setIndex(new THREE.BufferAttribute(idx, 1));
+      g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4)); g.computeVertexNormals(); R.geo = g;
+      const t = tex('assets/gen/' + name + '-rig.png' + V); t.flipY = false; R.mat = new THREE.MeshLambertMaterial({ map: t, color: DIM, flatShading: true });
+      R.meta = meta; R.nj = nj; R.J = {}; meta.joints.forEach((nm, i) => { R.J[nm] = i; }); R.ok = true;
+    }).catch(e => console.warn('proctor-gen', name, e));
+  }
+  if (ROOM) ['stu1', 'stu2', 'stu3'].forEach(loadRig);
+  function skinned(R) {
+    const mesh = new THREE.SkinnedMesh(R.geo, R.mat), bones = [], A = R.rest; mesh.frustumCulled = false;
+    for (let j = 0; j < R.nj; j++) { const b = new THREE.Bone(), k = j * 7; b.quaternion.set(A[k], A[k + 1], A[k + 2], A[k + 3]); b.position.set(A[k + 4], A[k + 5], A[k + 6]); bones.push(b); }
+    R.meta.parents.forEach((pj, j) => { if (pj < 0) mesh.add(bones[j]); else bones[pj].add(bones[j]); });
+    mesh.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton(bones)); return { mesh, bones };
+  }
+  const _p = new THREE.Quaternion(), _r = new THREE.Quaternion(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
+  function turn(mesh, bone, axis, ang) { // 그 뼈와 아래 뼈들을 몸 기준 축으로 돌린다 (x +: 앞으로 숙이기)
+    if (!bone || !ang) return; _p.identity(); for (let b = bone.parent; b && b !== mesh; b = b.parent) _p.premultiply(b.quaternion);
+    _r.setFromAxisAngle(AX[axis], ang); bone.quaternion.premultiply(_q1.copy(_p).invert().multiply(_r).multiply(_p));
+  }
+  const smooth01 = (a, b, x) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+  function tickStudents(scene, now) {
+    for (let i = STUS.length - 1; i >= 0; i--) {
+      const s = STUS[i]; if (s.g.parent !== scene) { if (!s.g.parent) STUS.splice(i, 1); continue; } if (!s.g.visible) continue;
+      const R = s.R, B = s.bones, c = R.clip.sit, t = now + s.ph, f = (0.5 + Math.sin(t * 0.6) * 0.25) / c.dur * c.frames, // 앉은 동작의 앞부분만 조금씩 오간다 (동작 전체에는 책상에 엎드리다시피 숙이는 구간이 있다)
+         i0 = Math.floor(f) % c.frames, i1 = (i0 + 1) % c.frames, k = f - Math.floor(f), A = c.data;
+      for (let j = 0; j < R.nj; j++) { const a = (i0 * R.nj + j) * 7, b = (i1 * R.nj + j) * 7; _q1.set(A[a], A[a + 1], A[a + 2], A[a + 3]); _q2.set(A[b], A[b + 1], A[b + 2], A[b + 3]); B[j].quaternion.slerpQuaternions(_q1, _q2, k);
+        B[j].position.set(A[a + 4] + (A[b + 4] - A[a + 4]) * k, A[a + 5] + (A[b + 5] - A[a + 5]) * k, A[a + 6] + (A[b + 6] - A[a + 6]) * k); }
+      // 가끔 고개를 들어 생각하다가 다시 쓴다
+      const u = t % s.per, lift = smooth01(s.per - 3.0, s.per - 2.3, u) * (1 - smooth01(s.per - 0.8, s.per - 0.1, u)), w = (1 - lift) * smooth01(-0.2, 0.3, Math.sin(t * 0.45 + s.ph * 3)), J = R.J, m = s.mesh;
+      const scr = Math.sin(t * 11) * 0.03 * w + Math.sin(t * 2.3) * 0.02 * w; // 펜 끝이 오가는 흔들림
+      turn(m, B[J.Spine01], 'x', s.lean - lift * 0.1 + Math.sin(t * 0.5) * 0.012); turn(m, B[J.Spine02], 'x', Math.sin(t * 1.5) * 0.012); // 숨 turn(m, B[J.neck], 'x', 0.32 - lift * 0.36); turn(m, B[J.Head], 'y', lift * s.look);
+      turn(m, B[J.LeftArm], 'x', -0.75); turn(m, B[J.RightArm], 'x', -0.75 + scr * 0.3); turn(m, B[J.LeftForeArm], 'x', -0.4); turn(m, B[J.RightForeArm], 'x', -0.4);
+      turn(m, B[J.LeftArm], 'y', 0.3); turn(m, B[J.RightArm], 'y', -0.08 + scr); turn(m, B[J.RightForeArm], 'y', scr * 0.8);
+    }
+  }
+  function student(name, x, y, z, yaw, scene) { // world3d.js가 자리마다 부른다. 뼈대 묶음이 아직 안 실렸으면 null (그때는 굳은 모델을 쓴다)
+    const R = SR[name]; if (!R || !R.ok || !R.clip.sit) return null;
+    const g = new THREE.Group(), sk = skinned(R), base = R.clip.sit.base, chair = gen('chair'), h = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
+    sk.mesh.position.set(-base[0], -base[1], -base[2]); g.add(sk.mesh); if (chair) { chair.position.set(0, 0, -0.05); g.add(chair); }
+    g.position.set(x, y, z); g.rotation.y = Math.PI + yaw; scene.add(g);
+    STUS.push({ g, R, mesh: sk.mesh, bones: sk.bones, ph: h * 40, per: 9 + h * 9, lean: 0.24 + (h * 7 % 1) * 0.1, look: ((h * 13 % 1) - 0.5) * 0.5 });
+    return g;
+  }
   window.PROCTOR_GEN = {
+    student,
     data: D,
     // 게임이 감독관마다 매 프레임 부른다. true를 돌려주면 상자 몸은 숨기고 생성 모델을 세운다 (시야 부채꼴은 그대로 둔다)
     pose(m, o) {
       const p = o.p;
-      mood(o.scene, o.snap);
+      mood(o.scene, o.snap); tickStudents(o.scene, o.now);
       if (!D.ok || m.robot || m.omega || m.type === 'omega' || o.frisk || o.hold || p.seated || p.sit > 0.01 || p.raise) { restore(m); return false; }
       if (!m.gen2) { m.gen2 = make(o.snap); o.scene.add(m.gen2); }
       const g = m.gen2, u = g.userData, shown = m.root.visible;
