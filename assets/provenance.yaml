@@ -62,3 +62,9 @@
   source: {vendor: "Meshy", product: "위 모델의 텍스처(meshy-n1)를 256px·64색으로 줄이고 밝기 1.35배"}
   date: 2026-11-26
   ships: true
+- path: assets/gen/room-gen.js
+  origin: ai-generated
+  source: {vendor: "Meshy", product: "Image to 3D (meshy-t2.5 smart topology) — 책상·의자·문·사물함·학생 3명(뼈대 + 앉은 동작)"}
+  tool: "기준 그림: 힉스필드(gpt_image_2_6)로 감독관과 같은 그림체의 전신·소품 그림(assets/gen/refs) → Meshy 3D → tools/bake_room.py로 앉아서 숙인 자세·의자와 한 덩어리·텍스처 128~256px로 구움"
+  date: 2026-11-26
+  ships: true

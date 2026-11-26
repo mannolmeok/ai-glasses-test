@@ -3,7 +3,21 @@
 // 고개 돌리기는 목 위 정점만 목뼈 자리를 축으로 돌린다. 앉기·답안지 집기·입실 검사처럼 팔을 쓰는 동작은 아직 상자 모델로 돌아간다.
 (() => {
   'use strict';
-  if (new URLSearchParams(location.search).get('proctor') !== 'gen' || typeof THREE === 'undefined') return;
+  const QS = new URLSearchParams(location.search), ROOM = QS.get('assets') === 'gen';
+  if ((QS.get('proctor') !== 'gen' && !ROOM) || typeof THREE === 'undefined') return;
+  // ?assets=gen: 시험장 전체(책상·학생·문·사물함)도 생성 모델로. world3d.js가 읽기 전에 모델 묶음을 먼저 싣는다
+  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=1"><\/script>');
+  // 분위기 B(흐린 오후): 낮 시험장의 따뜻한 햇빛을 차가운 청록빛 형광등 느낌으로 바꾼다. 장면마다 한 번
+  function mood(scene) {
+    if (!ROOM || scene.userData.moodB) return; scene.userData.moodB = 1;
+    let day = false; scene.traverse(o => { if (o.isDirectionalLight && o.color.getHex() === 0xffe2b8) day = true; }); if (!day) return;
+    scene.traverse(o => {
+      if (o.isDirectionalLight) { o.color.setHex(0xe4f2ea); o.intensity = 1.25; }
+      else if (o.isHemisphereLight) { o.color.setHex(0xd6ebe2); o.groundColor.setHex(0x2e3d37); o.intensity = 1.05; }
+      else if (o.isAmbientLight) { o.color.setHex(0xd4e8de); o.intensity = 0.82; }
+    });
+    if (scene.fog) scene.fog.color.setHex(0x7f948c);
+  }
   const D = { ok: false }, V = '?v=2';
   Promise.all([fetch('assets/gen/proctor-gen.json' + V).then(r => r.json()), fetch('assets/gen/proctor-gen.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {
     const n = meta.n, F = meta.clips.walk.frames + meta.clips.idle.frames; let o = 0;
@@ -48,6 +62,7 @@
     // 게임이 감독관마다 매 프레임 부른다. true를 돌려주면 상자 몸은 숨기고 생성 모델을 세운다 (시야 부채꼴은 그대로 둔다)
     pose(m, o) {
       const p = o.p, s = o.s;
+      mood(o.scene);
       if (!D.ok || m.robot || m.omega || m.type === 'omega' || o.frisk || o.hold || p.seated || p.sit > 0.01 || p.raise) { restore(m); return false; }
       if (!m.gen2) { m.gen2 = make(o.snap); o.scene.add(m.gen2); }
       const g = m.gen2, u = g.userData, shown = m.root.visible;
