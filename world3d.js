@@ -613,11 +613,12 @@ const WORLD = (() => {
       }
       // 앞: 칠판·시계, 오른쪽: 문·안내문, 뒤: 사물함
       if (R.board !== 'none') {
-        B.box(5.6, 1.5, 0.08, R.board === 'screen' ? 0x0c0e16 : 0x6b4a30, 0, 1.6, Z0 + 0.06);
+        const genBoard = GEN_ROOM && window.MODELS.board && R.board !== 'screen' && !R.candles && R.sky !== 'space'; // 생성 시험장: 칠판 틀·받침은 생성 모델이 맡는다 (proctor-gen.js)
+        if (!genBoard) B.box(5.6, 1.5, 0.08, R.board === 'screen' ? 0x0c0e16 : 0x6b4a30, 0, 1.6, Z0 + 0.06);
         plane(sc, 5.4, 1.32, psx(new THREE.MeshLambertMaterial({ map: boardTex(R.board, tier.lines.length ? tier.lines : [tier.name]), emissive: R.board === 'screen' ? 0x223344 : 0x000000 })), 0, 1.6, Z0 + 0.105);
-        B.box(5.6, 0.05, 0.14, 0x6b4a30, 0, 0.84, Z0 + 0.12);
+        if (!genBoard) B.box(5.6, 0.05, 0.14, 0x6b4a30, 0, 0.84, Z0 + 0.12);
       }
-      if (R.tv) B.box(1.1, 0.7, 0.1, 0x1c1d22, 3.6, 2.35, Z0 + 0.1);
+      if (R.tv && !(GEN_ROOM && window.MODELS.tv && !R.candles && R.sky !== 'space')) B.box(1.1, 0.7, 0.1, 0x1c1d22, 3.6, 2.35, Z0 + 0.1); // 생성 시험장: TV는 생성 모델로 (proctor-gen.js)
       if (R.speaker) { B.box(0.4, 0.5, 0.2, 0x2a2a30, X1 - 0.3, HY - 0.5, Z0 + 2.6); B.box(0.3, 0.3, 0.02, 0x15151a, X1 - 0.41, HY - 0.5, Z0 + 2.6); }
       if (R.banner) plane(sc, 3.2, 0.6, new THREE.MeshBasicMaterial({ map: bannerTex(R.banner) }), 0, HY - 0.45, Z0 + 0.11);
       const clockT = canvasTex(64, 64, false);

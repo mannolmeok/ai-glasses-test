@@ -6,27 +6,21 @@
   const QS = new URLSearchParams(location.search), ROOM = QS.get('assets') === 'gen';
   if ((QS.get('proctor') !== 'gen' && !ROOM) || typeof THREE === 'undefined') return;
   // ?assets=gen: 시험장 전체(책상·학생·문·사물함)도 생성 모델로. world3d.js가 읽기 전에 모델 묶음을 먼저 싣는다
-  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=4"><\/script>');
-  // 분위기 B(흐린 오후): 낮 시험장의 따뜻한 햇빛을 차가운 청록빛 형광등 느낌으로 바꾼다. 장면마다 한 번
+  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=5"><\/script>');
+  // 장면마다 한 번: 생성 모델 색 맞추기와 소품 놓기
   function mood(scene) {
     if (!ROOM || scene.userData.moodB) return; scene.userData.moodB = 1;
-    let day = false; scene.traverse(o => { if (o.isDirectionalLight && o.color.getHex() === 0xffe2b8) day = true; }); if (!day) return;
-    scene.traverse(o => {
-      if (o.isDirectionalLight) { o.color.setHex(0xe4f2ea); o.intensity = 1.25; }
-      else if (o.isHemisphereLight) { o.color.setHex(0xd6ebe2); o.groundColor.setHex(0x2e3d37); o.intensity = 1.05; }
-      else if (o.isAmbientLight) { o.color.setHex(0xd4e8de); o.intensity = 0.82; }
-    });
-    if (scene.fog) scene.fog.color.setHex(0x7f948c);
+    // 밝은 낮 교실: 게임의 낮 조명을 그대로 쓴다 (어두운 청록 분위기는 뺐다)
     decor(scene);
   }
   const b64 = b => { const t = atob(b), a = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) a[i] = t.charCodeAt(i); return a.buffer; };
   const tex = src => { const t = new THREE.Texture(), img = new Image(); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; img.onload = () => { t.image = img; t.needsUpdate = true; }; img.src = src; return t; };
   // 게임에 자리가 없는 것들은 장면에 직접 손댄다: 창밖, 벽 깜빡임, TV·칠판 틀·시계·필통을 생성 모델로
-  const MESH = {}, DIM = 0xc6c6c6;
+  const MESH = {}, DIM = 0xdcdcdc;
   function gen(name) { // window.MODELS의 모델 하나를 메시로 (같은 모델은 도형·재질을 함께 쓴다)
     const d = window.MODELS && window.MODELS[name]; if (!d) return null;
     if (!MESH[name]) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(b64(d.pos)), 3)); g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(b64(d.uv)), 2)); g.setIndex(new THREE.BufferAttribute(new Uint16Array(b64(d.idx)), 1)); g.computeBoundingBox();
-      const t = tex(d.tex); t.flipY = true; MESH[name] = { g, m: new THREE.MeshLambertMaterial({ map: t, flatShading: true, color: 0xc6c6c6 }) }; }
+      const t = tex(d.tex); t.flipY = true; MESH[name] = { g, m: new THREE.MeshLambertMaterial({ map: t, flatShading: true, color: 0xdcdcdc }) }; }
     return new THREE.Mesh(MESH[name].g, MESH[name].m);
   }
   function decor(scene) {
@@ -40,12 +34,10 @@
       if (Math.abs(o.scale.x - 2.15) < 0.01 && Math.abs(o.rotation.y + Math.PI / 2) < 0.01) door = o;
       if (gp && gp.width === 2 && gp.height === 1.5 && m && m.isMeshBasicMaterial && m.map && m.fog === false) sky = m;
       if (gp && gp.width === 0.42 && gp.height === 0.42 && m && m.transparent) clock = o;
-      if (gp && gp.width === 1.9 && gp.height === 1.3 && m && m.blending === THREE.AdditiveBlending) { m.color.setHex(0xcfe6dc); m.opacity = 0.07; }
       // 벽 그림이 벽 상자와 거의 같은 자리에 있어 번갈아 그려지며 깜빡였다: 벽 그림이 벽 상자보다 항상 앞에 그려지게 한다 (창밖 그림은 그보다 더 앞)
       if (gp && gp.width >= 9 && gp.height >= 2.9 && Math.abs(o.rotation.x) < 0.01 && m && m.map && Math.abs(o.position.y - gp.height / 2) < 0.01) {
         m.polygonOffset = true; m.polygonOffsetFactor = -1; m.polygonOffsetUnits = -2; }
     });
-    if (sky && FXT && FXT.sky) { sky.map = tex(FXT.sky); sky.map.flipY = true; sky.color.setHex(0xe8f0ec); sky.needsUpdate = true; }
     if (sky) { sky.polygonOffset = true; sky.polygonOffsetFactor = -3; sky.polygonOffsetUnits = -8; }
     if (door) {
       const z0 = door.position.z - 1.4, tv = gen('tv'), bd = gen('board');
@@ -63,7 +55,7 @@
         c.scale.set(0.158, 0.034, 0.078); c.position.set(0, 0.012, 0.036); lid.add(c); }
     }
   }
-  const D = { ok: false }, V = '?v=3';
+  const D = { ok: false }, V = '?v=4';
   Promise.all([fetch('assets/gen/proctor-gen.json' + V).then(r => r.json()), fetch('assets/gen/proctor-gen.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {
     const n = meta.n, F = meta.clips.walk.frames + meta.clips.idle.frames; let o = 0;
     D.pos = new Int16Array(buf, o, F * n * 3); o += F * n * 6;
@@ -77,7 +69,7 @@
   }).catch(e => console.warn('proctor-gen', e));
   function material(snap) { // 게임의 다른 모델처럼 화면 격자에 정점을 맞춰 떨리게 (PSX 느낌)
     if (D.mat) return D.mat;
-    const m = new THREE.MeshLambertMaterial({ map: D.tex, color: ROOM ? 0xd2d2d2 : 0xffffff, flatShading: true });
+    const m = new THREE.MeshLambertMaterial({ map: D.tex, color: 0xe6e6e6, flatShading: true });
     m.onBeforeCompile = sh => { sh.uniforms.snapRes = { value: snap };
       sh.vertexShader = 'uniform vec2 snapRes;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n  gl_Position.xy = floor(gl_Position.xy / gl_Position.w * snapRes + 0.5) / snapRes * gl_Position.w;'); };
     m.customProgramCacheKey = () => 'psx-proctor-gen';
