@@ -591,7 +591,7 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
   }
 }
 function startExam(ti) {
-  if (G.audit) { G.mail = null; goHub('mail'); return true; } // 재시험 통보가 와 있으면 다른 시험은 못 본다: 통보부터 읽게 한다
+  if (G.audit && !STATE.titleBuild) { G.mail = null; goHub('mail'); return true; } // 타이틀 뒤 배경 시험장은 통보와 상관없이 만든다 (막으면 타이틀이 검은 화면에서 멈춘다). 재시험 통보가 와 있으면 다른 시험은 못 본다: 통보부터 읽게 한다
   ti = clamp(ti, 0, G.unlocked - 1); if (!CHECKED) netCountPlay(); if (!CHECKED && !STATE.titleBuild && netOn()) runPending(1); // 시험 한 번 = 한 판 (타이틀 뒤에 깔리는 시험장은 세지 않는다)
   syncGear();
   const T = TIERS[ti], fee = examFee(T);
