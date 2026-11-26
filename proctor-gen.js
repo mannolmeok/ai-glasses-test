@@ -5,7 +5,7 @@
   const QS = new URLSearchParams(location.search), ROOM = QS.get('assets') === 'gen';
   if ((QS.get('proctor') !== 'gen' && !ROOM) || typeof THREE === 'undefined') return;
   // ?assets=gen: 시험장 전체(책상·학생·문·사물함)도 생성 모델로. world3d.js가 읽기 전에 모델 묶음을 먼저 싣는다
-  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=5"><\/script>');
+  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=6"><\/script>');
   // 장면마다 한 번: 생성 모델 색 맞추기와 소품 놓기
   let CALM = false;
   function mood(scene, snap) {
@@ -19,7 +19,7 @@
   const b64 = b => { const t = atob(b), a = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) a[i] = t.charCodeAt(i); return a.buffer; };
   const smooth = t => { t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4; if (t.image) t.needsUpdate = true; }; // 점 그대로 찍는 텍스처는 멀리서 볼 때 무늬가 자글자글 움직인다: 부드럽게 줄여 찍는다
   const tex = src => { const t = new THREE.Texture(), img = new Image(); smooth(t); img.onload = () => { t.image = img; t.needsUpdate = true; }; img.src = src; return t; };
-  // 게임에 자리가 없는 것들은 장면에 직접 손댄다: 창밖, 벽 깜빡임, TV·칠판 틀·시계·필통을 생성 모델로
+  // 장면에 직접 손대는 것은 색 맞추기와 벽 깜빡임뿐이다. 소품(TV·칠판 틀·시계·필통)은 world3d.js가 직접 세운다
   const MESH = {}, DIM = 0xdcdcdc, GRIP = { along: 0.06, palm: 0.024 };
   function gen(name) { // window.MODELS의 모델 하나를 메시로 (같은 모델은 도형·재질을 함께 쓴다)
     const d = window.MODELS && window.MODELS[name]; if (!d) return null;
@@ -28,38 +28,20 @@
     return new THREE.Mesh(MESH[name].g, MESH[name].m);
   }
   function decor(scene) {
-    const FXT = window.FX && window.FX.tex; let door = null, sky = null, clock = null, pcase = null;
+    const FXT = window.FX && window.FX.tex; let sky = null;
     scene.traverse(o => { // 생성 모델(게임이 세운 책상·학생·문·사물함)은 그림에 명암이 이미 있어서 조명을 그대로 받으면 색이 하얗게 뜬다: 받는 빛을 줄인다
       const m = o.isMesh && o.material; if (m && m.isMeshLambertMaterial && m.color.getHex() === 0xffffff && o.geometry && !o.geometry.parameters && o.geometry.index && o.geometry.attributes.uv && !m.userData.dim) { m.userData.dim = 1; m.color.setHex(DIM); if (m.map) smooth(m.map); }
     });
     const calmTex = () => scene.traverse(o => { const t = o.isMesh && o.material && o.material.map; if (t && !t.userData.calm && t.image && /assets\/gen\//.test(t.image.src || '')) { t.userData.calm = 1; smooth(t); } }); // 생성 벽·바닥 그림 (그림이 다 실린 뒤에 알아볼 수 있다)
     calmTex(); [300, 1200, 3000].forEach(ms => setTimeout(calmTex, ms));
     scene.traverse(o => {
-      if (o.isGroup && o.parent === scene && Math.abs(o.position.y - 0.744) < 0.001 && Math.abs(o.rotation.y - 0.14) < 0.001 && o.children.some(c => c.isGroup && Math.abs(c.position.z + 0.035) < 0.001)) pcase = o;
       if (!o.isMesh) return; const gp = o.geometry && o.geometry.parameters, m = o.material;
-      if (Math.abs(o.scale.x - 2.15) < 0.01 && Math.abs(o.rotation.y + Math.PI / 2) < 0.01) door = o;
       if (gp && gp.width === 2 && gp.height === 1.5 && m && m.isMeshBasicMaterial && m.map && m.fog === false) sky = m;
-      if (gp && gp.width === 0.42 && gp.height === 0.42 && m && m.transparent) clock = o;
       // 벽 그림이 벽 상자와 거의 같은 자리에 있어 번갈아 그려지며 깜빡였다: 벽 그림이 벽 상자보다 항상 앞에 그려지게 한다 (창밖 그림은 그보다 더 앞)
       if (gp && gp.width >= 9 && gp.height >= 2.9 && Math.abs(o.rotation.x) < 0.01 && m && m.map && Math.abs(o.position.y - gp.height / 2) < 0.01) {
         m.polygonOffset = true; m.polygonOffsetFactor = -1; m.polygonOffsetUnits = -2; }
     });
     if (sky) { sky.polygonOffset = true; sky.polygonOffsetFactor = -3; sky.polygonOffsetUnits = -8; }
-    if (door) {
-      const z0 = door.position.z - 1.4, tv = gen('tv'), bd = gen('board');
-      if (tv) { // 원래 검은 TV 상자(1.1 × 0.7)를 TV 몸통이 딱 덮게: 몸통(앞쪽 정점들)의 크기를 재서 맞춘다
-        const P = tv.geometry.attributes.position, bb = tv.geometry.boundingBox, zc = bb.max.z * 0.6; let x0 = 9, x1 = -9, y0 = 9, y1 = -9;
-        for (let i = 0; i < P.count; i++) if (P.getZ(i) > zc) { x0 = Math.min(x0, P.getX(i)); x1 = Math.max(x1, P.getX(i)); y0 = Math.min(y0, P.getY(i)); y1 = Math.max(y1, P.getY(i)); }
-        const sx = 1.16 / (x1 - x0), sy = 0.76 / (y1 - y0), sz = 0.42 / bb.max.z;
-        tv.scale.set(sx, sy, sz); tv.position.set(3.6 - (x0 + x1) / 2 * sx, 2.35 - (y0 + y1) / 2 * sy, z0 + 0.02); scene.add(tv); }
-      if (bd) { bd.scale.set(5.92, 1.7, 0.2); bd.position.set(0, 1.565, z0 + 0.045); scene.add(bd); } // 칠판 틀과 분필 받침: 글씨는 게임이 그리는 판이 앞에서 그대로 보인다
-    }
-    if (clock) { const c = gen('clock'); if (c) { c.scale.set(0.54, 0.54, 0.07); c.position.set(clock.position.x, clock.position.y, clock.position.z - 0.045); scene.add(c); } }
-    if (pcase) { // 필통: 뚜껑(스캔할 때 열리는 부분)을 생성 모델로. 열리고 떨리는 동작은 게임 것 그대로 따라간다
-      const lid = pcase.children.find(c => c.isGroup), c = gen('pcase');
-      if (lid && c) { lid.children.forEach(x => { if (x.isMesh) x.visible = false; }); pcase.children.forEach(x => { if (x.isMesh && x.geometry && !(x.geometry.parameters && x.geometry.parameters.width) && Math.abs(x.scale.y - 0.024) < 0.001) x.scale.y = 0.02; });
-        c.scale.set(0.158, 0.034, 0.078); c.position.set(0, 0.012, 0.036); lid.add(c); }
-    }
   }
   // ---- 감독관: 뼈대째 실어 뼈를 돌려 움직인다 (자세 몇 장을 이어 붙이던 방식은 팔다리가 찌그러졌다) ----
   const D = { ok: false }, V = '?v=5';

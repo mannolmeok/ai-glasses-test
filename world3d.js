@@ -109,7 +109,7 @@ const WORLD = (() => {
   }
   const GEN_ROOM = (new URLSearchParams(location.search).get('assets') || CONFIG.room_assets) === 'gen' && window.MODELS && window.MODELS.desk; // 시험장을 생성 모델로
   const DESK_YAW = 0, STU_YAW = { stu1: Math.PI + 0.878, stu2: Math.PI + 0.95, stu3: Math.PI + 0.9 }, PROCTOR_YAW = 0; // 모델이 비스듬히 만들어져서 Blender 위에서 본 각도로 맞췄다 // 생성 모델이 바라보는 방향 보정
-  const MODEL_CACHE = {};
+  const MODEL_CACHE = {}; let GENWIN = null;
   function modelInst(name) { // 같은 모델을 여러 번 세울 때 도형과 재질을 함께 쓴다
     if (!(name in MODEL_CACHE)) MODEL_CACHE[name] = modelMesh(name);
     const b = MODEL_CACHE[name]; return b ? new THREE.Mesh(b.geometry, b.material) : null;
@@ -475,9 +475,12 @@ const WORLD = (() => {
     // 안경 전 단계의 책상 위 소품: 필통 속 폰 · 지우개 액정 (스캔할 때만 열리고 켜진다)
     const gx = MY.x - 0.25, gz = MY.z - 0.045;
     const pcase = pivot(sc, gx, 0.744, gz); pcase.rotation.y = 0.14; pcase.visible = false;
-    bx(pcase, 0.15, 0.024, 0.07, 0x2c3a5c, 0, 0.012, 0); bx(pcase, 0.142, 0.002, 0.062, 0x08080b, 0, 0.0245, 0);
+    const genCase = GEN_ROOM && window.MODELS.pcase ? modelInst('pcase') : null; // 생성 시험장: 필통 뚜껑은 생성 모델
+    bx(pcase, 0.15, genCase ? 0.02 : 0.024, 0.07, 0x2c3a5c, 0, genCase ? 0.01 : 0.012, 0); bx(pcase, 0.142, 0.002, 0.062, 0x08080b, 0, 0.0245, 0);
     const caseT = canvasTex(260, 104, true), caseFace = plane(pcase, 0.134, 0.0536, new THREE.MeshBasicMaterial({ map: caseT.t, fog: false }), 0, 0.0262, 0, -Math.PI / 2);
-    const lid = pivot(pcase, 0, 0.026, -0.035); bx(lid, 0.152, 0.008, 0.072, 0x3a4a72, 0, 0.004, 0.036); bx(lid, 0.146, 0.003, 0.004, 0xc9b458, 0, 0.004, 0.071);
+    const lid = pivot(pcase, 0, 0.026, -0.035);
+    if (genCase) { genCase.scale.set(0.158, 0.034, 0.078); genCase.position.set(0, 0.012, 0.036); lid.add(genCase); }
+    else { bx(lid, 0.152, 0.008, 0.072, 0x3a4a72, 0, 0.004, 0.036); bx(lid, 0.146, 0.003, 0.004, 0xc9b458, 0, 0.004, 0.071); }
     const eraser = pivot(sc, gx + 0.01, 0.744, gz); eraser.rotation.y = 0.2; eraser.visible = false;
     bx(eraser, 0.035, 0.026, 0.044, 0xf4f1e8, -0.048, 0.013, 0); bx(eraser, 0.082, 0.028, 0.046, 0x2b5f8a, 0.01, 0.014, 0); bx(eraser, 0.068, 0.002, 0.036, 0x0b0b0e, 0.01, 0.0285, 0);
     const lcdT = canvasTex(128, 64, false), lcdFace = plane(eraser, 0.062, 0.031, new THREE.MeshBasicMaterial({ map: lcdT.t, fog: false }), 0.01, 0.0298, 0, -Math.PI / 2);
@@ -600,15 +603,21 @@ const WORLD = (() => {
         plane(sc, X1 - X0, HY, wm((X1 - X0) / 3), 0, HY / 2, Z0 + 0.004); plane(sc, X1 - X0, HY, wm((X1 - X0) / 3), 0, HY / 2, Z1 - 0.004, 0, Math.PI);
         plane(sc, Z1 - Z0, HY, wm((Z1 - Z0) / 3), X0 + 0.004, HY / 2, (Z0 + Z1) / 2, 0, Math.PI / 2); plane(sc, Z1 - Z0, HY, wm((Z1 - Z0) / 3), X1 - 0.004, HY / 2, (Z0 + Z1) / 2, 0, -Math.PI / 2);
       }
-      if (!R.candles) for (let i = 0; i * 3 < Z1 - Z0 - 1; i++) for (let x = X0 + 2.2; x < X1 - 1; x += 2.4) B.box(0.5, 0.04, 1.2, R.sky === 'glitch' ? 0xd8a8ff : 0xfafaf4, x, HY - 0.03, Z0 + 2 + i * 3);
+      const genProp = GENW; // 생성 시험장: 벽·천장에 붙는 소품도 생성 모델로 세운다
+      if (!R.candles) for (let i = 0; i * 3 < Z1 - Z0 - 1; i++) for (let x = X0 + 2.2; x < X1 - 1; x += 2.4) {
+        const lm = genProp && modelInst('light'); // 천장 형광등
+        if (lm) { lm.scale.set(0.34, 0.12, 1.25); lm.position.set(x, HY - 0.085, Z0 + 2 + i * 3); sc.add(lm); }
+        else B.box(0.5, 0.04, 1.2, R.sky === 'glitch' ? 0xd8a8ff : 0xfafaf4, x, HY - 0.03, Z0 + 2 + i * 3);
+      }
       // 창문 (왼쪽 벽)
       const skyMat = new THREE.MeshBasicMaterial({ map: skyTex(R.sky), fog: false });
       const shine = new THREE.MeshBasicMaterial({ color: R.sky === 'dusk' ? 0xff9a50 : 0xffeab0, transparent: true, opacity: ['night', 'space', 'hell', 'glitch', 'void'].includes(R.sky) ? 0 : 0.2, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
       for (let z = Z0 + 1.8; z < Z1 - 1; z += 2.6) {
         plane(sc, 2.0, 1.5, skyMat, X0 + 0.02, 1.85, z, 0, Math.PI / 2);
-        const fr = R.sky === 'space' ? 0x8a94a8 : R.candles ? 0x2a1010 : 0xf2efe6;
-        for (const dz of [-1.04, 0, 1.04]) B.box(0.08, 1.62, 0.08, fr, X0 + 0.05, 1.85, z + dz);
-        B.box(0.08, 0.08, 2.16, fr, X0 + 0.05, 2.64, z); B.box(0.16, 0.06, 2.16, fr, X0 + 0.08, 1.07, z);
+        const fr = R.sky === 'space' ? 0x8a94a8 : R.candles ? 0x2a1010 : 0xf2efe6, wf = genProp && window.FX.sprites && window.FX.sprites.window;
+        if (wf) plane(sc, wf.w, wf.h, GENWIN || (GENWIN = new THREE.MeshLambertMaterial({ map: pxTex(wf.src), alphaTest: 0.5, color: 0xe6e6e6 })), X0 + 0.06, wf.y, z, 0, Math.PI / 2); // 창틀 그림 한 장 (유리 자리는 뚫려 있어 창밖이 보인다)
+        else { for (const dz of [-1.04, 0, 1.04]) B.box(0.08, 1.62, 0.08, fr, X0 + 0.05, 1.85, z + dz);
+          B.box(0.08, 0.08, 2.16, fr, X0 + 0.05, 2.64, z); B.box(0.16, 0.06, 2.16, fr, X0 + 0.08, 1.07, z); }
         if (shine.opacity > 0) plane(sc, 1.9, 1.3, shine, X0 + 2.0, 0.012, z + 0.4, -Math.PI / 2);
       }
       // 앞: 칠판·시계, 오른쪽: 문·안내문, 뒤: 사물함
@@ -617,12 +626,20 @@ const WORLD = (() => {
         if (!genBoard) B.box(5.6, 1.5, 0.08, R.board === 'screen' ? 0x0c0e16 : 0x6b4a30, 0, 1.6, Z0 + 0.06);
         plane(sc, 5.4, 1.32, psx(new THREE.MeshLambertMaterial({ map: boardTex(R.board, tier.lines.length ? tier.lines : [tier.name]), emissive: R.board === 'screen' ? 0x223344 : 0x000000 })), 0, 1.6, Z0 + 0.105);
         if (!genBoard) B.box(5.6, 0.05, 0.14, 0x6b4a30, 0, 0.84, Z0 + 0.12);
+        else { const bd = modelInst('board'); bd.scale.set(5.92, 1.7, 0.2); bd.position.set(0, 1.565, Z0 + 0.045); sc.add(bd); } // 칠판 틀과 분필 받침: 글씨는 위의 판이 앞에서 그대로 보인다
       }
-      if (R.tv && !(GEN_ROOM && window.MODELS.tv && !R.candles && R.sky !== 'space')) B.box(1.1, 0.7, 0.1, 0x1c1d22, 3.6, 2.35, Z0 + 0.1); // 생성 시험장: TV는 생성 모델로 (proctor-gen.js)
-      if (R.speaker) { B.box(0.4, 0.5, 0.2, 0x2a2a30, X1 - 0.3, HY - 0.5, Z0 + 2.6); B.box(0.3, 0.3, 0.02, 0x15151a, X1 - 0.41, HY - 0.5, Z0 + 2.6); }
+      if (R.tv && genProp && window.MODELS.tv) { // TV: 몸통(앞쪽 정점들)이 원래 자리(1.1 × 0.7)를 딱 채우게 크기를 재서 맞춘다
+        const tv = modelInst('tv'), P = tv.geometry.attributes.position; tv.geometry.computeBoundingBox(); const bb = tv.geometry.boundingBox, zc = bb.max.z * 0.6; let x0 = 9, x1 = -9, y0 = 9, y1 = -9;
+        for (let i = 0; i < P.count; i++) if (P.getZ(i) > zc) { x0 = Math.min(x0, P.getX(i)); x1 = Math.max(x1, P.getX(i)); y0 = Math.min(y0, P.getY(i)); y1 = Math.max(y1, P.getY(i)); }
+        const sx = 1.16 / (x1 - x0), sy = 0.76 / (y1 - y0); tv.scale.set(sx, sy, 0.42 / bb.max.z); tv.position.set(3.6 - (x0 + x1) / 2 * sx, 2.35 - (y0 + y1) / 2 * sy, Z0 + 0.02); sc.add(tv);
+      } else if (R.tv) B.box(1.1, 0.7, 0.1, 0x1c1d22, 3.6, 2.35, Z0 + 0.1);
+      const spk = R.speaker && genProp && modelInst('speaker');
+      if (spk) { spk.scale.set(0.42, 0.5, 0.4); spk.position.set(X1 - 0.22, HY - 0.5, Z0 + 2.6); spk.rotation.y = -Math.PI / 2; sc.add(spk); }
+      else if (R.speaker) { B.box(0.4, 0.5, 0.2, 0x2a2a30, X1 - 0.3, HY - 0.5, Z0 + 2.6); B.box(0.3, 0.3, 0.02, 0x15151a, X1 - 0.41, HY - 0.5, Z0 + 2.6); }
       if (R.banner) plane(sc, 3.2, 0.6, new THREE.MeshBasicMaterial({ map: bannerTex(R.banner) }), 0, HY - 0.45, Z0 + 0.11);
       const clockT = canvasTex(64, 64, false);
       plane(sc, 0.42, 0.42, new THREE.MeshBasicMaterial({ map: clockT.t, transparent: true }), 0, HY - 0.38, Z0 + 0.11);
+      if (genProp && window.MODELS.clock) { const c = modelInst('clock'); c.scale.set(0.54, 0.54, 0.07); c.position.set(0, HY - 0.38, Z0 + 0.065); sc.add(c); } // 시계 몸통: 바늘은 위의 판에 게임이 그린다
       clockKeep = clockT;
       if (GEN_ROOM && !R.candles && R.sky !== 'space') { const m = modelInst('door'); if (m) { m.position.set(X1 - 0.09, 0, Z0 + 1.4); m.scale.setScalar(2.15); m.rotation.y = -Math.PI / 2; sc.add(m); } const pd = modelInst('podium'); if (pd) { pd.position.set(0.6, 0, Z0 + 0.7); pd.scale.setScalar(1.08); pd.rotation.y = Math.PI; sc.add(pd); } }
       else if (tier.id === 'bar') { // 변호사시험: 열리는 문. 열리면 복도 불빛이 들어온다 (2교시에 앞자리를 데리고 나가는 문)
