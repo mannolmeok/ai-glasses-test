@@ -6,7 +6,7 @@
   const QS = new URLSearchParams(location.search), ROOM = QS.get('assets') === 'gen';
   if ((QS.get('proctor') !== 'gen' && !ROOM) || typeof THREE === 'undefined') return;
   // ?assets=gen: 시험장 전체(책상·학생·문·사물함)도 생성 모델로. world3d.js가 읽기 전에 모델 묶음을 먼저 싣는다
-  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=1"><\/script>');
+  if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=2"><\/script>');
   // 분위기 B(흐린 오후): 낮 시험장의 따뜻한 햇빛을 차가운 청록빛 형광등 느낌으로 바꾼다. 장면마다 한 번
   function mood(scene) {
     if (!ROOM || scene.userData.moodB) return; scene.userData.moodB = 1;
@@ -17,6 +17,26 @@
       else if (o.isAmbientLight) { o.color.setHex(0xd4e8de); o.intensity = 0.82; }
     });
     if (scene.fog) scene.fog.color.setHex(0x7f948c);
+    decor(scene);
+  }
+  const b64 = b => { const t = atob(b), a = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) a[i] = t.charCodeAt(i); return a.buffer; };
+  const tex = src => { const t = new THREE.Texture(), img = new Image(); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; img.onload = () => { t.image = img; t.needsUpdate = true; }; img.src = src; return t; };
+  // 게임에 자리가 없는 것들은 장면에 직접 손댄다: 창밖을 흐린 하늘로, 바닥 햇빛 얼룩을 옅게, 벽걸이 TV를 생성 모델로
+  function decor(scene) {
+    const FXT = window.FX && window.FX.tex; let door = null, sky = null;
+    scene.traverse(o => {
+      if (!o.isMesh) return; const gp = o.geometry && o.geometry.parameters, m = o.material;
+      if (Math.abs(o.scale.x - 2.15) < 0.01 && Math.abs(o.rotation.y + Math.PI / 2) < 0.01) door = o;
+      if (gp && gp.width === 2 && gp.height === 1.5 && m && m.isMeshBasicMaterial && m.map && m.fog === false) sky = m;
+      if (gp && gp.width === 1.9 && gp.height === 1.3 && m && m.blending === THREE.AdditiveBlending) { m.color.setHex(0xcfe6dc); m.opacity = 0.07; }
+    });
+    if (sky && FXT && FXT.sky) { sky.map = tex(FXT.sky); sky.color.setHex(0xe8f0ec); sky.needsUpdate = true; }
+    const d = window.MODELS && window.MODELS.tv;
+    if (door && d) {
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(b64(d.pos)), 3)); g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(b64(d.uv)), 2)); g.setIndex(new THREE.BufferAttribute(new Uint16Array(b64(d.idx)), 1));
+      const tv = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex(d.tex), flatShading: true })), z0 = door.position.z - 1.4;
+      tv.scale.setScalar(0.95); tv.position.set(3.6, 2.3, z0 + 0.1); scene.add(tv);
+    }
   }
   const D = { ok: false }, V = '?v=2';
   Promise.all([fetch('assets/gen/proctor-gen.json' + V).then(r => r.json()), fetch('assets/gen/proctor-gen.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {

@@ -68,3 +68,21 @@
   tool: "기준 그림: 힉스필드(gpt_image_2_6)로 감독관과 같은 그림체의 전신·소품 그림(assets/gen/refs) → Meshy 3D → tools/bake_room.py로 앉아서 숙인 자세·의자와 한 덩어리·텍스처 128~256px로 구움"
   date: 2026-11-26
   ships: true
+- path: assets/gen/wall.png
+  origin: ai-generated
+  source: {vendor: "Higgsfield", product: "gpt_image_2_6 — 교실 벽(위 회녹색 회벽, 아래 청록 징두리)"}
+  tool: "가장자리를 이어 붙여 타일로 만들고 256px·48~64색으로 줄임"
+  date: 2026-11-26
+  ships: true
+- path: assets/gen/floor.png
+  origin: ai-generated
+  source: {vendor: "Higgsfield", product: "gpt_image_2_6 — 교실 나무 마루"}
+  tool: "가장자리를 이어 붙여 타일로 만들고 256px·48~64색으로 줄임"
+  date: 2026-11-26
+  ships: true
+- path: assets/gen/sky.png
+  origin: ai-generated
+  source: {vendor: "Higgsfield", product: "gpt_image_2_6 — 창밖 흐린 하늘과 아파트"}
+  tool: "가장자리를 이어 붙여 타일로 만들고 256px·48~64색으로 줄임"
+  date: 2026-11-26
+  ships: true
