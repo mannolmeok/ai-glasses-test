@@ -55,50 +55,60 @@
         c.scale.set(0.158, 0.034, 0.078); c.position.set(0, 0.012, 0.036); lid.add(c); }
     }
   }
-  const D = { ok: false }, V = '?v=4';
-  Promise.all([fetch('assets/gen/proctor-gen.json' + V).then(r => r.json()), fetch('assets/gen/proctor-gen.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {
-    const n = meta.n, F = meta.clips.walk.frames + meta.clips.idle.frames; let o = 0;
-    D.pos = new Int16Array(buf, o, F * n * 3); o += F * n * 6;
-    D.uv = new Float32Array(buf.slice(o, o + n * 8)); o += n * 8;
-    D.idx = new Uint16Array(buf.slice(o, o + meta.tris * 6)); o += meta.tris * 6;
-    D.hw = new Uint8Array(buf, o, n); D.meta = meta; D.n = n;
-    D.head = []; for (let i = 0; i < n; i++) if (D.hw[i] > 0) D.head.push(i);
-    const tex = new THREE.Texture(), img = new Image();
-    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false; tex.flipY = false;
-    img.onload = () => { tex.image = img; tex.needsUpdate = true; D.ok = true; }; img.src = 'assets/gen/proctor-gen.png' + V; D.tex = tex;
+  // ---- 감독관: 뼈대째 실어 뼈를 돌려 움직인다 (자세 몇 장을 이어 붙이던 방식은 팔다리가 찌그러졌다) ----
+  const D = { ok: false }, V = '?v=5';
+  Promise.all([fetch('assets/gen/proctor-rig.json' + V).then(r => r.json()), fetch('assets/gen/proctor-rig.bin' + V).then(r => r.arrayBuffer())]).then(([meta, buf]) => {
+    const n = meta.n, nj = meta.joints.length; let o = 0; const take = (bytes) => { const a = buf.slice(o, o + bytes); o += bytes; return a; };
+    const p16 = new Int16Array(take(n * 6)), pos = new Float32Array(n * 3); for (let i = 0; i < n * 3; i++) pos[i] = p16[i] / meta.q;
+    D.pos = pos; D.uv = new Float32Array(take(n * 8)); D.idx = new Uint16Array(take(meta.tris * 6));
+    D.si = new Uint16Array(new Uint8Array(take(n * 4))); const w8 = new Uint8Array(take(n * 4)); D.sw = new Float32Array(n * 4); for (let i = 0; i < n * 4; i++) D.sw[i] = w8[i] / 255;
+    D.rest = new Float32Array(take(nj * 28)); D.clip = {};
+    for (const k of ['walk', 'idle']) D.clip[k] = Object.assign({ data: new Float32Array(take(meta.clips[k].frames * nj * 28)) }, meta.clips[k]);
+    D.meta = meta; D.nj = nj; D.J = {}; meta.joints.forEach((nm, i) => { D.J[nm] = i; });
+    const t = tex('assets/gen/proctor-rig.png' + V); t.flipY = false; D.tex = t; D.ok = true;
   }).catch(e => console.warn('proctor-gen', e));
   function material(snap) { // 게임의 다른 모델처럼 화면 격자에 정점을 맞춰 떨리게 (PSX 느낌)
     if (D.mat) return D.mat;
     const m = new THREE.MeshLambertMaterial({ map: D.tex, color: 0xe6e6e6, flatShading: true });
     m.onBeforeCompile = sh => { sh.uniforms.snapRes = { value: snap };
       sh.vertexShader = 'uniform vec2 snapRes;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n  gl_Position.xy = floor(gl_Position.xy / gl_Position.w * snapRes + 0.5) / snapRes * gl_Position.w;'); };
-    m.customProgramCacheKey = () => 'psx-proctor-gen';
+    m.customProgramCacheKey = () => 'psx-proctor-rig';
     return (D.mat = m);
   }
   function make(snap) {
-    const g = new THREE.BufferGeometry(), pos = new Float32Array(D.n * 3), attr = new THREE.BufferAttribute(pos, 3);
-    g.setAttribute('position', attr); g.setAttribute('uv', new THREE.BufferAttribute(D.uv, 2)); g.setIndex(new THREE.BufferAttribute(D.idx, 1));
-    const mesh = new THREE.Mesh(g, material(snap)); mesh.frustumCulled = false; mesh.userData = { pos, attr, blend: 0, last: 0 };
+    if (!D.geo) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(D.pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(D.uv, 2)); g.setIndex(new THREE.BufferAttribute(D.idx, 1));
+      g.setAttribute('skinIndex', new THREE.BufferAttribute(D.si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(D.sw, 4)); g.computeVertexNormals(); D.geo = g; }
+    const mesh = new THREE.SkinnedMesh(D.geo, material(snap)), bones = [], R = D.rest; mesh.frustumCulled = false;
+    for (let j = 0; j < D.nj; j++) { const b = new THREE.Bone(), k = j * 7; b.quaternion.set(R[k], R[k + 1], R[k + 2], R[k + 3]); b.position.set(R[k + 4], R[k + 5], R[k + 6]); bones.push(b); }
+    D.meta.parents.forEach((pj, j) => { if (pj < 0) mesh.add(bones[j]); else bones[pj].add(bones[j]); });
+    mesh.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton(bones));
+    mesh.userData = { bones, blend: 0, last: 0, wt: 0, px: null, pz: 0 };
     return mesh;
   }
-  const clipAt = (c, cyc) => { const f = ((cyc % 1) + 1) % 1 * c.frames, i0 = Math.floor(f) % c.frames; return { a: (c.start + i0) * D.n * 3, b: (c.start + (i0 + 1) % c.frames) * D.n * 3, k: f - Math.floor(f), i0, i1: (i0 + 1) % c.frames }; };
-  function setPose(mesh, walkCyc, idleCyc, blend, headYaw) {
-    const C = D.meta.clips, P = D.pos, out = mesh.userData.pos, q = 1 / D.meta.q, n3 = D.n * 3, w = clipAt(C.walk, walkCyc), s = clipAt(C.idle, idleCyc), nk = D.meta.neck;
-    if (blend <= 0.001) for (let i = 0; i < n3; i++) out[i] = (P[s.a + i] + (P[s.b + i] - P[s.a + i]) * s.k) * q;
-    else if (blend >= 0.999) for (let i = 0; i < n3; i++) out[i] = (P[w.a + i] + (P[w.b + i] - P[w.a + i]) * w.k) * q;
-    else for (let i = 0; i < n3; i++) { const x = P[s.a + i] + (P[s.b + i] - P[s.a + i]) * s.k, y = P[w.a + i] + (P[w.b + i] - P[w.a + i]) * w.k; out[i] = (x + (y - x) * blend) * q; }
-    if (Math.abs(headYaw) > 0.005) { // 고개: 목 위 정점만 목뼈를 축으로 돌린다 (목 아래로 갈수록 덜 돌아 자연스럽게 이어진다)
-      const ni = nk.idle, nw = nk.walk, px = [0, 2].map(j => { const a = ni[s.i0][j] + (ni[s.i1][j] - ni[s.i0][j]) * s.k, b = nw[w.i0][j] + (nw[w.i1][j] - nw[w.i0][j]) * w.k; return a + (b - a) * blend; });
-      for (const v of D.head) { const a = headYaw * D.hw[v] / 255, c = Math.cos(a), sn = Math.sin(a), i = v * 3, dx = out[i] - px[0], dz = out[i + 2] - px[1]; out[i] = px[0] + dx * c + dz * sn; out[i + 2] = px[1] - dx * sn + dz * c; }
+  const _a = new THREE.Quaternion(), _b = new THREE.Quaternion(), _c = new THREE.Quaternion(), _d = new THREE.Quaternion(), _y = new THREE.Quaternion(), _up = new THREE.Vector3(0, 1, 0), _v = new THREE.Vector3(), _w = new THREE.Vector3();
+  function sample(c, time, j, q, v) { // 동작의 그 시각 뼈 j의 회전·위치 (프레임 사이는 구면 보간)
+    const f = ((time / c.dur) % 1 + 1) % 1 * c.frames, i0 = Math.floor(f) % c.frames, i1 = (i0 + 1) % c.frames, k = f - Math.floor(f), A = c.data, a = (i0 * D.nj + j) * 7, b = (i1 * D.nj + j) * 7;
+    _a.set(A[a], A[a + 1], A[a + 2], A[a + 3]); _b.set(A[b], A[b + 1], A[b + 2], A[b + 3]); q.slerpQuaternions(_a, _b, k);
+    v.set(A[a + 4] + (A[b + 4] - A[a + 4]) * k, A[a + 5] + (A[b + 5] - A[a + 5]) * k, A[a + 6] + (A[b + 6] - A[a + 6]) * k);
+  }
+  function setPose(mesh, walkT, idleT, blend, headYaw) {
+    const B = mesh.userData.bones, W = D.clip.walk, I = D.clip.idle;
+    for (let j = 0; j < D.nj; j++) {
+      if (blend <= 0.001) sample(I, idleT, j, B[j].quaternion, B[j].position);
+      else if (blend >= 0.999) sample(W, walkT, j, B[j].quaternion, B[j].position);
+      else { sample(I, idleT, j, _c, _v); sample(W, walkT, j, _d, _w); B[j].quaternion.slerpQuaternions(_c, _d, blend); B[j].position.lerpVectors(_v, _w, blend); }
     }
-    mesh.userData.attr.needsUpdate = true;
+    if (Math.abs(headYaw) > 0.005) { // 고개: 목과 머리 뼈를 나눠 돌린다 (몸 기준 세로축)
+      for (const [nm, share] of [['neck', 0.4], ['Head', 0.6]]) { const b = B[D.J[nm]]; if (!b) continue; b.parent.updateWorldMatrix(true, false); b.parent.getWorldQuaternion(_a); mesh.getWorldQuaternion(_b);
+        _y.setFromAxisAngle(_up, headYaw * share); _c.copy(_a).invert().multiply(_b).multiply(_y).multiply(_b.invert()).multiply(_a); b.quaternion.premultiply(_c); }
+    }
   }
   function restore(m) { if (m._genHid) { for (const o of m._genHid) o.visible = true; m._genHid = null; } if (m.gen2) m.gen2.visible = false; }
   window.PROCTOR_GEN = {
     data: D,
     // 게임이 감독관마다 매 프레임 부른다. true를 돌려주면 상자 몸은 숨기고 생성 모델을 세운다 (시야 부채꼴은 그대로 둔다)
     pose(m, o) {
-      const p = o.p, s = o.s;
+      const p = o.p;
       mood(o.scene);
       if (!D.ok || m.robot || m.omega || m.type === 'omega' || o.frisk || o.hold || p.seated || p.sit > 0.01 || p.raise) { restore(m); return false; }
       if (!m.gen2) { m.gen2 = make(o.snap); o.scene.add(m.gen2); }
@@ -107,14 +117,16 @@
       if (!m._genHid) { m._genHid = []; m.root.traverse(x => { if (x.isMesh && x !== m.cone && x.visible) { let c = false; for (let y = x; y; y = y.parent) if (y === m.cone) c = true; if (!c) { x.visible = false; m._genHid.push(x); } } }); }
       g.visible = shown; if (!shown) return true;
       const dt = Math.min(0.1, Math.max(0, o.now - u.last)); u.last = o.now;
-      u.blend += ((p.moving ? 1 : 0) - u.blend) * Math.min(1, dt * 9);
-      const walk = p.walk != null ? p.walk : s.walk;
-      setPose(g, (walk || 0) * 7 / (Math.PI * 2), o.now / D.meta.clips.idle.dur, u.blend, m.headYaw || 0);
+      // 걸음 빠르기: 실제로 움직인 속도에 맞추되 보통 걸음의 0.75~1.3배 안에서만 (감독관이 빨리 움직여도 다리가 갑자기 빨라지지 않게)
+      const sp = u.px === null || dt <= 0 ? 0 : Math.hypot(p.x - u.px, p.z - u.pz) / dt; u.px = p.x; u.pz = p.z;
+      u.rate = (u.rate || 1) + ((p.moving ? Math.min(1.3, Math.max(0.75, sp / 1.05)) : 1) - (u.rate || 1)) * Math.min(1, dt * 4);
+      if (p.moving || u.blend > 0.01) u.wt += dt * u.rate;
+      u.blend += ((p.moving ? 1 : 0) - u.blend) * Math.min(1, dt * 7);
       g.position.set(p.x, p.y || 0, p.z); g.rotation.y = m.yaw || 0; g.scale.setScalar(p.scale || 1);
+      setPose(g, u.wt, o.now, u.blend, m.headYaw || 0);
       if (m.props) for (const pp of m.props) pp.visible = false; // 상자 모델이 들던 소품은 숨기고, 생성 모델 손에 서류판을 쥐여 준다
       if (ROOM && u.clip === undefined) { u.clip = gen('clip') || null; if (u.clip) { u.clip.scale.set(0.23, 0.31, 0.03); g.add(u.clip); } }
-      if (u.clip) { const H = D.meta.hand, C = D.meta.clips, wf = clipAt(C.walk, (walk || 0) * 7 / (Math.PI * 2)), sf = clipAt(C.idle, o.now / C.idle.dur), at = j => { const a = H.idle[sf.i0][j] + (H.idle[sf.i1][j] - H.idle[sf.i0][j]) * sf.k, b = H.walk[wf.i0][j] + (H.walk[wf.i1][j] - H.walk[wf.i0][j]) * wf.k; return a + (b - a) * u.blend; };
-        u.clip.position.set(at(0) - 0.03, at(1) - 0.13, at(2) + 0.03); u.clip.rotation.set(0.12, Math.PI / 2 - 0.25, 0); }
+      if (u.clip) { const h = u.bones[D.J.RightHand]; g.updateMatrixWorld(true); _v.setFromMatrixPosition(h.matrixWorld); g.worldToLocal(_v); u.clip.position.set(_v.x - 0.02, _v.y - 0.14, _v.z + 0.03); u.clip.rotation.set(0.12, Math.PI / 2 - 0.25, 0); }
       return true;
     },
   };
