@@ -6,7 +6,7 @@
 <title>아트 스타일 3D 비교 — 1번 vs 4번</title>
 <style>
   body { margin: 0; background: #0A0E0C; color: #E6ECE8; font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif; }
-  main { max-width: 1280px; margin: 0 auto; padding: 28px 20px 60px; }
+  main { max-width: 1560px; margin: 0 auto; padding: 28px 20px 60px; }
   h1 { margin: 0 0 6px; font-size: 28px; }
   p.lead { margin: 0 0 18px; color: #9AABA1; font-size: 15px; line-height: 1.6; }
   .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
@@ -46,31 +46,48 @@
       <h2>4번 블록</h2>
       <div class="pair">
         <div><img src="assets/gen/mood/ref4.jpg" alt="4번 기준 그림"><div class="cap">힉스필드 그림</div></div>
-        <div><canvas id="c4"></canvas><div class="cap">Meshy 3D (면 5천 개)</div></div>
+        <div><canvas id="c4"></canvas><div class="cap">Meshy 3D (면 5천 개) — 팔이 하나 더 생김</div></div>
+      </div>
+    </section>
+    <section>
+      <h2>4번 블록 — 직접 조립</h2>
+      <div class="pair">
+        <div><img src="assets/gen/mood/ref4.jpg" alt="4번 기준 그림"><div class="cap">힉스필드 그림</div></div>
+        <div><canvas id="c5"></canvas><div class="cap">상자 23개를 코드로 조립 (면 276개)</div></div>
+      </div>
+      <div class="bar" style="margin: 12px 0 0" role="group" aria-label="자세">
+        <button type="button" data-pose="tpose" aria-pressed="false">팔 벌리기</button>
+        <button type="button" data-pose="stand" aria-pressed="true">서 있기</button>
+        <button type="button" data-pose="walk" aria-pressed="false">걷기</button>
+        <button type="button" data-pose="sit" aria-pressed="false">앉아서 쓰기</button>
       </div>
     </section>
   </div>
 </main>
 <script src="vendor/three.js"></script>
 <script src="assets/gen/mood/models.js?v=1"></script>
+<script src="assets/gen/mood/block.js?v=1"></script>
 <script>
 (() => {
   const b64 = (s, T) => { const t = atob(s), a = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) a[i] = t.charCodeAt(i); return new T(a.buffer); };
   const S = { spin: true, low: false, seat: false }, views = []; window.__views = views;
+  let POSE = 'stand';
   function view(id, key) {
-    const cv = document.getElementById(id), d = window.MOOD[key], r = new THREE.WebGLRenderer({ canvas: cv, antialias: true }), sc = new THREE.Scene(); sc.background = new THREE.Color(0xc9cbcc);
+    const cv = document.getElementById(id), d = window.MOOD[key] || { min: [0, 0, 0], max: [0, 1.7, 0] }, r = new THREE.WebGLRenderer({ canvas: cv, antialias: true }), sc = new THREE.Scene(); sc.background = new THREE.Color(0xc9cbcc);
     const cam = new THREE.PerspectiveCamera(32, 5 / 6, 0.05, 50);
     sc.add(new THREE.AmbientLight(0xffffff, 0.9)); sc.add(new THREE.HemisphereLight(0xffffff, 0x9a9488, 1.0)); const sun = new THREE.DirectionalLight(0xfff4e0, 1.3); sun.position.set(-3, 5, 4); sc.add(sun);
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(b64(d.pos, Float32Array), 3)); g.setAttribute('uv', new THREE.BufferAttribute(b64(d.uv, Float32Array), 2)); g.setIndex(new THREE.BufferAttribute(b64(d.idx, Uint32Array), 1)); g.computeVertexNormals();
-    const tex = new THREE.TextureLoader().load('assets/gen/mood/' + key + '.jpg'); tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace;
-    const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex, flatShading: true })), piv = new THREE.Group(); mesh.position.y = -d.min[1]; piv.add(mesh); sc.add(piv);
-    const H = d.max[1] - d.min[1], v = { cv, r, sc, cam, piv, H, yaw: 0.5, drag: null };
+    const piv = new THREE.Group(); sc.add(piv); let block = null;
+    if (key === 'block') { block = window.BLOCK.build(THREE, 'assets/gen/mood/'); piv.add(block.root); }
+    else { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(b64(d.pos, Float32Array), 3)); g.setAttribute('uv', new THREE.BufferAttribute(b64(d.uv, Float32Array), 2)); g.setIndex(new THREE.BufferAttribute(b64(d.idx, Uint32Array), 1)); g.computeVertexNormals();
+      const tex = new THREE.TextureLoader().load('assets/gen/mood/' + key + '.jpg'); tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace;
+      const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tex, flatShading: true })); mesh.position.y = -d.min[1]; piv.add(mesh); }
+    const H = block ? block.height * 1.115 : d.max[1] - d.min[1], v = { cv, r, sc, cam, piv, H, yaw: 0.5, drag: null, block };
     cv.addEventListener('pointerdown', e => { v.drag = { x: e.clientX, yaw: v.yaw }; cv.setPointerCapture(e.pointerId); });
     cv.addEventListener('pointermove', e => { if (v.drag) v.yaw = v.drag.yaw + (e.clientX - v.drag.x) * 0.012; });
     cv.addEventListener('pointerup', () => { v.drag = null; }); cv.addEventListener('pointercancel', () => { v.drag = null; });
     views.push(v);
   }
-  view('c1', 'mood1'); view('c4', 'mood4');
+  view('c1', 'mood1'); view('c4', 'mood4'); view('c5', 'block');
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -80,11 +97,13 @@
       if (v.cv.width !== w || v.cv.height !== h) v.r.setSize(w, h, false);
       v.cv.classList.toggle('px', S.low); v.piv.rotation.y = S.seat ? Math.PI + Math.sin(now / 1400) * 0.25 : v.yaw;
       if (S.seat) { v.cam.position.set(0, v.H * 1.02, 2.3); v.cam.lookAt(0, v.H * 0.66, 0); } else { v.cam.position.set(0, v.H * 0.55, 4.1); v.cam.lookAt(0, v.H * 0.5, 0); }
+      if (v.block) v.block.pose(now / 1000, POSE, dt);
       v.r.render(v.sc, v.cam);
     }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  document.querySelectorAll('[data-pose]').forEach(b => b.addEventListener('click', () => { POSE = b.dataset.pose; document.querySelectorAll('[data-pose]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
   for (const k of ['spin', 'low', 'seat']) { const b = document.getElementById(k); b.addEventListener('click', () => { S[k] = !S[k]; b.setAttribute('aria-pressed', String(S[k])); }); }
 })();
 </script>
