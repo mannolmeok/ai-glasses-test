@@ -457,7 +457,7 @@ const WORLD = (() => {
     const HSK = 0xd9a57c, SLV = 0x3f5285, hands = pivot(sc, 0, 0, 0), HANDS = PXD && PXD.sprites.handL ? PXD.sprites : null, ARMS = GEN_ROOM && window.MODELS.armL && window.MODELS.armR;
     const hand = (x, z, side) => {
       const g = pivot(hands, x, 0.752, z); g.rotation.y = side * 0.35;
-      if (ARMS) { const a = modelInst(side < 0 ? 'armL' : 'armR'); a.position.set(0, -0.008, 0); g.add(a); return g; } // 생성 시험장: 다른 수험생과 같은 모델의 팔·손
+      if (ARMS) { const a = modelInst(side < 0 ? 'armL' : 'armR'); a.scale.setScalar(0.82); a.position.set(side * 0.07, -0.008, -0.05); a.rotation.y = side * -0.3; g.add(a); return g; } // 생성 시험장: 다른 수험생과 같은 모델의 팔·손
       if (HANDS) { // 위에서 내려다본 손 그림을 책상에 눕힌다
         const d = HANDS[side < 0 ? 'handL' : 'handR'], L = 0.4, m = new THREE.Mesh(new THREE.PlaneGeometry(L * d.w / d.h, L), new THREE.MeshBasicMaterial({ map: pxTex(d.src), alphaTest: 0.5, color: PXD ? 0xe4e0dc : 0xffffff }));
         m.rotation.x = -Math.PI / 2; m.position.set(side < 0 ? -0.07 : 0.03, 0.004, L / 2 - 0.1); g.add(m); return g;
