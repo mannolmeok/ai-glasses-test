@@ -499,8 +499,8 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
       along(`의심 ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에
       along(picked ? `ANS ${q.aiPick + 1}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'READY', HH - 40, HH + 8, 0.13, 9, picked ? '#8dffa8' : 'rgba(255,255,255,0.75)', -11); }
   } else if (ST === 'brain') { // 뇌 임플란트: 숫자도 틀도 없다. 속마음 한 줄과 심장 박동선
-    k.SUB(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 10, low ? '#ff9a9a' : '#f0ece2', 'right');
-    k.SUB(`${qn}번째 문제${part}`, W - 22, 34, 8, '#d8d4c8', 'right');
+    M(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 9, low ? '#ff9a9a' : '#ffd678', 'right', 700); // 생각 기록과 같은 글씨: 금색이 지금 값, 흐린 흰색이 딸린 줄
+    k.b.globalAlpha = 0.6; M(`${qn}번째 문제${part}`, W - 22, 33, 7.5, '#ffffff', 'right', 700); k.b.globalAlpha = 1;
     const y = HH - 12, sp2 = 60 + sus * 240, px = (now * sp2) % (W + 60) - 30; k.b.globalAlpha = 0.35 + sus * 0.5; R(0, y, W, 1, '#ff5a5a');
     k.poly([[px - 12, y], [px - 6, y - 8 - sus * 8], [px - 3, y], [px, y + 9 + sus * 6], [px + 4, y - 4], [px + 8, y], [px + 8, y + 1.5], [px - 12, y + 1.5]], '#ff5a5a'); k.b.globalAlpha = 1;
     if (live && picked && !E.finalQ) k.SUB(q.conf >= 70 ? `…${q.aiPick + 1}번이다. 왜인지는 모르겠다.` : `…${q.aiPick + 1}번인 것 같다.`, W / 2, HH - 34, 13, '#ffffff', 'center');
