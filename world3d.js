@@ -884,6 +884,7 @@ const WORLD = (() => {
         predict: predict && !s.asleep && !hold && !(E.evict && E.evict.plan && E.evict.t < E.evict.plan.endAll), asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
       if (frisk) { const W2 = EX.gadget.wand, mt = E.intro.t; if (W2.parent !== m.arms[1]) { m.arms[1].add(W2); W2.position.set(0, -1.02, 0.1); W2.rotation.set(Math.PI / 2, 0, 0); W2.scale.setScalar(0.9); }
         m.arms[1].rotation.set(-1.17 + Math.sin(mt * 4.2) * 0.05, 0, 0); m.arms[0].rotation.set(0, 0, 0); W2.visible = true; }
+      if (window.PROCTOR_GEN && window.PROCTOR_GEN.pose(m, { p, s, now, scene: EX.scene, snap: SNAP, frisk, hold })) { /* 시험판(?proctor=gen): proctor-gen.js가 생성 모델을 세웠다 */ } else
       if (GEN_ROOM && !m.robot && m.type !== 'omega') { // 상자 몸 대신 걷는 동작이 들어간 생성 모델
         if (!m.gen) { m.gen = animMesh('proctorWalk'); if (m.gen) { m.gen.scale.setScalar(1.76); EX.scene.add(m.gen); } }
         if (m.gen) { const shown = m.root.visible; m.root.visible = false; m.gen.visible = shown;

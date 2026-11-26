@@ -51,3 +51,14 @@
   tool: "npm pack pretendard@1.3.9 → dist/web/static/woff2-subset. 자막(넷플릭스 모양) 글꼴. 저작권·사용 허락 글은 assets/fonts/Pretendard-LICENSE.txt"
   date: 2026-11-24
   ships: true
+- path: assets/gen/proctor-gen.bin
+  origin: ai-generated
+  source: {vendor: "Meshy", product: "Image to 3D (meshy-t2.5 smart topology, 2,766면) + 자동 리깅 + 걷기·서 있기 동작"}
+  tool: "기준 그림: 타이틀 영상 속 감독관을 힉스필드(gpt_image_2_6)로 T자 전신 그림으로 → Meshy 3D·뼈대 → tools/bake_proctor.py로 정점 동작 16+16프레임(Int16)으로 구움. proctor-gen.json은 그 목차"
+  date: 2026-11-26
+  ships: true
+- path: assets/gen/proctor-gen.png
+  origin: ai-generated
+  source: {vendor: "Meshy", product: "위 모델의 텍스처(meshy-n1)를 256px·64색으로 줄이고 밝기 1.35배"}
+  date: 2026-11-26
+  ships: true
