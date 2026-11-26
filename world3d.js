@@ -861,8 +861,9 @@ const WORLD = (() => {
     const shS = EX.my && EX.views && E.staff.find(s => s.check && s.check.kind === 'sheet');
     if (shS) { const dx = EX.my.x + (shS.side === 'L' ? -0.3 : 0.3) - EX.eye.x, dz = EX.my.z - 0.62 - EX.eye.z; EX.views.sheet = { yaw: Math.atan2(-dx, -dz) * 0.85, pitch: Math.atan2(1.34 - EX.eye.y, Math.hypot(dx, dz)), fov: 60 }; } // 답안지를 든 장학관 쪽으로 고개를 든다
     const V = EX.views, a = V[E.prevView] || V.paper, b = V[E.view] || V.paper, k = ease(clamp(E.viewT, 0, 1)), cam = EX.cam;
-    cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003;
-    cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004;
+    const breath = GEN_ROOM ? 0 : 1; // 생성 시험장: 무늬가 촘촘한 그림은 숨 쉬는 흔들림에 화면 전체가 한 칸씩 들썩여 보인다 → 가만히 둔다
+    cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003 * breath;
+    cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004 * breath;
     const fov = lerp(a.fov, b.fov, k); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
     const predict = E.gear.predict > 0 || (E.gear.thirdeye > 0 && E.T.mech.includes('threeeyes'));
     // 평행우주: 늘어난 감독관 모델을 만든다

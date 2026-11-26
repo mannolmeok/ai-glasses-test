@@ -1,6 +1,5 @@
 // 시험판: 감독관을 생성 모델(힉스필드 기준 그림 → Meshy 3D·뼈대·걷기)로 바꿔 보기. 주소에 ?proctor=gen 을 붙였을 때만 켜진다.
-// 모델은 뼈대째 싣지 않고 걷기·서 있기 동작을 정점 위치로 구워 둔 묶음(assets/gen/proctor-gen.bin)을 프레임 사이를 이어 붙여 움직인다.
-// 고개 돌리기는 목 위 정점만 목뼈 자리를 축으로 돌린다. 앉기·답안지 집기·입실 검사처럼 팔을 쓰는 동작은 아직 상자 모델로 돌아간다.
+// 뼈대째 실어 뼈를 돌려 움직인다. 앉기·답안지 집기·입실 검사처럼 팔을 쓰는 동작은 아직 상자 모델로 돌아간다.
 (() => {
   'use strict';
   const QS = new URLSearchParams(location.search), ROOM = QS.get('assets') === 'gen';
@@ -8,15 +7,20 @@
   // ?assets=gen: 시험장 전체(책상·학생·문·사물함)도 생성 모델로. world3d.js가 읽기 전에 모델 묶음을 먼저 싣는다
   if (ROOM && document.readyState === 'loading') document.write('<script src="assets/gen/room-gen.js?v=5"><\/script>');
   // 장면마다 한 번: 생성 모델 색 맞추기와 소품 놓기
-  function mood(scene) {
-    if (!ROOM || scene.userData.moodB) return; scene.userData.moodB = 1;
+  let CALM = false;
+  function mood(scene, snap) {
+    if (!ROOM) return;
+    // 정점을 화면 격자에 맞추는 떨림(PSX 느낌)은 면이 몇 개뿐인 상자 모델에나 어울린다: 정점이 수천 개인 생성 모델은 카메라가 숨 쉬듯 흔들릴 때마다 겉이 통째로 들썩여 보였다. 격자를 아주 촘촘히 해서 사실상 끈다
+    if (snap && !CALM) { CALM = true; snap.multiplyScalar(8); }
+    if (scene.userData.moodB) return; scene.userData.moodB = 1;
     // 밝은 낮 교실: 게임의 낮 조명을 그대로 쓴다 (어두운 청록 분위기는 뺐다)
     decor(scene);
   }
   const b64 = b => { const t = atob(b), a = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) a[i] = t.charCodeAt(i); return a.buffer; };
-  const tex = src => { const t = new THREE.Texture(), img = new Image(); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; img.onload = () => { t.image = img; t.needsUpdate = true; }; img.src = src; return t; };
+  const smooth = t => { t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4; if (t.image) t.needsUpdate = true; }; // 점 그대로 찍는 텍스처는 멀리서 볼 때 무늬가 자글자글 움직인다: 부드럽게 줄여 찍는다
+  const tex = src => { const t = new THREE.Texture(), img = new Image(); smooth(t); img.onload = () => { t.image = img; t.needsUpdate = true; }; img.src = src; return t; };
   // 게임에 자리가 없는 것들은 장면에 직접 손댄다: 창밖, 벽 깜빡임, TV·칠판 틀·시계·필통을 생성 모델로
-  const MESH = {}, DIM = 0xdcdcdc;
+  const MESH = {}, DIM = 0xdcdcdc, GRIP = { along: 0.06, palm: 0.024 };
   function gen(name) { // window.MODELS의 모델 하나를 메시로 (같은 모델은 도형·재질을 함께 쓴다)
     const d = window.MODELS && window.MODELS[name]; if (!d) return null;
     if (!MESH[name]) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(b64(d.pos)), 3)); g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(b64(d.uv)), 2)); g.setIndex(new THREE.BufferAttribute(new Uint16Array(b64(d.idx)), 1)); g.computeBoundingBox();
@@ -26,8 +30,10 @@
   function decor(scene) {
     const FXT = window.FX && window.FX.tex; let door = null, sky = null, clock = null, pcase = null;
     scene.traverse(o => { // 생성 모델(게임이 세운 책상·학생·문·사물함)은 그림에 명암이 이미 있어서 조명을 그대로 받으면 색이 하얗게 뜬다: 받는 빛을 줄인다
-      const m = o.isMesh && o.material; if (m && m.isMeshLambertMaterial && m.color.getHex() === 0xffffff && o.geometry && !o.geometry.parameters && o.geometry.index && o.geometry.attributes.uv && !m.userData.dim) { m.userData.dim = 1; m.color.setHex(DIM); }
+      const m = o.isMesh && o.material; if (m && m.isMeshLambertMaterial && m.color.getHex() === 0xffffff && o.geometry && !o.geometry.parameters && o.geometry.index && o.geometry.attributes.uv && !m.userData.dim) { m.userData.dim = 1; m.color.setHex(DIM); if (m.map) smooth(m.map); }
     });
+    const calmTex = () => scene.traverse(o => { const t = o.isMesh && o.material && o.material.map; if (t && !t.userData.calm && t.image && /assets\/gen\//.test(t.image.src || '')) { t.userData.calm = 1; smooth(t); } }); // 생성 벽·바닥 그림 (그림이 다 실린 뒤에 알아볼 수 있다)
+    calmTex(); [300, 1200, 3000].forEach(ms => setTimeout(calmTex, ms));
     scene.traverse(o => {
       if (o.isGroup && o.parent === scene && Math.abs(o.position.y - 0.744) < 0.001 && Math.abs(o.rotation.y - 0.14) < 0.001 && o.children.some(c => c.isGroup && Math.abs(c.position.z + 0.035) < 0.001)) pcase = o;
       if (!o.isMesh) return; const gp = o.geometry && o.geometry.parameters, m = o.material;
@@ -82,7 +88,13 @@
     for (let j = 0; j < D.nj; j++) { const b = new THREE.Bone(), k = j * 7; b.quaternion.set(R[k], R[k + 1], R[k + 2], R[k + 3]); b.position.set(R[k + 4], R[k + 5], R[k + 6]); bones.push(b); }
     D.meta.parents.forEach((pj, j) => { if (pj < 0) mesh.add(bones[j]); else bones[pj].add(bones[j]); });
     mesh.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton(bones));
-    mesh.userData = { bones, blend: 0, last: 0, wt: 0, px: null, pz: 0 };
+    // 서류판 쥐는 자리: 손뼈 기준으로 한 번만 계산한다. 팔 벌린 기본 자세에서 손끝 방향(아래팔→손)과 손바닥 방향(아래)을 손뼈 좌표로 옮겨, 판의 윗변이 손바닥 안에 오고 판이 손바닥과 나란히 늘어지게
+    const hb = bones[D.J.RightHand], fb = bones[D.J.RightForeArm], hp = new THREE.Vector3().setFromMatrixPosition(hb.matrixWorld), ax = hp.clone().sub(new THREE.Vector3().setFromMatrixPosition(fb.matrixWorld)).normalize();
+    const palm = new THREE.Vector3(0, -1, 0); palm.addScaledVector(ax, -palm.dot(ax)).normalize();
+    const qi = hb.getWorldQuaternion(new THREE.Quaternion()).invert(); ax.applyQuaternion(qi); palm.applyQuaternion(qi);
+    const Y = ax.clone().negate(), Z = palm.clone().negate(), X = new THREE.Vector3().crossVectors(Y, Z);
+    const grip = { p: ax.clone().multiplyScalar(GRIP.along).addScaledVector(palm, GRIP.palm), q: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z)) };
+    mesh.userData = { bones, blend: 0, last: 0, wt: 0, px: null, pz: 0, grip };
     return mesh;
   }
   const _a = new THREE.Quaternion(), _b = new THREE.Quaternion(), _c = new THREE.Quaternion(), _d = new THREE.Quaternion(), _y = new THREE.Quaternion(), _up = new THREE.Vector3(0, 1, 0), _v = new THREE.Vector3(), _w = new THREE.Vector3();
@@ -109,7 +121,7 @@
     // 게임이 감독관마다 매 프레임 부른다. true를 돌려주면 상자 몸은 숨기고 생성 모델을 세운다 (시야 부채꼴은 그대로 둔다)
     pose(m, o) {
       const p = o.p;
-      mood(o.scene);
+      mood(o.scene, o.snap);
       if (!D.ok || m.robot || m.omega || m.type === 'omega' || o.frisk || o.hold || p.seated || p.sit > 0.01 || p.raise) { restore(m); return false; }
       if (!m.gen2) { m.gen2 = make(o.snap); o.scene.add(m.gen2); }
       const g = m.gen2, u = g.userData, shown = m.root.visible;
@@ -125,8 +137,7 @@
       g.position.set(p.x, p.y || 0, p.z); g.rotation.y = m.yaw || 0; g.scale.setScalar(p.scale || 1);
       setPose(g, u.wt, o.now, u.blend, m.headYaw || 0);
       if (m.props) for (const pp of m.props) pp.visible = false; // 상자 모델이 들던 소품은 숨기고, 생성 모델 손에 서류판을 쥐여 준다
-      if (ROOM && u.clip === undefined) { u.clip = gen('clip') || null; if (u.clip) { u.clip.scale.set(0.23, 0.31, 0.03); g.add(u.clip); } }
-      if (u.clip) { const h = u.bones[D.J.RightHand]; g.updateMatrixWorld(true); _v.setFromMatrixPosition(h.matrixWorld); g.worldToLocal(_v); u.clip.position.set(_v.x - 0.02, _v.y - 0.14, _v.z + 0.03); u.clip.rotation.set(0.12, Math.PI / 2 - 0.25, 0); }
+      if (ROOM && u.clip === undefined) { u.clip = gen('clip') || null; if (u.clip) { u.clip.scale.set(0.23, 0.31, 0.03); u.clip.position.copy(u.grip.p); u.clip.quaternion.copy(u.grip.q); u.bones[D.J.RightHand].add(u.clip); } } // 서류판은 손뼈에 붙여 손이 도는 대로 같이 돈다
       return true;
     },
   };
