@@ -576,8 +576,8 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
   const T = E.T;
   E.part = p; E.qs = makeQuestions(rng, T, p, E.used || (E.used = new Set()));
   if (E.tier === LAST && p === E.parts - 1 && !G.ended) E.qs[E.qs.length - 1] = { kind: 'text', q: '이 시험을 본 건 너인가, 나인가?', choices: ['나', '너', '우리', '모르겠다'], answer: -1, human: false, final: true }; // 마지막 문제
+  if (T.mech.includes('long') && typeof longQuestion === 'function') { const used = E.longUsed || (E.longUsed = new Set()); E.qs = E.qs.map((q, i) => q.final ? q : longQuestion(rng, p * T.qn + i, p, used)); } // 긴 지문: 문제 자체가 지문을 읽고 푸는 문제. 시험지에는 스캔 전·중·후 늘 지문과 물음이 함께 있다
   assignAI(E.qs, firstEver);
-  if (T.mech.includes('long') && typeof LONG_PASSAGES !== 'undefined') E.qs.forEach((q, i) => { if (!q.final) q.passage = LONG_PASSAGES[(p * T.qn + i) % LONG_PASSAGES.length]; }); // 긴 지문: 스캔하는 동안 두 쪽을 차례로 훑는다
   E.qi = 0; E.answers = []; E.via = []; E.scan = 0; E.ai = false; E.fb = null; E.listen = 0; E.earbudT = 0; E.unsafeT = 0;
   E.timeLeft = E.timeTotal; E.partOver = false;
   if (p > 0) {

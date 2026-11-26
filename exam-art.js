@@ -53,6 +53,21 @@ function captchaIcon(g, id, cx, cy, s) { // 로봇 확인 그림 6종 (신호등
   else { R(-4, -4, 8, 13, '#d6403a'); R(-5, -6, 10, 3, '#b8302a'); R(-2, -9, 4, 3, '#b8302a'); R(-7, -1, 3, 3, '#b8302a'); R(4, -1, 3, 3, '#b8302a'); R(-5, 8, 10, 2, '#8a2a24'); }
 }
 function drawPaperTexture(g, E, now) { if (E.T.mech.includes('mirror')) { g.save(); g.translate(PAPER_W, 0); g.scale(-1, 1); drawPaperTexture0(g, E, now); g.restore(); } else drawPaperTexture0(g, E, now); } // 거울 나라: 시험지가 좌우로 뒤집힌다
+function drawPassage(g, E, q, ink, cyan, bg) { // 긴 지문(LEET): 위에는 지문 한 쪽, 아래에는 물음. 스캔은 줄을 훑고 절반에서 쪽을 넘기며, 다 읽은 뒤에는 둘째 쪽에 머문다
+  const F = FONT_BODY, read = !!(E.ai || E.fb || q.pre), s = read ? 1 : Math.max(0, Math.min(1, E.scan || 0)), scanning = !read && s > 0.001;
+  const pg = s < 0.5 ? 0 : 1, loc = pg ? (s - 0.5) * 2 : s * 2, x0 = 52, top = 206, lh = 28;
+  g.textAlign = 'left'; g.font = `600 21px ${F}`;
+  const ls = wrapCanvas(g, q.passage[pg], PAPER_W - 170), upto = scanning ? loc * ls.length : 0;
+  ls.forEach((ln, i) => { const y = top + i * lh, w = g.measureText(ln).width;
+    if (i < Math.floor(upto)) { g.fillStyle = 'rgba(47,211,221,0.2)'; g.fillRect(x0 - 4, y - 21, w + 8, 27); g.fillStyle = cyan; g.fillRect(x0 - 4, y + 6, w + 8, 2); }
+    else if (scanning && i === Math.floor(upto)) { const f = upto - i; g.fillStyle = 'rgba(47,211,221,0.34)'; g.fillRect(x0 - 4, y - 21, (w + 8) * f, 27); g.fillStyle = cyan; g.fillRect(x0 - 4 + (w + 8) * f, y - 23, 3, 31); }
+    g.fillStyle = ink; g.fillText(ln, x0, y); });
+  if (scanning) { const notes = pg ? ['반론', '쟁점', '→ 결론'] : ['전제', '근거', '구별']; g.font = `800 19px ${F}`; g.fillStyle = cyan; notes.forEach((nt, j) => { const at = Math.floor((j + 0.6) * ls.length / 3); if (at < upto) { const y = top + at * lh; g.fillText(nt, PAPER_W - 104, y); g.fillRect(PAPER_W - 112, y - 18, 2, 24); } }); }
+  g.textAlign = 'right'; g.fillStyle = '#6c6a80'; g.font = `700 18px ${F}`; g.fillText(`지문 ${pg + 1} / 2`, PAPER_W - 44, 432);
+  if (scanning && pg === 1 && loc < 0.14) { const f = loc / 0.14, x = PAPER_W * (1 - f), gr = g.createLinearGradient(x - 90, 0, x + 30, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.22)'); gr.addColorStop(1, 'rgba(255,255,255,0.9)'); g.fillStyle = gr; g.fillRect(x - 90, 178, 120, 264); g.fillStyle = bg; g.fillRect(x + 30, 178, PAPER_W, 264); } // 쪽 넘김: 지문 칸만 오른쪽에서 왼쪽으로 넘어간다
+  let size = 26; g.textAlign = 'left'; g.fillStyle = ink; g.font = `800 ${size}px ${F}`; const stem = `${E.qi + 1}. ${q.q}`; while (g.measureText(stem).width > PAPER_W - 100 && size > 20) { size -= 1; g.font = `800 ${size}px ${F}`; }
+  g.fillText(stem, x0, 468);
+}
 function drawPaperTexture0(g, E, now) {
   const F = FONT_BODY, tier = E.T, q = E.qs[Math.min(E.qi, E.qs.length - 1)], tablet = tier.device === 'tablet';
   const head = [tier.head[0], tier.parts ? tier.parts[E.part] : tier.head[1]];
@@ -67,22 +82,13 @@ function drawPaperTexture0(g, E, now) {
   g.font = `700 24px ${F}`; g.textAlign = 'right'; g.fillStyle = tablet ? '#c8d4f0' : '#6c6a80'; g.fillText(`${E.qi + 1} / ${E.qs.length}`, PAPER_W - 44, 123);
   g.fillStyle = ink; if (!tablet) { g.fillRect(40, 164, PAPER_W - 80, 4); g.fillRect(40, 172, PAPER_W - 80, 1); }
   if (E.breakT > 0) { g.textAlign = 'center'; g.fillStyle = '#6c6a80'; g.font = `800 44px ${F}`; g.fillText('쉬는 시간', PAPER_W / 2, 420); return; }
-  if (q.passage && E.holding && !E.ai && E.scan > 0.001 && E.scan < 1) { // 긴 지문: 스캔하는 동안은 지문 쪽을 훑는다. 절반에서 쪽을 넘긴다
-    const pg = E.scan < 0.5 ? 0 : 1, loc = pg ? (E.scan - 0.5) * 2 : E.scan * 2, lh = 46; g.textAlign = 'left'; g.font = `700 29px ${F}`;
-    const ls = wrapCanvas(g, q.passage[pg], PAPER_W - 150), upto = loc * ls.length, notes = pg ? ['반론', '쟁점', '→ 결론'] : ['전제', '근거', '구별'];
-    ls.forEach((ln, i) => { const y = 226 + i * lh, w = g.measureText(ln).width; if (i < Math.floor(upto)) { g.fillStyle = 'rgba(47,211,221,0.2)'; g.fillRect(52, y - 30, w + 8, 38); g.fillStyle = cyan; g.fillRect(52, y + 9, w + 8, 2); }
-      else if (i === Math.floor(upto)) { const f = upto - i; g.fillStyle = 'rgba(47,211,221,0.34)'; g.fillRect(52, y - 30, (w + 8) * f, 38); g.fillStyle = cyan; g.fillRect(52 + (w + 8) * f, y - 32, 3, 42); }
-      g.fillStyle = ink; g.fillText(ln, 56, y); });
-    g.font = `800 24px ${F}`; g.fillStyle = cyan; notes.forEach((nt, j) => { const at = Math.floor((j + 0.6) * ls.length / 3); if (at < upto) { const y = 226 + at * lh; g.fillText(nt, PAPER_W - 96, y); g.fillRect(PAPER_W - 104, y - 26, 2, 32); } });
-    g.textAlign = 'center'; g.fillStyle = '#6c6a80'; g.font = `700 24px ${F}`; g.fillText(`지문 ${pg + 1} / 2`, PAPER_W / 2, PAPER_H - 36);
-    if (pg === 1 && loc < 0.14) { const f = loc / 0.14, x = PAPER_W * (1 - f), gr = g.createLinearGradient(x - 90, 0, x + 30, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.22)'); gr.addColorStop(1, 'rgba(255,255,255,0.9)'); g.fillStyle = gr; g.fillRect(x - 90, 150, 120, PAPER_H - 150); g.fillStyle = bg; g.fillRect(x + 30, 150, PAPER_W, PAPER_H - 150); } // 쪽 넘김: 오른쪽에서 왼쪽으로 종이가 넘어온다
-    return; }
+  const long = !!q.passage; if (long) drawPassage(g, E, q, ink, cyan, bg); // 긴 지문: 지문 한 쪽과 물음이 늘 함께 있다. 아래 보기는 다른 시험과 같다
   // 문제: 길면 글자를 줄여서
   g.textAlign = 'left'; g.fillStyle = ink;
   const room = q.kind === 'captcha' ? 70 : q.kind === 'alien' ? 150 : q.kind === 'listen' ? 120 : 260;
   let size = 50, lines = [];
-  for (;;) { g.font = `800 ${size}px ${F}`; lines = wrapCanvas(g, `${E.qi + 1}. ${q.q}`, PAPER_W - 110); if (lines.length * (size + 14) <= room || size <= (q.kind === 'captcha' ? 38 : 28)) break; size -= 4; }
-  lines.slice(0, 6).forEach((ln, i) => g.fillText(ln, 56, 236 + i * (size + 14)));
+  if (!long) for (;;) { g.font = `800 ${size}px ${F}`; lines = wrapCanvas(g, `${E.qi + 1}. ${q.q}`, PAPER_W - 110); if (lines.length * (size + 14) <= room || size <= (q.kind === 'captcha' ? 38 : 28)) break; size -= 4; }
+  if (!long) lines.slice(0, 6).forEach((ln, i) => g.fillText(ln, 56, 236 + i * (size + 14)));
   const below = 236 + lines.length * (size + 14);
   if (q.kind === 'captcha') { // 3x3 칸
     const cell = 66, x0 = PAPER_W / 2 - cell * 1.5, y0 = Math.max(262, below - 26);
@@ -164,17 +170,17 @@ function drawPaperTexture0(g, E, now) {
       const y = row(q.aiPick);
       if (st === 'proto') { // 시제품: 보기마다 확신도 막대, 고른 보기에 밑줄
         const cf = choiceConf(q);
-        for (let i = 0; i < 4; i++) { const yy = row(i) - 26, on = i === q.aiPick; g.globalAlpha = 1; g.fillStyle = '#9aa0ac'; g.fillRect(PAPER_W - 250, yy, 130, 8); g.fillStyle = on ? '#0f95a8' : '#4a5060'; g.fillRect(PAPER_W - 250, yy, Math.round(130 * cf[i] / 100), 8);
+        for (let i = 0; i < 4; i++) { const yy = row(i) - (q.passage ? 56 : 26), on = i === q.aiPick; g.globalAlpha = 1; g.fillStyle = '#9aa0ac'; g.fillRect(PAPER_W - 250, yy, 130, 8); g.fillStyle = on ? '#0f95a8' : '#4a5060'; g.fillRect(PAPER_W - 250, yy, Math.round(130 * cf[i] / 100), 8); // 긴 지문의 보기는 길어서 막대를 보기 위 빈 줄로
           g.textAlign = 'right'; g.font = `${on ? 800 : 700} ${on ? 34 : 26}px ${F}`; g.fillStyle = on ? '#0c6f7e' : '#4a5060'; g.fillText(cf[i] + '%', PAPER_W - 44, yy + 14); }
         g.globalAlpha = 1; g.fillStyle = '#18a6ba'; g.fillRect(126, y + 10, tw(q.aiPick) + 28, 6);
       } else if (st === 'mil') { // 군용: 표적 꺾쇠
         const x0 = 46, x1 = PAPER_W - 46, y0 = y - 70, y1 = y + 22, Lc = 40; g.fillStyle = col;
         for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { g.fillRect(sx > 0 ? cx : cx - Lc, cy - (sy > 0 ? 0 : 6), Lc, 6); g.fillRect(cx - (sx > 0 ? 0 : 6), sy > 0 ? cy : cy - Lc, 6, Lc); }
-        g.fillStyle = '#b06a00'; g.textAlign = 'right'; g.font = `800 32px ${F}`; g.fillText(`TGT ${q.aiPick + 1} · CONF ${q.conf}`, PAPER_W - 62, y - 10);
+        g.fillStyle = '#b06a00'; g.textAlign = 'right'; g.font = `800 ${q.passage ? 26 : 32}px ${F}`; g.fillText(`TGT ${q.aiPick + 1} · CONF ${q.conf}`, PAPER_W - 62, y - (q.passage ? 44 : 10)); // 긴 지문의 보기는 길어서 표시를 보기 위로
       } else { // 중고: 굵은 초록 상자
         g.lineWidth = 7; g.strokeStyle = col; g.strokeRect(46, y - 70, PAPER_W - 92, 92);
-        g.fillStyle = 'rgba(255,60,60,0.45)'; g.textAlign = 'right'; g.font = `800 40px ${F}`; g.fillText(`AI ▶ ${q.aiPick + 1}  ${q.conf}%`, PAPER_W - 58, y - 8);
-        g.fillStyle = '#1f9a3a'; g.fillText(`AI ▶ ${q.aiPick + 1}  ${q.conf}%`, PAPER_W - 62, y - 8);
+        const ly = y - (q.passage ? 40 : 8); g.fillStyle = 'rgba(255,60,60,0.45)'; g.textAlign = 'right'; g.font = `800 ${q.passage ? 30 : 40}px ${F}`; g.fillText(`AI ▶ ${q.aiPick + 1}  ${q.conf}%`, PAPER_W - 58, ly); // 긴 지문의 보기는 길어서 표시를 보기 위로
+        g.fillStyle = '#1f9a3a'; g.fillText(`AI ▶ ${q.aiPick + 1}  ${q.conf}%`, PAPER_W - 62, ly);
       }
     }
     if (scanning) {
