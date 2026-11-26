@@ -148,8 +148,8 @@ BOSS.hle = (() => {
       else { C.bad = 0; E.sus = Math.max(0, E.sus - 0.04 * dt); if (hold) { C.scan += dt / scanS(); C.snd = (C.snd || 0) - dt; if (C.snd <= 0) { C.snd = 0.12; S.scratch(); } } else C.scan = Math.max(0, C.scan - 1.5 * dt); } // 손을 떼면 금방 날아간다
       if (E.sus >= 1) { E.sus = 1; if (s) s.phase = 'watch'; getCaught(); return; }
       if (C.scan >= 1) { C.st = 'show'; C.t = 0; H.beam.k = 0; sfx.ai(); } }
-    else if (C.st === 'show') { if (C.t >= tune.hle_sc_show) { C.st = 'smash'; C.t = 0; scScatter(C); S.crack(); S.crack(); S.pop(); H.flash = 0.3; } }
-    else if (C.st === 'smash') { if (C.t >= 0.5) { C.st = 'input'; C.t = 0; C.lid = 0; } }
+    else if (C.st === 'show') { if (SMX) { if (!C.s1 && C.t > 0.12) { C.s1 = 1; S.hum(); [130, 175, 235, 310, 415, 550].forEach((q, i) => toneAt(q, 0.24, 'sine', 0.05, i * 0.15)); } if (!C.s2 && C.t > showT() - 0.09) { C.s2 = 1; toneAt(1500, 0.1, 'sawtooth', 0.05); toneAt(700, 0.22, 'sawtooth', 0.05, 0.03); } } if (C.t >= showT()) { C.s1 = C.s2 = 0; C.st = 'smash'; C.t = 0; scScatter(C); S.crack(); S.crack(); S.pop(); if (SMX) S.rumble(); H.flash = 0.3; } }
+    else if (C.st === 'smash') { if (C.t >= (SMX ? 0.74 : 0.5)) { C.st = 'input'; C.t = 0; C.lid = 0; } }
     else if (C.st === 'input') { if (tick()) return;
       if (!(C.judge && C.judge.ok)) C.lid += dt / (tune.hle_sc_base + tune.hle_sc_per * n);
       if (C.judge) { C.judge.t += dt; if (C.judge.t >= 0.8) { if (C.judge.ok) { C.st = 'said'; C.t = 0; } else C.placed = []; C.judge = null; } }
@@ -318,7 +318,14 @@ BOSS.hle = (() => {
         const hal = mkL(new Float32Array(ha), cg, 0xffcf5a, 0.9); hal.position.set(0, 0.71, -0.12); /* 머리 뒤의 금빛 고리와 빛살 */
         const chest2 = new THREE.Object3D(); chest2.position.set(0, 0.33, 0.2); cg.add(chest2); const ft = dec(CO.fan), fT = []; for (let i = 0; i < ft.length; i += 3) fT.push(new THREE.Vector3(ft[i], ft[i + 1], ft[i + 2]));
         const NF2 = 10, fge = new THREE.BufferGeometry(); fge.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NE * NF2 * 6), 3)); const fan2 = new THREE.LineSegments(fge, lm(0x8fe0ff, 0.4)); fan2.frustumCulled = false; fan2.visible = false; sc.add(fan2);
-        Object.assign(W3.holo, { col: { cg, hd, bw, bg, hw, hg, hal, occ }, g: cg, head: hd, chest: chest2, fan: fan2, fanT: fT, NF: NF2 }); } }
+        Object.assign(W3.holo, { col: { cg, hd, bw, bg, hw, hg, hal, occ }, g: cg, head: hd, chest: chest2, fan: fan2, fanT: fT, NF: NF2 });
+        { const NM = 48, NB = 26, mk = n => { const ge = new THREE.BufferGeometry(); ge.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 6), 3)); return ge; }, add = (m, par) => { m.frustumCulled = false; m.visible = false; par.add(m); return m; }, V = () => new THREE.Vector3();
+          const gcv = document.createElement('canvas'); gcv.width = gcv.height = 64; { const x = gcv.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.25, 'rgba(255,255,255,0.75)'); g.addColorStop(0.6, 'rgba(255,255,255,0.18)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); } const gtx = new THREE.CanvasTexture(gcv); /* 가장자리가 풀어지는 빛 번짐 */
+          const disc = (c) => add(new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ color: c, map: gtx, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, fog: false })), sc);
+          const cge = new THREE.CylinderGeometry(0.22, 1, 1, 10, 1, true); cge.translate(0, 0.5, 0); cge.rotateX(Math.PI / 2); /* 뿌리(왕관)가 굵고 끝(대본)이 가는 빛기둥, +z로 뻗는다 */
+          const r7 = seeded(77), dirs = []; for (let i = 0; i < NM; i++) { const a = r7() * Math.PI * 2, e = (r7() - 0.35) * 1.6, R = 0.3 + r7() * 0.35; dirs.push([Math.cos(a) * Math.cos(e) * R, Math.sin(e) * R * 0.8, Math.sin(a) * Math.cos(e) * R * 0.7, r7(), 0.7 + r7() * 0.8]); }
+          W3.holo.crown = { motes: add(new THREE.LineSegments(mk(NM), lm(0xffe9a8, 0.9)), cg), beam: add(new THREE.LineSegments(mk(NB), lm(0xfff6d8, 1)), sc), cone: add(new THREE.Mesh(cge, new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })), sc),
+            glow: disc(0xffc84a), core: disc(0xfff6dc), dirs, NM, NB, F: new THREE.Vector3(0, 0.87, 0.26), fw: V(), tw: V(), tip: V(), ch: 0, on: false, white: new THREE.Color(0xffffff) }; } } }
     // 큰 눈이 깨질 때: 눈알 위로 번지는 금, 튀는 파편, 충격파
     const om = EX.staff[0]; W3.cr = null;
     if (om && om.head) { const r2 = seeded(31), segs = [], P = new THREE.Vector3(), D = new THREE.Vector3(), N = new THREE.Vector3(), Q = new THREE.Vector3();
@@ -393,8 +400,24 @@ BOSS.hle = (() => {
       Ho.head.rotation.x = lerp(Ho.head.rotation.x, scLive && SC.st === 'scan' && !watch ? 0.1 : 0.55, 0.12); Ho.head.rotation.y = lerp(Ho.head.rotation.y, scLive && SC.st === 'scan' && !watch ? cl(b.u, -1.4, 1.4) * 0.6 : 0, 0.12); /* 볼 때는 고개를 숙여 나를 내려다본다 */
       const sm = scLive && SC.st === 'smash' ? cl(SC.t / 0.16, 0, 1) : 0, up = scLive && SC.st === 'show' ? ez(cl(SC.t / Math.max(0.2, tune.hle_sc_show), 0, 1)) : scLive && SC.st === 'smash' ? 1 - sm : 0, sway = Math.sin(now * 0.8) * 0.03; /* 대본이 떠 있는 동안 오른팔을 치켜들었다가 내리친다 */
       Ho.armL.rotation.set(-0.45, 0, -0.3 + sway); Ho.armR.rotation.set(lerp(-0.45, -0.25, up) - (sm >= 1 ? 0.8 : 0), 0, lerp(0.3 - sway, 2.5, up)); }
-      Ho.g.updateMatrixWorld(true); Ho.chest.getWorldPosition(C); Ho.head.getWorldPosition(W3.v3); if (Ho.col) W3.v3.y += 0.6 * K; Ho.on = gt >= 0;
-      if (Ho.fan) { const fv = Ho.g.visible && !mi ? grow(1) * (1 - lid * 0.0) : 0; Ho.fan.visible = fv > 0; if (fv > 0) { const pa = Ho.fan.geometry.getAttribute('position'), a = pa.array, NF = Ho.NF; let n = 0; W3.eyes.forEach((e, i) => { const shut = scLive && SC.st === 'input' && (NE - 1 - i) < Math.floor(lid * NE + 0.001); if (shut || e.home.z > EX.eye.z - 0.8) return; for (let f = 0; f < NF; f++) { W3.v2.copy(Ho.fanT[i * NF + f]).applyMatrix4(Ho.g.matrixWorld); a[n++] = e.g.position.x; a[n++] = e.g.position.y; a[n++] = e.g.position.z; a[n++] = W3.v2.x; a[n++] = W3.v2.y; a[n++] = W3.v2.z; } }); pa.needsUpdate = true; Ho.fan.geometry.setDrawRange(0, Math.floor(n / 3 * fv / 2) * 2); Ho.fan.material.color.setHex(hot ? 0xff6a7a : 0x8fe0ff); Ho.fan.material.opacity = 0.42 * flick; } }
+      Ho.g.updateMatrixWorld(true);
+      if (Ho.crown) { const CR = Ho.crown, st = scLive ? SC.st : '', T1 = showT(), io = x => x * x * (3 - 2 * x); let ch = 0, fire = 0, fade = 0; /* ch: 왕관에 빛이 찬 정도, fire: 빔이 뻗은 정도, fade: 빔이 사그라든 정도 */
+        if (SMX && st === 'show') { ch = io(cl((SC.t - 0.12) / (T1 - 0.3), 0, 1)); fire = cl((SC.t - (T1 - 0.09)) / 0.09, 0, 1); }
+        else if (SMX && st === 'smash') { fire = 1; fade = cl((SC.t - HIT) / 0.3, 0, 1); ch = 1 - cl((SC.t - HIT) / 0.45, 0, 1); }
+        CR.ch = ch; const on = (ch > 0 || fire > 0) && Ho.g.visible && !!Ho.col; CR.motes.visible = CR.glow.visible = CR.core.visible = on && ch > 0.01; CR.beam.visible = CR.cone.visible = on && fire > 0 && fade < 1;
+        if (on) { const CL = Ho.col, F = CR.F, fk = 0.85 + 0.15 * Math.sin(now * 47) * Math.sin(now * 31);
+          CR.fw.copy(F).applyMatrix4(Ho.g.matrixWorld); CR.tw.set(0, -0.74, 0.5).unproject(cam).sub(cam.position).normalize().multiplyScalar(2.4).add(cam.position); /* 대본 창이 떠 있는 자리 */
+          CL.hal.scale.setScalar(1 + 0.45 * ch); CL.hal.rotation.z = now * 0.05 + ch * ch * now * 2.4; CL.hal.material.opacity = Math.min(1, CL.hal.material.opacity + ch); CL.hal.material.color.lerp(CR.white, ch * 0.5); CL.hg.material.color.lerp(CR.white, ch * 0.75); CL.hg.material.opacity = Math.min(1, CL.hg.material.opacity + ch * 0.3); /* 고리가 커지며 빨리 돌고, 왕관이 하얗게 달아오른다 */
+          { const pa = CR.motes.geometry.getAttribute('position'), a = pa.array; let n = 0; for (const [dx, dy, dz, ph, sp] of CR.dirs) { const q = (now * sp * (0.8 + ch * 1.6) + ph) % 1, h = Math.pow(q, 1.6), t = Math.pow(Math.max(0, q - 0.14), 1.6); /* 빛 알갱이가 사방에서 왕관 앞 한 점으로 빨려 든다 */
+              a[n++] = F.x + dx * (1 - t); a[n++] = F.y + dy * (1 - t); a[n++] = F.z + dz * (1 - t); a[n++] = F.x + dx * (1 - h); a[n++] = F.y + dy * (1 - h); a[n++] = F.z + dz * (1 - h); } pa.needsUpdate = true; CR.motes.geometry.setDrawRange(0, Math.floor(CR.NM * Math.min(1, ch * 1.5)) * 2); CR.motes.material.opacity = 0.9 * Math.min(1, ch * 2) * (1 - fade); }
+          const gr = (0.5 + 2.6 * ch * ch) * fk + fire * (1 - fade) * 2.2; for (const [m, k, o] of [[CR.glow, 1.5, 0.85], [CR.core, 0.6, 1]]) { m.position.copy(CR.fw); m.quaternion.copy(cam.quaternion); m.scale.setScalar(gr * k); m.material.opacity = o * Math.min(1, ch * 1.4 + fire) * (1 - fade * 0.6); }
+          if (CR.beam.visible) { CR.tip.copy(CR.fw).lerp(CR.tw, fire); const len = CR.fw.distanceTo(CR.tip), k = 1 - fade, pa = CR.beam.geometry.getAttribute('position'), a = pa.array, r8 = seeded(1 + Math.floor(now * 30)); let n = 0;
+            for (let i = 0; i < CR.NB; i++) { const j0 = 0.75 * k, j1 = 0.1 + 0.12 * k; a[n++] = CR.fw.x + (r8() - 0.5) * j0; a[n++] = CR.fw.y + (r8() - 0.5) * j0; a[n++] = CR.fw.z + (r8() - 0.5) * j0; a[n++] = CR.tip.x + (r8() - 0.5) * j1; a[n++] = CR.tip.y + (r8() - 0.5) * j1; a[n++] = CR.tip.z + (r8() - 0.5) * j1; }
+            pa.needsUpdate = true; CR.beam.material.opacity = k; CR.cone.position.copy(CR.fw); CR.cone.lookAt(CR.tip); CR.cone.scale.set(0.55 * (0.3 + 0.7 * k), 0.55 * (0.3 + 0.7 * k), Math.max(0.01, len)); CR.cone.material.opacity = 0.5 * k * fk; } }
+        else if (CR.on && Ho.col) Ho.col.hal.scale.setScalar(1);
+        CR.on = on; }
+      Ho.chest.getWorldPosition(C); Ho.head.getWorldPosition(W3.v3); if (Ho.col) W3.v3.y += 0.6 * K; Ho.on = gt >= 0;
+      if (Ho.fan) { const fv = Ho.g.visible && !mi ? grow(1) * (1 - lid * 0.0) : 0; Ho.fan.visible = fv > 0; if (fv > 0) { const pa = Ho.fan.geometry.getAttribute('position'), a = pa.array, NF = Ho.NF; let n = 0; W3.eyes.forEach((e, i) => { const shut = scLive && SC.st === 'input' && (NE - 1 - i) < Math.floor(lid * NE + 0.001); if (shut || e.home.z > EX.eye.z - 0.8) return; for (let f = 0; f < NF; f++) { W3.v2.copy(Ho.fanT[i * NF + f]); { const CR = Ho.crown; if (CR && CR.ch > 0 && i % 2 === 0) { const V = W3.v2, k = io2(CR.ch), s = 0.05 * (((i * 7 + f * 3) % 5) - 2); V.x = lerp(V.x, CR.F.x + s, k); V.y = lerp(V.y, CR.F.y + s * 0.6, k); V.z = lerp(V.z, CR.F.z, k); } } W3.v2.applyMatrix4(Ho.g.matrixWorld); a[n++] = e.g.position.x; a[n++] = e.g.position.y; a[n++] = e.g.position.z; a[n++] = W3.v2.x; a[n++] = W3.v2.y; a[n++] = W3.v2.z; } }); pa.needsUpdate = true; Ho.fan.geometry.setDrawRange(0, Math.floor(n / 3 * fv / 2) * 2); Ho.fan.material.color.setHex(hot ? 0xff6a7a : 0x8fe0ff); Ho.fan.material.opacity = 0.42 * flick; } }
       W3.v2.set(MX + b.u * 2.1, ty, tz); if (W3.beam.visible) { const rad = w * 2.1; aimCone(W3.beam, W3.v3, W3.v2, rad, b.k === 2 ? 0.24 : 0.13); W3.pool.position.set(W3.v2.x, ty + 0.003, tz); W3.pool.scale.setScalar(rad * 1.6); W3.pool.material.opacity = b.k === 2 ? 1 : 0.75; } }
     else if (W3.holo) { W3.holo.g.visible = false; W3.holo.on = false; if (W3.holo.fan) W3.holo.fan.visible = false; }
     // 금 · 파편 · 충격파
@@ -432,6 +455,7 @@ BOSS.hle = (() => {
       e.g.position.copy(p);
       const cx = MX, cz = MZ - 0.02, th = e.ph + now * e.sp; // 훑는 표적: 내 책상 둘레를 돈다
       W3.v3.set(cx, 0.75, cz); if (clOn) W3.v3.copy(ga && GPRE && ga.t < 1.6 ? W3.rc : W3.cc); else if (st < 2 && !(R && R.kind === 'mirror')) { const rr = st === 1 ? e.rho * 0.45 : e.rho; W3.v3.x += Math.cos(th) * rr; W3.v3.z += Math.sin(th) * rr * 0.8; W3.v3.y = 0.2; }
+      { const CR = W3.holo && W3.holo.crown; if (CR && CR.ch > 0 && clOn && i % 2 === 0) W3.v3.lerp(CR.fw, io2(CR.ch)); } /* 빛을 보태는 눈은 왕관을 올려다본다 */
       e.aim.lerp(W3.v3, clOn || st >= 2 ? 0.4 : 0.12);
       if (sh && fly < 1) e.g.rotation.set(tau * e.tum[0], tau * e.tum[1], 0); else e.g.lookAt(e.aim);
       const want = st < 0 ? 0 : clOn ? 1 : sh ? (st === 3 ? 1 : fly < 1 ? 0.75 : 0.1) : st >= 2 ? 1 : st === 1 ? 0.5 + 0.2 * Math.sin(now * 40 + i) : 0.6; e.open = lerp(e.open, want, 0.35); if (e.top) { const c = 1 - e.open; e.top.position.y = -0.085 * c; e.bot.position.y = 0.085 * c; e.core.scale.setScalar(0.3 + 0.7 * e.open); } else e.lid.scale.set(1, Math.max(0.08, e.open), 1); /* 모델: 위아래 껍질이 닫히며 눈알이 숨는다 */
@@ -466,7 +490,7 @@ BOSS.hle = (() => {
       else if (R.kind === 'mirror') { const k = SC && W3.holo && W3.holo.col ? ez(cl((R.t - 0.7) / 2.5, 0, 1)) : ez(cl((R.t - 0.4) / 1.6, 0, 1)); /* 풀려 내려가는 실을 따라 고개가 내려온다 */ pitch = lerp(SC ? SCP : 0.18, -0.02, k); yaw = lerp(0.1, 0, k); fov = lerp(SC ? SCF : 60, 54, k); }
       else { pitch = -0.02; yaw = 0; fov = 50 + (1 - cl(R.t / 2.5, 0, 1)) * 4; }
       cam.rotation.set(pitch, yaw, 0, 'YXZ'); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); } }
-    else if (SC) { cam.rotation.set(SCP, 0.1, 0, 'YXZ'); if (Math.abs(cam.fov - SCF) > 0.01) { cam.fov = SCF; cam.updateProjectionMatrix(); } } /* 대본 단계: 고개를 들고 Ω를 마주 본다 */
+    else if (SC) { const kk = SMX && SC.st === 'smash' ? 0.03 * Math.exp(-SC.t * 9) * Math.cos(SC.t * 40) : 0; cam.rotation.set(SCP + kk, 0.1, kk * 0.35, 'YXZ'); if (Math.abs(cam.fov - SCF) > 0.01) { cam.fov = SCF; cam.updateProjectionMatrix(); } } /* 대본 단계: 고개를 들고 Ω를 마주 본다 */
     if (CAMX && gaR) camDir(Ax, gaR, now);
     cam.updateMatrixWorld(); EX.scene.updateMatrixWorld();
     if (SC && W3.cc) { W3.v3.copy(W3.cc); W3.v3.project(cam); SC.ox = (W3.v3.x + 1) * 320; SC.oy = (1 - W3.v3.y) * 180; } /* 렌즈 화면에서 Ω가 있는 곳 */
@@ -485,6 +509,12 @@ BOSS.hle = (() => {
     if (H.flash > 0) { k.b.globalAlpha = Math.min(1, H.flash); k.R(0, 0, L.W, L.H, '#ffffff'); k.b.globalAlpha = 1; }
     if (H.say) { const a = Math.min(1, (H.say.dur - H.say.t) / 0.4, H.say.t / 0.2); k.b.globalAlpha = cl(a, 0, 1); k.SUB(H.say.text, L.W / 2, L.H - 30, 12, '#ffffff', 'center'); k.b.globalAlpha = 1; }
   }
+  const SMX = new URLSearchParams(location.search).get('smash') !== 'old', HIT = 0.07, showT = () => tune.hle_sc_show + (SMX ? 0.3 : 0); // 대본 깨뜨리기 연출 (HIT: 맞는 순간 멎는 시간, showT: 대본이 온전히 떠 있는 시간. 빛이 차오를 시간으로 0.3초 더 준다)
+  function glass(k, cx, cy, hw, hh, rot, a, seed) { // 유리 조각 하나
+    const rnd = seeded(seed), P = [[-hw, -hh * (0.6 + rnd() * 0.8)], [hw * (0.5 + rnd() * 0.5), -hh], [hw, hh * (0.4 + rnd() * 0.6)], [-hw * (0.4 + rnd() * 0.6), hh]], co = Math.cos(rot), si = Math.sin(rot);
+    hudDraw(k, c => { c.globalAlpha = a; c.beginPath(); P.forEach(([x, y], i) => { const X = cx + x * co - y * si, Y = cy + x * si + y * co; if (i) c.lineTo(X, Y); else c.moveTo(X, Y); }); c.closePath(); c.fillStyle = 'rgba(190,232,255,0.2)'; c.fill(); c.strokeStyle = 'rgba(244,251,255,0.9)'; c.lineWidth = 1; c.stroke(); });
+  }
+  const io2 = x => { x = cl(x * 2.2, 0, 1); return x * x * (3 - 2 * x); }; // 눈들이 왕관으로 고개를 돌리는 빠르기
   function blk(k, w, cx, cy, o) { // 어절 블록 하나
     const tw = k.TW(w, 10, 700), bw = tw + 16, bh = 22, x = cx - bw / 2, y = cy - bh / 2, col = o.col;
     hudDraw(k, c => { c.globalAlpha = o.a == null ? 1 : o.a; c.fillStyle = o.fill || 'rgba(4,10,16,0.84)'; c.fillRect(x, y, bw, bh); c.strokeStyle = o.first ? WH : rgba(col, 0.85); c.lineWidth = o.first ? 1.6 : 1; c.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
@@ -507,7 +537,18 @@ BOSS.hle = (() => {
       hudDraw(k, c => { const w = (WW - 4) * cl(C.scan, 0, 1); c.fillStyle = rgba(col, 0.22); c.fillRect(WX - WW / 2 + 2, WY - WHh / 2 + 2, w, WHh - 4); if (C.scan > 0) { c.fillStyle = col; c.fillRect(WX - WW / 2 + 2 + w, WY - WHh / 2 + 2, 1.4, WHh - 4); } });
       k.M(C.scan > 0 ? `SCRIPT ${Math.round(cl(C.scan, 0, 1) * 100)}%` : C.rescans && C.t < 1.2 && Math.floor(now * 6) % 2 ? 'RESCAN' : 'SCRIPT', WX, WY + 0.5, 8, C.scan > 0 ? WH : rgba(col, 0.8), 'center', 700);
       if (C.i === 0 && !C.rescans) k.M(STATE.touchUI ? '안 볼 때 길게 눌러 스캔' : 'SPACE · 안 볼 때 스캔', WX, WY + 26, 7, rgba(WH, 0.7), 'center', 700); }
-    else if (C.st === 'show') { frame(1); const a = cl(C.t / 0.15, 0, 1); c0.globalAlpha = a; k.T(QA.b.join(' '), WX, WY + 0.5, 10.5, WH, 'center', 700); c0.globalAlpha = 1; }
+    else if (C.st === 'show') { const g = SMX ? cl((C.t - (showT() - 0.75)) / 0.75, 0, 1) : 0, g3 = g * g * g; frame(1, g > 0.5 ? RED : null); const a = cl(C.t / 0.15, 0, 1); c0.globalAlpha = a; k.T(QA.b.join(' '), WX + (g > 0.6 ? Math.sin(now * 80) * 1.2 * g : 0), WY + 0.5, 10.5, WH, 'center', 700); c0.globalAlpha = 1;
+ }
+    else if (C.st === 'smash' && SMX) { const tt = Math.max(0, C.t - HIT), q = cl(tt / 0.42, 0, 1), e = 1 + 2.4 * Math.pow(q - 1, 3) + 1.4 * Math.pow(q - 1, 2), jy = C.t < HIT ? 7 : 7 * Math.exp(-tt * 13) * Math.cos(tt * 36), n2 = C.pool.length, sw = WW / n2;
+      if (C.t < HIT) { hudDraw(k, c => { c.fillStyle = 'rgba(255,246,214,0.95)'; c.fillRect(WX - WW / 2 - 6, WY - WHh / 2 - 4 + jy, WW + 12, WHh + 8); c.strokeStyle = 'rgba(244,251,255,0.9)'; c.lineWidth = 1.4; const rnd = seeded(5 + C.i); for (let i = 0; i < 18; i++) { const a = rnd() * Math.PI * 2, r0 = 30 + rnd() * 40, r1 = 120 + rnd() * 190; c.beginPath(); c.moveTo(WX + Math.cos(a) * r0 * 2.4, WY + jy + Math.sin(a) * r0 * 0.5); c.lineTo(WX + Math.cos(a) * r1 * 1.5, WY + jy + Math.sin(a) * r1 * 0.75); c.stroke(); } }); }
+      else { if (tt < 0.3) hudDraw(k, c => { const g = c.createRadialGradient(WX, WY, 0, WX, WY, 70 + tt * 420); g.addColorStop(0, `rgba(255,240,190,${0.55 * (1 - tt / 0.3)})`); g.addColorStop(1, 'rgba(255,200,90,0)'); c.fillStyle = g; c.fillRect(0, 0, L.W, L.H); });
+        hudDraw(k, c => { c.globalAlpha = 1 - q; cracks(c, WX, WY + jy, 210, cl(tt / 0.16, 0.25, 1), 7 + C.i); });
+        { const rnd = seeded(40 + C.i); for (let i = 0; i < 16; i++) { const a = -Math.PI * rnd(), sp = 150 + rnd() * 330, x = WX + (rnd() - 0.5) * WW + Math.cos(a) * sp * tt, y = WY + Math.sin(a) * sp * tt + 520 * tt * tt; glass(k, x, y + jy, 4 + rnd() * 9, 3 + rnd() * 6, rnd() * 6 + tt * (rnd() - 0.5) * 22, cl(1 - tt / 0.5, 0, 1) * 0.9, 300 + i); } }
+        for (const p of C.pool) { const sx = WX - WW / 2 + sw * (p.j + 0.5), wob = tt > 0.42 ? Math.sin((tt - 0.42) * 30 + p.j) * 3.2 * Math.exp(-(tt - 0.42) * 11) : 0, x = lerp(sx, p.x, e), y = lerp(WY, p.y, e) - Math.sin(q * Math.PI) * 30 + wob + jy, rot = (((p.j * 37) % 11) / 11 - 0.5) * 2.2 * (1 - q);
+          glass(k, x, y, lerp(sw / 2, (k.TW(p.w, 10, 700) + 22) / 2, q), lerp(WHh / 2, 13, q), rot, (1 - q) * 0.95, 60 + p.j);
+          if (tt < 0.22) { const d = 4 * (1 - tt / 0.22); blk(k, p.w, x - d, y, { col: '#ff3a55', a: 0.45, ink: '#ff3a55' }); blk(k, p.w, x + d, y, { col: '#38e8ff', a: 0.45, ink: '#38e8ff' }); }
+          blk(k, p.w, x, y, { col, first: p.j === 0, a: cl(tt / 0.1, 0.35, 1) }); } }
+      }
     else if (C.st === 'smash') { const q = cl(C.t / 0.42, 0, 1), e = 1 - Math.pow(1 - q, 3); frame(1 - q, RED);
       hudDraw(k, c => { if (C.t < 0.16) { c.strokeStyle = rgba(RED, 0.9); c.lineWidth = 3 - C.t * 12; c.beginPath(); c.moveTo(C.ox, C.oy); c.lineTo(WX, WY); c.stroke(); } c.globalAlpha = 1 - q; cracks(c, WX, WY, 150, cl(C.t / 0.2, 0.2, 1), 7 + C.i); });
       for (const p of C.pool) blk(k, p.w, lerp(WX, p.x, e), lerp(WY, p.y, e) - Math.sin(q * Math.PI) * 26, { col, first: p.j === 0 }); }
