@@ -638,7 +638,7 @@ function startExam(ti) {
     else N.push({ text: '안경 물 검사: 안경이 없어 그냥 지나감', col: PAL.good });
   }
   if (T.mech.includes('sticker')) { E.intro = { kind: 'sticker', t: 0, dur: 3.6 }; if (camOn) E.deadNext = 'sticker'; N.push({ text: camOn ? '단추 카메라가 스티커에 가려졌다. 이 시험은 AI 없이' : '옷 단추마다 스티커 (안경이라 상관없음)', col: camOn ? PAL.bad : PAL.good }); }
-  const names = [...T.mech.filter(m => !['tutorial', 'metal', 'glasscheck', 'sticker'].includes(m)).map(m => m === 'idcheck' && T.check === 'calc' ? MECH_NAME.calc : MECH_NAME[m]), ...T.sec.map(s => s === 'pulse' && T.pulse ? SEC_NAME[T.pulse] : SEC_NAME[s])];
+  const names = [...T.mech.filter(m => !['tutorial', 'metal', 'glasscheck', 'sticker'].includes(m)).map(m => m === 'idcheck' && T.check === 'calc' ? MECH_NAME.calc : MECH_NAME[m]), ...T.sec.map(s => s === 'pulse' && T.pulse ? SEC_NAME[T.pulse] : SEC_NAME[s])].filter(Boolean); // 이름이 없는 장치(시선 추적·재배열 등)는 빼서 '마주 보는 면접 · '처럼 꼬리가 남지 않게
   if (names.length) N.push({ text: names.join(' · '), col: PAL.warn });
   if (T.noAuto && (g.autoscan > 0 || g.lens >= 7)) N.push({ text: 'AI 감독관이 이어폰·자동 스캔을 막는다', col: PAL.bad });
   beginPart(0, firstEver);

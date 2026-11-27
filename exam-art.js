@@ -532,8 +532,8 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
           b.beginPath(); b.arc(x, y, 5.5, 0, 7); b.fillStyle = w === 'off' ? 'rgba(8,10,14,0.9)' : c1; b.fill(); b.lineWidth = 1.5; b.strokeStyle = w === 'off' ? 'rgba(255,255,255,0.6)' : c1; b.stroke();
           if (w === 'watch') { b.beginPath(); b.arc(x, y, 9, 0, 7); b.lineWidth = 1.2; b.stroke(); }
           b.restore(); along('후방', 46, -6, tm, 8, w === 'off' ? 'rgba(255,255,255,0.65)' : c1, 14); } }
-      if (!E.caught && !E.result) along(`${SL} ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에 (적발 화면에서는 사유와 겹치지 않게 지운다)
-      if (E.result) { /* 결과 화면: 아래 메뉴(재응시·다음 시험·귀가)와 겹치지 않게 호 위 글씨는 비운다 */ } else if (eyeM) { const A = E.iv; if (A && A.q === q && A.t >= A.ask) along(`대답 ${Math.round(A.wi / A.words.length * 100)}%`, HH - 40, HH + 8, 0.13, 9, 'rgba(255,255,255,0.75)', -11); }
+      if (!E.caught && !E.result && !(E.start > 0)) along(`${SL} ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에 (적발 화면에서는 사유와 겹치지 않게 지운다)
+      if (E.result || E.start > 0) { /* 결과 화면의 아래 메뉴(재응시·다음 시험·귀가), 시작 안내 방송의 둘째 줄(장비 메모)과 겹치지 않게 호 위 글씨는 비운다 */ } else if (eyeM) { const A = E.iv; if (A && A.q === q && A.t >= A.ask) along(`대답 ${Math.round(A.wi / A.words.length * 100)}%`, HH - 40, HH + 8, 0.13, 9, 'rgba(255,255,255,0.75)', -11); }
       else along(picked ? `ANS ${q.aiPick + 1}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'READY', HH - 40, HH + 8, 0.13, 9, picked ? '#8dffa8' : 'rgba(255,255,255,0.75)', -11); }
   } else if (ST === 'brain') { // 뇌 임플란트: 숫자도 틀도 없다. 속마음 한 줄과 심장 박동선
     M(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 9, low ? '#ff9a9a' : '#ffd678', 'right', 700); // 생각 기록과 같은 글씨: 금색이 지금 값, 흐린 흰색이 딸린 줄
