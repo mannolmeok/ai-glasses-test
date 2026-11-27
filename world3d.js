@@ -294,6 +294,7 @@ const WORLD = (() => {
     '  float a = (0.2 + 0.55 * fr + 0.4 * key) * line * band * alpha * smoothstep(fadeY, fadeY + 0.22, vY); gl_FragColor = vec4(col * (0.5 + 0.8 * fr + 0.45 * key), a); }';
   function holoMat(hex, a) { return new THREE.ShaderMaterial({ uniforms: { col: { value: new THREE.Color(hex) }, time: { value: 0 }, alpha: { value: a }, fadeY: { value: -99 } }, vertexShader: HOLO_V, fragmentShader: HOLO_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }); }
   const HOLO_RED = new THREE.Color(0xff4a5a);
+  const IVLOOK_HEAD = /[?&]ivlook=head/.test(location.search); // [AI 대면 면접] t76~t78 방식으로 비교: 고개를 돌려 3D 공간의 대본 창을 본다
   const HOLO_PRIM = /[?&]holo=prim/.test(location.search); // 예전(코드로 만든) 홀로그램 몸으로 비교해 보기
   const holoModel = () => !HOLO_PRIM && window.HOLO_MODEL ? window.HOLO_MODEL : null; // Meshy로 만든 흉상 (holo-model.js)
   function holoGeo(o, s) { // 구워 둔 흉상: 16비트 정수 위치 + 16비트 번호. 법선은 여기서 다시 구한다 (매끈하게)
@@ -1021,7 +1022,11 @@ const WORLD = (() => {
     const breath = GEN_ROOM ? 0 : 1; // 생성 시험장: 무늬가 촘촘한 그림은 숨 쉬는 흔들림에 화면 전체가 한 칸씩 들썩여 보인다 → 가만히 둔다
     cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003 * breath;
     cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004 * breath;
-    if (EX.layout === 'table' && E.ivLook != null) { const u = ease(clamp(E.ivLook, 0, 1)); cam.rotation.y += 0.62 * u; cam.rotation.x -= 0.05 * u; } // [AI 대면 면접] 대본을 보는 동안 고개가 왼쪽 허공의 대본 창으로 돈다 (면접관은 오른쪽 끝에 남는다)
+    let eyeZoom = false;
+    if (EX.layout === 'table' && E.ivLook != null) { const u = ease(clamp(E.ivLook, 0, 1)); // [AI 대면 면접] 대본을 볼 때
+      if (IVLOOK_HEAD) { cam.rotation.y += 0.62 * u; cam.rotation.x -= 0.05 * u; } // (비교용) 고개가 왼쪽 허공의 대본 창으로 돈다
+      else if (u > 0.002) { const z = 1 + 0.12 * u, w = 640 / z, h = 360 / z; cam.setViewOffset(640, 360, (640 - w) / 2 - 118 * u / z, (360 - h) / 2, w, h); eyeZoom = true; } } // 시선만 옮긴다: 고개는 그대로, 화면이 대본 쪽(왼쪽)으로 살짝 당겨지며 확대된다
+    if (!eyeZoom && cam.view && cam.view.enabled) cam.clearViewOffset();
     if (E.shake > 0) { const sa = Math.min(1, E.shake / 0.5); cam.rotation.y += (Math.sin(now * 83) * 0.014 + Math.sin(now * 47) * 0.009) * sa; cam.rotation.x += Math.sin(now * 67) * 0.012 * sa; } // [변호사시험 3교시] EMP에 맞은 순간 화면이 흔들린다
     const fov = lerp(a.fov, b.fov, k); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
     const predict = E.gear.predict > 0 || (E.gear.thirdeye > 0 && E.T.mech.includes('threeeyes'));

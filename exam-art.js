@@ -614,6 +614,7 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
 }
 // ---- [AI 대면 면접 · 눈 맞춤 줄다리기] 대본 창은 왼쪽 허공에 떠 있다 (3D 공간에 고정된, 살짝 굽은 창). 꾹 누르면 고개가 그쪽으로 돌아가야 읽힌다 ----
 // 창은 내 눈에서 0.85m, 왼쪽 50° 쪽에서 나를 마주 본다. 렌즈가 그 자리에 그려 주는 것이라 앞을 볼 때는 화면 왼쪽 끝에 비스듬히 흐릿하게 걸쳐 보인다
+const EYE_HEAD = /[?&]ivlook=head/.test(location.search); // (비교용) t76~t78: 고개를 돌려 3D 공간의 대본 창을 본다. 기본은 시선만 옮겨 렌즈 속 대본을 확대
 const EYEP = { cv: null, key: '', PSI: 0.78, // PSI: 창 방향(왼쪽 각도). t76~t77은 0.87(50°), t78부터 0.78(45°)로 살짝 오른쪽
    D: 0.85, M: 0.0027, RC: 1.5, DY: -0.01, N: 28 };
 function eyePanelArt(A, q, ST, INK, teach, pw, ph) { // 창 그림을 따로 그려 둔다 (안경 단계 모양 그대로). 내용이 바뀔 때만 다시 그린다
@@ -644,16 +645,28 @@ function eyePanelWarp(k, cv, pw, ph, a) { // 굽은 창을 세로 띠로 잘라,
       const y0 = (p0[1] + p1[1]) / 2, y1 = (p0[3] + p1[3]) / 2; c.drawImage(cv, j * sw, 0, sw, cv.height, x0, y0, x1 - x0 + 0.6, y1 - y0); } });
   const e = pts[P.N]; return e ? { x: (e[0] + e[2]) / 2, y: (e[1] + e[3]) / 2, top: e[1], bot: e[3] } : null; // 창 오른쪽 끝(앞을 볼 때 보이는 쪽)
 }
+function eyePanelFlat(k, cv, x0, y0, w, h, a) { // 렌즈 속 대본 창: 왼쪽 끝이 조금 크고 가운데가 살짝 오목하게 (세로 띠로 잘라 그린다)
+  const N = 24, sw = cv.width / N;
+  hudDraw(k, c => { c.imageSmoothingEnabled = true; c.globalAlpha = a;
+    for (let j = 0; j < N; j++) { const um = (j + 0.5) / N, hh = h * (1.07 - 0.1 * um) * (1 + 0.05 * (2 * um - 1) * (2 * um - 1));
+      c.drawImage(cv, j * sw, 0, sw, cv.height, x0 + j / N * w, y0 + (h - hh) / 2, w / N + 0.6, hh); } });
+}
 function drawEyeline(k, L, E, now, q, ST, INK) {
   const A = E.iv, W = L.W, HH = L.H, b = k.b, ev = E.ivEv || { ph: 'idle', t: 0 }; if (!A || A.q !== q) return;
   const lk = Math.max(0, Math.min(1, E.ivLook || 0)), look = lk * lk * (3 - 2 * lk), ink = INK || '#7fe9ff', mono = ST === 'used' || ST === 'mil';
   const asking = A.t < A.ask, teach = !G.hints.eyeline && !asking, n = q.lines.length, pw = 268, ph = 40 + n * 22 + (teach ? 14 : 0);
   if (asking) { const lines = wrapKit(k, 'AI 면접관: ' + q.q, 560, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 96 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); } // 면접관이 질문하는 동안: 자막 두 줄
   const sm = (e0, e1, v) => { const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
-  const edge = asking ? null : eyePanelWarp(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), pw, ph, 0.16 + 0.84 * sm(0.15, 0.75, look)); // 질문이 끝나면 왼쪽 허공에 대본이 뜬다
+  let edge = null;
+  if (!asking && EYE_HEAD) edge = eyePanelWarp(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), pw, ph, 0.16 + 0.84 * sm(0.15, 0.75, look)); // (비교용) 왼쪽 허공의 3D 대본 창
+  else if (!asking) { // 기본: 렌즈 왼쪽 끝의 작은 대본 창 → 꾹 누르면 시선이 옮겨 가며 창이 커진다 (고개는 그대로, 화면도 대본 쪽으로 살짝 확대)
+    const r0 = { x: ST === 'mil' ? 46 : 16, y: ST === 'mil' ? 110 : 124, w: 128 }, r1 = { x: ST === 'mil' ? 66 : 22, y: 70, w: 286 };
+    const w = r0.w + (r1.w - r0.w) * look, h = ph * w / pw, x0 = r0.x + (r1.x - r0.x) * look, y0 = r0.y + (r1.y - r0.y) * look;
+    if (look > 0.01) { b.globalAlpha = 0.16 * look; k.R(0, 0, W, HH, '#000000'); b.globalAlpha = 1; } // 초점이 대본으로 옮겨 간다: 바깥은 살짝 어둡게
+    eyePanelFlat(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), x0, y0, w, h, 0.42 + 0.58 * sm(0.1, 0.7, look)); edge = { x: x0 + w, y: y0 + h / 2 }; }
   if (!asking && !edge) { // 3D가 없을 때(그래픽 꺼짐): 예전처럼 화면 왼쪽에서 밀려 들어온다
     const px = Math.round(-pw - 12 + (pw + 40) * look); if (look > 0.02) { b.globalAlpha = Math.min(1, look * 1.4); b.drawImage(eyePanelArt(A, q, ST, INK, teach, pw, ph), px, 70, pw, ph); b.globalAlpha = 1; } }
-  if (teach && look < 0.3) { const ex = ST === 'mil' ? 46 : 20, ey = ST === 'mil' ? 196 : 232; // 처음엔 왼쪽 아래(대본 창 쪽)에 조작 안내. 군용은 왼쪽 GAZE 막대·글씨를 비켜서
+  if (teach && look < 0.3) { const ex = ST === 'mil' ? 46 : 20, ey = ST === 'mil' ? 200 : 232; // 처음엔 왼쪽 아래(대본 창 쪽)에 조작 안내. 군용은 왼쪽 GAZE 막대·글씨를 비켜서
     k.SUB(STATE.touchUI ? '◀ 꾹 누르면 왼쪽 대본을 본다' : '◀ 스페이스 꾹: 왼쪽 대본을 본다', ex, ey, 10, '#ffffff', 'left'); k.SUB('보는 동안 말이 나간다', ex + 12, ey + 17, 8.5, '#d8e8e4', 'left'); }
   if (!asking && A.wi > 0) { const li = A.words[A.wi - 1].li, said = A.words.filter((o, i) => o.li === li && i < A.wi).map(o => o.w).join(' '); k.SUB(`"${said}${A.pause > tune.iv_stall ? '… 어…' : ''}"`, W / 2, HH - 86, 13, '#ffffff', 'center'); } // 내가 하는 말 (기본 자막 자리)
   if (ev.ph === 'warn') { b.globalAlpha = 0.32 * Math.min(1, ev.t / 0.25); b.drawImage(lensGlow('A', '#ffcf5a'), 0, 0); b.globalAlpha = 1; } // 표정 분석 예고: 렌즈 둘레가 은은하게 노랗게 (깜빡이지 않게)
