@@ -865,6 +865,41 @@ const WORLD = (() => {
     } else yaw = Math.atan2(EX.eye.x - x, EX.eye.z - z);
     return { x, z, yaw, moving, headPitch };
   }
+  // ---------- [변호사시험 3교시] AI 감독관의 EMP 총 ----------
+  function makeEmpGun(m) { // 오른손에 쥐는 총: 팔이 뻗는 쪽(-y)이 총구. 코일과 총구 빛은 충전되는 만큼 밝아진다
+    const g = pivot(m.arms[1], 0, -0.55, 0.02), coil = glowMat(0x1a4a5a), tip = glowMat(0x1a4a5a);
+    bx(g, 0.05, 0.1, 0.06, 0x23272f, 0, 0, -0.05);                                  // 손잡이
+    bx(g, 0.075, 0.3, 0.085, 0x3a4152, 0, -0.12, 0.02);                              // 몸통
+    for (const y of [-0.05, -0.11, -0.17]) bx(g, 0.095, 0.018, 0.1, 0, 0, y, 0.02, coil); // 코일 세 줄
+    bx(g, 0.11, 0.035, 0.11, 0x8d96aa, 0, -0.28, 0.02);                              // 총구 테
+    bx(g, 0.07, 0.012, 0.07, 0, 0, -0.3, 0.02, tip);                                 // 총구 속
+    const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: 0xaaf4ff, transparent: true, opacity: 0.9, fog: false, depthWrite: false }));
+    orb.position.set(0, -0.34, 0.02); orb.scale.setScalar(0.001); orb.visible = false; g.add(orb);
+    return { g, coil, tip, orb };
+  }
+  function empArm(m, s, E, now, p) { // 순찰할 때는 총구를 아래로 들고 다니고, 겨눌 때 팔을 들어 나를 향한다. 쏘면 반동으로 튀었다가 내려간다
+    const M = E.emp; if (!M) { if (m.emp) m.emp.g.visible = false; return; }
+    const G2 = m.emp || (m.emp = makeEmpGun(m)); G2.g.visible = m.root.visible;
+    const ph = s.phase === 'emp' ? M.phase : 'idle', k = M.k; let rx = -0.3 + (p && p.moving ? Math.sin((p.walk != null ? p.walk : s.walk) * 7) * 0.08 : 0), glow = 0, orb = 0;
+    if (ph === 'aim') { const u = ease(clamp(k / 0.35, 0, 1)), c = clamp(k / tune.emp_aim, 0, 1); rx = lerp(-0.3, -1.5, u) + Math.sin(now * 38) * 0.012 * c; glow = c; orb = 0.02 + 0.06 * c * (0.85 + 0.15 * Math.sin(now * 14)); }
+    else if (ph === 'fire') { const back = clamp((k - (tune.emp_recoil - 0.35)) / 0.35, 0, 1); rx = lerp(-1.5 - 0.35 * Math.exp(-k * 9), -0.3, ease(back)); glow = Math.max(0, 1 - k * 2.5); orb = k < 0.12 ? 0.04 + 0.14 * (1 - k / 0.12) : 0; }
+    m.arms[1].rotation.set(rx, 0, 0);
+    G2.coil.color.setRGB(0.1 + 0.4 * glow, 0.29 + 0.62 * glow, 0.35 + 0.65 * glow); G2.tip.color.copy(G2.coil.color);
+    G2.orb.visible = orb > 0.002; G2.orb.scale.setScalar(Math.max(0.001, orb));
+    if (m.visorMat && s.phase === 'emp') m.visorMat.color.setHex(0x2fb8cc); // 겨누는 동안은 눈이 하늘색: 나를 보는 게 아니라 총에 정신이 팔려 있다
+  }
+  const EMPV = new THREE.Vector3();
+  function empWave(E) { // 총구에서 퍼진 파동이 내 자리를 지나간다 (지나가는 순간이 E.emp.hit: 렌즈가 지직거리고 스캔이 느려진다)
+    const M = E.emp; let w = EX.empWave; if (w && w.parent !== EX.scene) w = EX.empWave = null;
+    const life = tune.emp_travel * 2.6, i = M ? E.staff.findIndex(s => s.type === 'robot' && !s.fixed) : -1, m = i >= 0 ? EX.staff[i] : null;
+    if (!M || M.phase !== 'fire' || M.k > life || !m || !m.emp) { if (w) w.visible = false; return; }
+    if (!w) { w = EX.empWave = new THREE.Group(); const mat1 = new THREE.MeshBasicMaterial({ color: 0x7fe9ff, wireframe: true, transparent: true, opacity: 0.5, fog: false, depthWrite: false });
+      const mat2 = new THREE.MeshBasicMaterial({ color: 0xbff6ff, transparent: true, opacity: 0.3, fog: false, depthWrite: false, side: THREE.DoubleSide }), ring = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 40), mat2);
+      ring.rotation.x = -Math.PI / 2; w.add(new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), mat1)); w.add(ring); w.userData = { mat1, mat2, ring }; EX.scene.add(w); }
+    m.emp.orb.getWorldPosition(EMPV);
+    const d = Math.max(0.5, EMPV.distanceTo(EX.cam.position)), r = Math.max(0.02, d * M.k / Math.max(0.05, tune.emp_travel)), f = clamp(M.k / life, 0, 1);
+    w.visible = true; w.position.copy(EMPV); w.scale.setScalar(r); w.userData.mat1.opacity = 0.42 * (1 - f); w.userData.mat2.opacity = 0.3 * (1 - f); w.userData.ring.position.y = (0.03 - EMPV.y) / r; // 바닥에는 고리가 번진다
+  }
   function renderExam(E, now) {
     if (!W.ok) return;
     buildExam(E.tier);
@@ -905,6 +940,7 @@ const WORLD = (() => {
       const hold = s.phase === 'check' && s.check && s.check.kind === 'sheet' && s.check.stage === 'at' ? sheetK(s.check) : null; if (hold) sheetAt = { p, hold };
       poseModel(m, { hold, sit: p.sit, raise: p.raise, x: p.x, y: p.y, z: p.z, scale: p.scale, yaw: p.yaw, moving: p.moving, walk: p.walk != null ? p.walk : s.walk, phase: s.phase === 'check' && s.check && s.check.stage === 'at' ? 'watch' : frisk ? 'watch' : s.phase, now, headYaw: frisk ? -(p.yaw - Math.atan2(EX.eye.x - p.x, EX.eye.z - p.z)) : headYaw, headPitch: p.headPitch,
         predict: predict && !s.asleep && !hold && !(E.evict && E.evict.plan && E.evict.t < E.evict.plan.endAll), asleep: s.asleep, away: s.away, hidden: s.out || s.blink > 0 || p.hiddenNow, seated: p.seated, coneLen: s.phase === 'watch' ? Math.max(0.6, dist - 0.55) : 3.5 });
+      if (m.robot) empArm(m, s, E, now, p); // [변호사시험 3교시] AI 감독관의 EMP 총
       if (frisk) { const W2 = EX.gadget.wand, mt = E.intro.t; if (W2.parent !== m.arms[1]) { m.arms[1].add(W2); W2.position.set(0, -1.02, 0.1); W2.rotation.set(Math.PI / 2, 0, 0); W2.scale.setScalar(0.9); }
         m.arms[1].rotation.set(-1.17 + Math.sin(mt * 4.2) * 0.05, 0, 0); m.arms[0].rotation.set(0, 0, 0); W2.visible = true; }
       if (window.PROCTOR_GEN && window.PROCTOR_GEN.pose(m, { p, s, now, scene: EX.scene, snap: SNAP, frisk, hold })) { /* 시험판(?proctor=gen): proctor-gen.js가 생성 모델을 세웠다 */ } else
@@ -926,6 +962,7 @@ const WORLD = (() => {
         }
       }
     });
+    empWave(E); // [변호사시험 3교시] EMP 총에서 퍼지는 파동
     if (EX.paper && EX.paper.userData.home && !EX.home) { const P0 = EX.paper, h0 = P0.userData.home; // 바칼로레아: 답안지가 책상에서 장학관 손으로 올라갔다 내려온다
       if (sheetAt && sheetAt.hold.lift > 0) { const { p, hold } = sheetAt, k = hold.lift, yw = p.yaw || 0, hx = p.x + Math.sin(yw) * 0.42, hz = p.z + Math.cos(yw) * 0.42;
         let yH = yw + Math.PI; yH = ((yH + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;

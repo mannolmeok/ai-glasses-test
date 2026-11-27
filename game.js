@@ -543,6 +543,9 @@ const sfx = {
   bubble: () => { for (let i = 0; i < 6; i++) toneAt(420 + i * 90, 0.06, 'sine', 0.07, i * 0.06); },
   omega: () => { toneAt(110, 1.2, 'sawtooth', 0.1); toneAt(116.5, 1.2, 'sawtooth', 0.1); toneAt(55, 1.4, 'sine', 0.18, 0.05); },
   radio: () => { for (let i = 0; i < 4; i++) toneAt(440 + (i % 2) * 110, 0.07, 'triangle', 0.03, i * 0.1); },
+  empCharge: (dur = 1.5) => { const n = Math.max(3, Math.round(dur / 0.1)); for (let i = 0; i < n; i++) toneAt(260 + i * (900 / n), 0.13, 'sawtooth', 0.01 + 0.025 * i / n, i * dur / n); }, // EMP 총 충전: 윙— 하고 올라간다
+  empFire: () => { toneAt(1500, 0.06, 'square', 0.07); toneAt(160, 0.4, 'sawtooth', 0.08, 0.02); toneAt(80, 0.5, 'sine', 0.16, 0.02); noiseAt(0.35, 0.1, 0, 1600, 0.7); },
+  empHit: () => { noiseAt(0.45, 0.08, 0, 3400, 0.5); toneAt(110, 0.35, 'sine', 0.1); toneAt(2400, 0.05, 'square', 0.03, 0.05); toneAt(1900, 0.05, 'square', 0.03, 0.12); },
 };
 
 // ---- Exam ------------------------------------------------------------------------------
@@ -585,7 +588,7 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
     if (E.T.id === 'leet' && p === 1 && CONFIG.eggs.stairs) E.stairs = { phase: 'intro', t: 0, steps: 0, last: null, left: tune.stairs_time, stumble: 0, result: null }; // 쉬는 시간: 계단 앞에 서 있다
     if (T.id === 'bar' && p === 1) { const T2 = E.T = Object.assign({}, T, { stand: T.stand.map(v => v * 0.75), walk: T.walk.map(v => v * 0.8), speed: T.speed * 1.3 }); E.staff.push(newStaff({ type: 'dean', name: '추가 감독관' }, E.staff.length, T2)); E.evict = { t: 0 }; E.breakT = 9;
       E.staff.forEach((s, i) => { s.u = 0.94 - (i === 2 ? 0.1 : 0); s.dir = -1; s.out = false; s.help = s.check = s.peek = null; setPhase(s, 'walk', procDur(T2.walk)); }); } // 쉬는 시간에 감독관 둘이 앞자리를 데리고 나가고 셋이 돌아온다(그림은 world3d). 끝나면 셋 다 앞쪽에서 걸어 들어온 자리에서 이어 간다 // 2교시: 감독관 한 명 더, 순찰이 빨라진다
-    if (T.id === 'bar' && p === 2) { E.jam = 1.6; E.pulseFast = 0.6; say('AI 감독관이 방해 전파를 쏜다 · 스캔이 느려진다', PAL.bad); sfx.pulse(); } // 3교시: 스캔 60% 느려짐, 전파 간격 짧아짐
+    if (T.id === 'bar' && p === 2) { E.emp = { phase: 'idle', t: tune.emp_first, k: 0, jamT: 0, n: 0, hit: false }; say('AI 감독관이 EMP 총을 꺼냈다 · 맞으면 잠깐 스캔이 느려진다', PAL.bad); sfx.empCharge(0.5); } // 3교시: AI 감독관이 EMP 총을 들고 순찰하다가 가끔 쏜다. 맞은 몇 초 동안만 스캔이 느려진다 (예전의 내내 60% 느려지던 방해 전파·짧아지던 전파 간격은 뺐다)
     if (T.swap && T.swap[p]) { E.staff = T.swap[p].map((type, i) => newStaff({ type, name: PROCTOR_NAME[type] }, i, T)); flash('감독관 교대', PAL.hud); } // 블록마다 새 감독관
     if (E.boss && BOSS[E.boss].part) BOSS[E.boss].part(p); // 보스전: 단계 사이 연출
   }
@@ -669,6 +672,7 @@ function stepStaff(s, T, dt) {
   if (E.evict && E.evict.arrive && E.evict.t < E.evict.arrive[E.staff.indexOf(s)]) return; // 앞자리를 데리고 나갔다가 걸어 들어오는 중: 자리에 닿을 때까지는 아무것도 보지 않는다
   if (s.blink > 0) { s.blink -= dt; return; }
   if (s.phase === 'call') { s.t += dt; return; } // [저승] 내 이름을 부르는 동안은 그 자리에 서서 나를 본다(주시로 치지 않는다)
+  if (s.phase === 'emp') { s.t += dt; return; } // [변호사시험 3교시] EMP 총을 겨누고 쏘는 동안은 그 자리에 서 있다 (stepEmp가 끝낸다)
   if (s.visit) { // 교수님은 불쑥 들어오고, 선생님은 커피 가지러 나간다
     if (s.out) { s.outT -= dt; if (s.outT <= 0) { s.out = false; s.inT = between(tune.visit_in_min, tune.visit_in_max); s.u = 0.94; s.dir = -1; setPhase(s, 'walk', procDur(T.walk)); sfx.door(); flash(`${s.name} 들어옴`, PAL.bad); if (T.id === 'bac') s.sheetIn = 1.0; } return; }
     s.inT -= dt;
@@ -792,6 +796,24 @@ function stepPulse(p, dt) {
   }
   p.next -= dt;
   if (p.next <= 0) { p.warn = 1.6; p.next = tune.pulse_gap * (E.pulseFast || 1) * (0.7 + rng() * 0.6); sfx.beep(); if (E.T.pulse === 'alert') say('재난문자가 온다… 누군가의 폰이 울릴 것 같다', PAL.warn); else if (E.T.pulse === 'emp') flash('EMP 충전 중! 손 떼기', PAL.warn); }
+}
+function empBot() { return E.staff.find(s => s.type === 'robot' && !s.fixed); }
+function stepEmp(dt) { // [변호사시험 3교시] AI 감독관의 EMP 총: 순찰 → 멈춰 서서 겨누고 충전 → 발사 → 파동이 내 자리에 닿으면 몇 초 동안만 스캔이 느려진다
+  const m = E.emp, s = empBot(); if (!s) { E.jam = 1; return; }
+  if (m.jamT > 0) { m.jamT -= dt; m.crk = (m.crk || 0) - dt; if (m.crk <= 0) { m.crk = 0.3 + rng() * 0.3; noiseAt(0.05, 0.025, 0, 4200, 2); } if (m.jamT <= 0) { m.jamT = 0; say('전파 방해가 걷혔다 · 스캔 속도가 돌아왔다', PAL.good); } }
+  E.jam = m.jamT > 0 ? tune.emp_slow : 1;
+  m.k += dt;
+  if (m.phase === 'idle') {
+    m.t -= dt; const free = !s.out && !(s.blink > 0) && (s.phase === 'stand' || s.phase === 'walk'), pulseOn = E.pulse && (E.pulse.warn > 0 || E.pulse.active > 0);
+    if (m.t <= 0 && free && !pulseOn && m.jamT <= 0) { m.phase = 'aim'; m.k = 0; m.hit = false; setPhase(s, 'emp', tune.emp_aim + tune.emp_recoil); sfx.empCharge(tune.emp_aim); } // 겨누는 동안 로봇은 나를 보지 않는다 (총에 정신이 팔려 있다)
+  } else if (m.phase === 'aim') {
+    if (E.pulse) E.pulse.next = Math.max(E.pulse.next, 2); // 탐지 전파와 겹치지 않게
+    if (m.k >= tune.emp_aim) { m.phase = 'fire'; m.k = 0; m.n++; sfx.empFire(); }
+  } else if (m.phase === 'fire') {
+    if (E.pulse) E.pulse.next = Math.max(E.pulse.next, 2);
+    if (!m.hit && m.k >= tune.emp_travel) { m.hit = true; m.jamT = tune.emp_jam; E.jam = tune.emp_slow; sfx.empHit(); if (m.n === 1) say('EMP에 맞았다 · 잠깐 동안 스캔이 느려진다', PAL.bad); } // 파동이 퍼져 와 내 렌즈에 닿는 순간
+    if (m.k >= tune.emp_recoil) { m.phase = 'idle'; m.t = between(tune.emp_gap_min, tune.emp_gap_max); setPhase(s, 'stand', procDur(E.T.stand)); s.away = rng() < 0.5; }
+  }
 }
 function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생, 신분 확인, 늘어나는 감독관
   if (T.mech.includes('drone')) { // 순찰 드론: 교실 안을 제멋대로 돌아다닌다. 내 자리 위에 오면 내려다본다
@@ -1099,6 +1121,7 @@ function updateExam(dt) {
   if (M_.includes('reshuffle')) stepReshuffle(dt); // [블랙홀] 시공간 요동: 보기 순서가 섞인다
   if (E.cctv) stepCctv(E.cctv, dt);
   if (E.pulse) stepPulse(E.pulse, dt);
+  if (E.emp) stepEmp(dt); // [변호사시험 3교시] EMP 총
   stepEvents(T, dt);
   if (T.id === 'afterlife') { stepUnderworld(T, dt); if (E.caught) return; } // [저승] 세 번 부르기 · 물방울 망자
   E.float = T.mech.includes('float') ? 0.5 + 0.5 * Math.sin(E.clockT * 1.1) : 0;
@@ -1223,8 +1246,8 @@ function finishFinal(pick) {
 function tvNews(it) { G.tv.push(it); if (G.tv.length > 12) { const cut = G.tv.length - 12; G.tv.splice(0, cut); G.tvSeen = Math.max(0, G.tvSeen - cut); } } // 고시원 TV에 나오는 뉴스
 function addLamp() { // TV 밑 빨간 등: 만점·제보마다 하나씩. 켜진 등은 재시험을 치르기 전까지 꺼지지 않는다
   G.lamps = Math.min(3, (G.lamps || 0) + 1);
-  if (G.lamps >= 3 && !G.audit && G.lastPass) { // 셋 다 켜지면 가장 최근에 합격한 시험을 다시 치르라는 통보가 온다
-    G.audit = Object.assign({}, G.lastPass);
+  if (G.lamps >= 3 && !G.audit && G.lastPass) { // 셋 다 켜지면 가장 최근에 합격한 시험을 다시 치르라는 통보가 온다 (면접처럼 종이로 못 보는 시험이면 가장 최근의 필기시험)
+    G.audit = Object.assign({}, paperAudit(G.lastPass));
     tvNews({ tag: '속보', h: '고득점자 재검증 착수… 재시험 통보', s: `${G.audit.tierName} 합격자에게 출석 요구`, tk: ['시험관리위 "조사관 입회하에 다시 치른다"', '합격선 미달이면 합격 취소·고발', '전자기기 반입 단속 강화'], icon: 'paper', cap: '자료 화면 · 답안지' });
     addNews('reg', `시험관리위원회: ${G.audit.tierName} 재시험 출석 통보. 우편을 확인하세요`);
   }
@@ -1237,14 +1260,29 @@ function reportByBroker(line) { // 브로커의 제보: 폰으로 통보가 오�
   sfx.caught(); save();
 }
 // ---- 재시험: 등 3개가 켜지면 조사실에서 AI 없이 직접 푼다 --------------------------------------
-const PROBE_SPARE = [['다음 중 맞춤법이 바른 것은?', ['웬지', '왠지', '웬일인지도', '왠만하면'], 1], ['1시간 30분은 몇 분인가?', ['60분', '80분', '90분', '120분'], 2], ['다음 중 가장 큰 수는?', ['0.5', '3분의 2', '0.6', '2분의 1'], 1],
-  ['삼각형의 세 각을 더하면?', ['90도', '180도', '270도', '360도'], 1], ['"사과 : 과일 = 장미 : ?"', ['나무', '꽃', '빨강', '가시'], 1], ['일주일은 몇 시간인가?', ['148시간', '158시간', '168시간', '178시간'], 2]];
+// 면접·논술·외계 문자 시험은 종이로 다시 볼 수 없다: 그때는 가장 최근에 합격한 필기시험을 다시 친다 (예전의 기초 문제 "사과 : 과일 = 장미 : ?" 같은 건 내지 않는다)
+const PAPER_OK = {};
+function probeQ(q) { return !!q && q.kind === 'text' && Array.isArray(q.choices) && q.choices.length === 4 && q.answer >= 0; }
+function paperOk(ti) { // 이 시험을 조사실 종이로 다시 낼 수 있나 (판정만 하는 따로 된 난수라 게임 난수 순서를 건드리지 않는다)
+  if (PAPER_OK[ti] != null) return PAPER_OK[ti];
+  const T = TIERS[ti]; if (!T || T.mech.includes('tutorial')) return (PAPER_OK[ti] = false);
+  let s = ti * 7919 + 1, n = 0; const r = () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), s | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  try { for (let k = 0; k < 3 && n < 5; k++) for (const q of makeQuestions(r, T, 0)) if (probeQ(q)) n++; } catch (_) { n = 0; }
+  return (PAPER_OK[ti] = n >= 5);
+}
+function paperAudit(a) { // 재검증 대상 고르기: 종이로 다시 볼 수 없는 시험이면 가장 최근에 합격한 필기시험으로 바꾼다
+  if (!a || paperOk(a.tier)) return a;
+  const L = G.lastPaper; if (L && G.cleared[L.tier] && paperOk(L.tier)) return Object.assign({}, L);
+  for (let t = Math.min(LAST, a.tier) - 1; t >= 1; t--) if (G.cleared[t] && paperOk(t)) { const T = TIERS[t]; return { tier: t, tierName: T.name, reward: Math.round(T.reward * T.qn * (T.parts ? T.parts.length : 1) * tune.reward_scale), mail: null }; } // 예전 저장: 기록이 없으면 합격한 필기시험 중 가장 높은 것
+  return a;
+}
 function startProbe() {
-  const a = G.audit; if (!a) return false;
-  const T = TIERS[a.tier], qs = [];
-  for (let n = 0; qs.length < 5 && n < 8; n++) for (const q of makeQuestions(rng, T, 0)) if (qs.length < 5 && q.kind === 'text' && Array.isArray(q.choices) && q.choices.length === 4 && q.answer >= 0 && !qs.some(o => o.q === q.q)) qs.push(q);
-  for (let n = 0; qs.length < 5; n++) { const [q, choices, answer] = PROBE_SPARE[n % PROBE_SPARE.length]; qs.push({ kind: 'text', q, choices, answer }); } // 글로 낼 수 없는 시험은 기초 문제로
-  STATE.probe = { T, tier: a.tier, qs, qi: 0, ans: [], phase: 'in', t: 0, left: tune.probe_time, mark: null, correct: 0, snap: true, sig: '' };
+  let a = G.audit; if (!a) return false;
+  if (!paperOk(a.tier)) { const b = paperAudit(a); if (b && b.tier !== a.tier) { G.audit = a = Object.assign({}, b); } } // 예전 저장에 남아 있던 면접 재검증 통보
+  const T = TIERS[paperOk(a.tier) ? a.tier : 1], qs = [];
+  for (let n = 0; qs.length < 5 && n < 12; n++) for (const q of makeQuestions(rng, T, 0)) if (qs.length < 5 && probeQ(q) && !qs.some(o => o.q === q.q)) qs.push(q);
+  for (let n = 0; qs.length < 5 && n < 12; n++) for (const q of makeQuestions(rng, T, 0)) if (qs.length < 5 && probeQ(q)) qs.push(q); // 문제 풀이 아주 작은 시험: 겹쳐도 그 시험 문제로 채운다
+  STATE.probe = { T, tier: TIERS.indexOf(T), qs, qi: 0, ans: [], phase: 'in', t: 0, left: tune.probe_time, mark: null, correct: 0, snap: true, sig: '' };
   G.mail = null; ptrs.clear(); releases = []; scene = 'probe'; save(); return true;
 }
 function endProbe() { // 판정: 5문제 중 3문제 이상이면 통과
@@ -1327,7 +1365,7 @@ function finishExam() {
   if (!tut) G.mail = { tier: E.tier, tierName: T.name, marks, correct, qn, pass, score, caught: E.caught, passed, stamp: audited ? '합격 취소' : E.caught ? '부정행위' : perfect ? '수석 합격' : passed ? '합격' : '불합격' };
   if (T.id === 'leet') G.flags.leet = true; // LEET를 한 번 치르고 나면 책상에 초콜릿이 놓여 있다
   let lampLine = null;
-  if (!tut && passed) G.lastPass = { tier: E.tier, tierName: T.name, reward, mail: G.mail };
+  if (!tut && passed) { G.lastPass = { tier: E.tier, tierName: T.name, reward, mail: G.mail }; if (paperOk(E.tier)) G.lastPaper = G.lastPass; } // lastPaper: 조사실 종이로 다시 볼 수 있는 시험 중 가장 최근 합격
   if (!tut && jack && !final && !G.audit && E.tier >= tune.lamp_from) { // 만점은 상금이 크지만 TV 밑 빨간 등이 하나 켜진다 (쉬운 초반 시험은 만점이어도 의심받지 않는다)
     const n = G.flags.perfN = (G.flags.perfN || 0) + 1;
     if (n === 1) { tvNews({ tag: '사회', h: `${T.name} 사상 첫 만점자 나왔다`, s: '출제위원 "만점이 나올 수 없게 낸 시험인데…"', tk: ['수험생 커뮤니티 "사람 맞나" 술렁', '시험관리위 "답안지 원본 확인 중"', '내일 전국 흐리고 비'], icon: 'room', cap: '자료 화면 · 시험장' }); }

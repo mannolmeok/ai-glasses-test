@@ -183,6 +183,14 @@ window.CONFIG = {
 
   sticker_slow: { value: 1.4, min: 1, max: 3, step: 0.05 },        // 단추 스티커: 단추 카메라(안경 전 단계)면 스캔 시간 배율
   emp_wipe: { value: 1, min: 0, max: 1, step: 0.1 },                // EMP가 터지면 진행 중인 스캔이 날아가는 비율
+  emp_first: { value: 6, min: 1, max: 20, step: 0.5 },              // [변호사시험 3교시] 교시가 시작되고 AI 감독관이 처음 EMP 총을 쏘기까지(초)
+  emp_gap_min: { value: 9, min: 3, max: 30, step: 0.5 },            // EMP 총을 쏘는 간격(초) 최소
+  emp_gap_max: { value: 13, min: 3, max: 40, step: 0.5 },           // EMP 총을 쏘는 간격(초) 최대
+  emp_aim: { value: 1.5, min: 0.3, max: 4, step: 0.1 },             // 멈춰 서서 겨누고 충전하는 시간(초): 이게 예고
+  emp_travel: { value: 0.35, min: 0, max: 1.5, step: 0.05 },        // 쏜 파동이 내 자리에 닿기까지(초)
+  emp_recoil: { value: 1.0, min: 0.4, max: 3, step: 0.1 },          // 쏘고 나서 총을 내리기까지(초)
+  emp_jam: { value: 3.5, min: 0.5, max: 10, step: 0.5 },            // 맞은 뒤 전파 방해가 이어지는 시간(초)
+  emp_slow: { value: 2.2, min: 1, max: 5, step: 0.1 },              // 전파 방해 중 스캔 시간 배율 (2.2 = 절반 아래 속도)
   glass_level: { value: 3, min: 1, max: 7, step: 1 },              // 촬영·표시 장비가 이 단계부터 AI 안경(시험지 위 AR). 그 전에는 소매 속 액정
   down_keep: { value: 0.6, min: 0.1, max: 3, step: 0.1 },          // 손을 뗀 뒤 고개를 숙이고 있는 시간(초)
   answer_keep: { value: 3, min: 0.5, max: 8, step: 0.5 },          // AI 답이 뜬 뒤 마킹을 기다리며 숙이고 있는 시간(초)
