@@ -486,7 +486,7 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     const off = E.view === 'left' ? 2 : E.view === 'right' ? -2 : 0, dirs = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE', 'S'];
     for (let i = -2; i <= 2; i++) { const d = dirs[(4 + i - off + 8) % 8]; M(d, W / 2 + i * 56, 20, 8, i === 0 ? '#ffffff' : INK, 'center', 700); if (i < 2) M('·', W / 2 + i * 56 + 28, 20, 8, INK, 'center', 700); }
     R(W / 2 - 140, 28, 280, 1, INK); R(W / 2, 28, 1, 5, '#ffffff');
-    k.ring(W / 2, HH / 2, 14, INK); R(W / 2 - 1, HH / 2 - 1, 2, 2, INK);
+    if (!(eyeM && (E.ivLook || 0) > 0.3)) { k.ring(W / 2, HH / 2, 14, INK); R(W / 2 - 1, HH / 2 - 1, 2, 2, INK); } // [AI 대면 면접] 대본 창을 볼 때는 가운데 조준점을 치운다 (글자와 겹침)
     const tx = 30, ty = 96, th = 150; k.frame(tx, ty, 7, th, INK, 1); R(tx + 1, ty + th - Math.round((th - 2) * sus) - 1, 5, Math.round((th - 2) * sus), sp >= 60 ? '#ff5a5a' : INK);
     M(eyeM ? 'GAZE' : 'THREAT', tx + 12, ty + th - 14, 7.5, E.rising ? '#ff5a5a' : INK, 'left', 700); M(`${sp}%`, tx + 12, ty + th - 4, 9, E.rising ? '#ff5a5a' : INK, 'left', 700);
     if (live && E.layout === 'room' && WORLD.staffRects) WORLD.staffRects().forEach((r, n) => { // 표적 꺾쇠
@@ -614,7 +614,8 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
 }
 // ---- [AI 대면 면접 · 눈 맞춤 줄다리기] 대본 창은 왼쪽 허공에 떠 있다 (3D 공간에 고정된, 살짝 굽은 창). 꾹 누르면 고개가 그쪽으로 돌아가야 읽힌다 ----
 // 창은 내 눈에서 0.85m, 왼쪽 50° 쪽에서 나를 마주 본다. 렌즈가 그 자리에 그려 주는 것이라 앞을 볼 때는 화면 왼쪽 끝에 비스듬히 흐릿하게 걸쳐 보인다
-const EYEP = { cv: null, key: '', PSI: 0.87, D: 0.85, M: 0.0027, RC: 1.5, DY: -0.01, N: 28 };
+const EYEP = { cv: null, key: '', PSI: 0.78, // PSI: 창 방향(왼쪽 각도). t76~t77은 0.87(50°), t78부터 0.78(45°)로 살짝 오른쪽
+   D: 0.85, M: 0.0027, RC: 1.5, DY: -0.01, N: 28 };
 function eyePanelArt(A, q, ST, INK, teach, pw, ph) { // 창 그림을 따로 그려 둔다 (안경 단계 모양 그대로). 내용이 바뀔 때만 다시 그린다
   const S = Math.min(4, (HUD_SCALE || 1) * 1.5), key = [ST, q.q, A.wi, teach ? 1 : 0, pw, ph, S, STATE.touchUI ? 1 : 0].join('|');
   if (EYEP.cv && EYEP.key === key) return EYEP.cv;
@@ -649,7 +650,7 @@ function drawEyeline(k, L, E, now, q, ST, INK) {
   const asking = A.t < A.ask, teach = !G.hints.eyeline && !asking, n = q.lines.length, pw = 268, ph = 40 + n * 22 + (teach ? 14 : 0);
   if (asking) { const lines = wrapKit(k, 'AI 면접관: ' + q.q, 560, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 96 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); } // 면접관이 질문하는 동안: 자막 두 줄
   const sm = (e0, e1, v) => { const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
-  const edge = asking ? null : eyePanelWarp(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), pw, ph, 0.2 + 0.8 * sm(0.15, 0.75, look)); // 질문이 끝나면 왼쪽 허공에 대본이 뜬다
+  const edge = asking ? null : eyePanelWarp(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), pw, ph, 0.16 + 0.84 * sm(0.15, 0.75, look)); // 질문이 끝나면 왼쪽 허공에 대본이 뜬다
   if (!asking && !edge) { // 3D가 없을 때(그래픽 꺼짐): 예전처럼 화면 왼쪽에서 밀려 들어온다
     const px = Math.round(-pw - 12 + (pw + 40) * look); if (look > 0.02) { b.globalAlpha = Math.min(1, look * 1.4); b.drawImage(eyePanelArt(A, q, ST, INK, teach, pw, ph), px, 70, pw, ph); b.globalAlpha = 1; } }
   if (teach && look < 0.3) { const ex = ST === 'mil' ? 46 : 20, ey = ST === 'mil' ? 196 : 232; // 처음엔 왼쪽 아래(대본 창 쪽)에 조작 안내. 군용은 왼쪽 GAZE 막대·글씨를 비켜서
