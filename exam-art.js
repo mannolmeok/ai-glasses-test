@@ -655,7 +655,7 @@ function drawEyeline(k, L, E, now, q, ST, INK) {
   const A = E.iv, W = L.W, HH = L.H, b = k.b, ev = E.ivEv || { ph: 'idle', t: 0 }; if (!A || A.q !== q) return;
   const lk = Math.max(0, Math.min(1, E.ivLook || 0)), look = lk * lk * (3 - 2 * lk), ink = INK || '#7fe9ff', mono = ST === 'used' || ST === 'mil';
   const asking = A.t < A.ask, teach = !G.hints.eyeline && !asking, n = q.lines.length, pw = 268, ph = 40 + n * 22 + (teach ? 14 : 0);
-  if (asking) { const lines = wrapKit(k, 'AI 면접관: ' + q.q, 560, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 96 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); } // 면접관이 질문하는 동안: 자막 두 줄
+  if (asking) { const lines = wrapKit(k, 'AI 면접관: ' + q.q, 500, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 134 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); } // 면접관이 질문하는 동안: 자막 두 줄 (바로 아래 줄은 직전 답의 점수 알림 자리라 비워 둔다)
   const sm = (e0, e1, v) => { const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
   let edge = null;
   if (!asking && EYE_HEAD) edge = eyePanelWarp(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), pw, ph, 0.16 + 0.84 * sm(0.15, 0.75, look)); // (비교용) 왼쪽 허공의 3D 대본 창
@@ -668,7 +668,7 @@ function drawEyeline(k, L, E, now, q, ST, INK) {
     const px = Math.round(-pw - 12 + (pw + 40) * look); if (look > 0.02) { b.globalAlpha = Math.min(1, look * 1.4); b.drawImage(eyePanelArt(A, q, ST, INK, teach, pw, ph), px, 70, pw, ph); b.globalAlpha = 1; } }
   if (teach && look < 0.3) { const ex = ST === 'mil' ? 46 : 20, ey = ST === 'mil' ? 200 : 232; // 처음엔 왼쪽 아래(대본 창 쪽)에 조작 안내. 군용은 왼쪽 GAZE 막대·글씨를 비켜서
     k.SUB(STATE.touchUI ? '◀ 꾹 누르면 왼쪽 대본을 본다' : '◀ 스페이스 꾹: 왼쪽 대본을 본다', ex, ey, 10, '#ffffff', 'left'); k.SUB('보는 동안 말이 나간다', ex + 12, ey + 17, 8.5, '#d8e8e4', 'left'); }
-  if (!asking && A.wi > 0) { const li = A.words[A.wi - 1].li, said = A.words.filter((o, i) => o.li === li && i < A.wi).map(o => o.w).join(' '); k.SUB(`"${said}${A.pause > tune.iv_stall ? '… 어…' : ''}"`, W / 2, HH - 86, 13, '#ffffff', 'center'); } // 내가 하는 말 (기본 자막 자리)
+  if (!asking && A.wi > 0 && !E.fb) { const li = A.words[A.wi - 1].li, said = A.words.filter((o, i) => o.li === li && i < A.wi).map(o => o.w).join(' '); k.SUB(`"${said}${A.pause > tune.iv_stall ? '… 어…' : ''}"`, W / 2, HH - 86, 13, '#ffffff', 'center'); } // 내가 하는 말 (기본 자막 자리)
   if (ev.ph === 'warn') { b.globalAlpha = 0.32 * Math.min(1, ev.t / 0.25); b.drawImage(lensGlow('A', '#ffcf5a'), 0, 0); b.globalAlpha = 1; } // 표정 분석 예고: 렌즈 둘레가 은은하게 노랗게 (깜빡이지 않게)
   else if (ev.ph === 'on') { const y = Math.round(((ev.t / Math.max(0.1, ev.dur)) * 2 % 1) * HH); // 분석 중: 붉은 선이 내 얼굴(화면)을 위아래로 두 번 훑는다
     b.globalAlpha = 0.16; k.R(0, y - 12, W, 24, '#ff3a4a'); b.globalAlpha = 0.8; k.R(0, y, W, 1.5, '#ff7a86'); b.globalAlpha = 0.4; b.drawImage(lensGlow('A', '#ff3a4a'), 0, 0); b.globalAlpha = 1; }
