@@ -867,24 +867,27 @@ const WORLD = (() => {
   }
   // ---------- [변호사시험 3교시] AI 감독관의 EMP 총 ----------
   function makeEmpGun(m) { // 오른손에 쥐는 총: 팔이 뻗는 쪽(-y)이 총구. 코일과 총구 빛은 충전되는 만큼 밝아진다
-    const g = pivot(m.arms[1], 0, -0.55, 0.02), coil = glowMat(0x1a4a5a), tip = glowMat(0x1a4a5a);
+    const g = pivot(m.arms[1], 0, -0.55, 0.02), coils = [0, 1, 2].map(() => glowMat(0x1a4a5a)), coil = coils[0], tip = glowMat(0x1a4a5a);
     bx(g, 0.05, 0.1, 0.06, 0x23272f, 0, 0, -0.05);                                  // 손잡이
     bx(g, 0.075, 0.3, 0.085, 0x3a4152, 0, -0.12, 0.02);                              // 몸통
-    for (const y of [-0.05, -0.11, -0.17]) bx(g, 0.095, 0.018, 0.1, 0, 0, y, 0.02, coil); // 코일 세 줄
+    [-0.05, -0.11, -0.17].forEach((y, i) => bx(g, 0.095, 0.018, 0.1, 0, 0, y, 0.02, coils[i])); // 코일 세 줄 (꺼낼 때 하나씩 켜진다)
     bx(g, 0.11, 0.035, 0.11, 0x8d96aa, 0, -0.28, 0.02);                              // 총구 테
     bx(g, 0.07, 0.012, 0.07, 0, 0, -0.3, 0.02, tip);                                 // 총구 속
     const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: 0xaaf4ff, transparent: true, opacity: 0.9, fog: false, depthWrite: false }));
     orb.position.set(0, -0.34, 0.02); orb.scale.setScalar(0.001); orb.visible = false; g.add(orb);
-    return { g, coil, tip, orb };
+    return { g, coil, coils, tip, orb };
   }
   function empArm(m, s, E, now, p) { // 순찰할 때는 총구를 아래로 들고 다니고, 겨눌 때 팔을 들어 나를 향한다. 쏘면 반동으로 튀었다가 내려간다
     const M = E.emp; if (!M) { if (m.emp) m.emp.g.visible = false; return; }
-    const G2 = m.emp || (m.emp = makeEmpGun(m)); G2.g.visible = m.root.visible;
-    const ph = s.phase === 'emp' ? M.phase : 'idle', k = M.k; let rx = -0.3 + (p && p.moving ? Math.sin((p.walk != null ? p.walk : s.walk) * 7) * 0.08 : 0), glow = 0, orb = 0;
-    if (ph === 'aim') { const u = ease(clamp(k / 0.35, 0, 1)), c = clamp(k / tune.emp_aim, 0, 1); rx = lerp(-0.3, -1.5, u) + Math.sin(now * 38) * 0.012 * c; glow = c; orb = 0.02 + 0.06 * c * (0.85 + 0.15 * Math.sin(now * 14)); }
+    const G2 = m.emp || (m.emp = makeEmpGun(m)), drawing = M.phase === 'draw' && s.phase === 'emp'; G2.g.visible = m.root.visible && !(drawing && M.k < 0.12);
+    const ph = s.phase === 'emp' ? M.phase : 'idle', k = M.k; let rx = -0.3 + (p && p.moving ? Math.sin((p.walk != null ? p.walk : s.walk) * 7) * 0.08 : 0), glow = 0.16, orb = 0, lit = null;
+    if (ph === 'draw') { // 3교시 시작: 등 뒤에서 총을 꺼내 높이 들어 보이고, 코일이 하나씩 켜지며 철컥 장전한 뒤 내려 든다
+      const up = ease(clamp(k / 0.45, 0, 1)), down = ease(clamp((k - 2.05) / 0.6, 0, 1)), c = clamp((k - 0.45) / 1.1, 0, 1);
+      rx = lerp(lerp(0.2, -2.35, up), -0.3, down) + (k > 1.6 && k < 1.75 ? -0.12 : 0); lit = [c > 0.05, c > 0.4, c > 0.75]; glow = down > 0 ? lerp(1, 0.16, down) : c; orb = k > 1.6 && k < 1.95 ? 0.03 + 0.13 * (1 - (k - 1.6) / 0.35) : 0.015 * c; }
+    else if (ph === 'aim') { const u = ease(clamp(k / 0.35, 0, 1)), c = clamp(k / tune.emp_aim, 0, 1); rx = lerp(-0.3, -1.5, u) + Math.sin(now * 38) * 0.012 * c; glow = c; orb = 0.02 + 0.06 * c * (0.85 + 0.15 * Math.sin(now * 14)); }
     else if (ph === 'fire') { const back = clamp((k - (tune.emp_recoil - 0.35)) / 0.35, 0, 1); rx = lerp(-1.5 - 0.35 * Math.exp(-k * 9), -0.3, ease(back)); glow = Math.max(0, 1 - k * 2.5); orb = k < 0.12 ? 0.04 + 0.14 * (1 - k / 0.12) : 0; }
     m.arms[1].rotation.set(rx, 0, 0);
-    G2.coil.color.setRGB(0.1 + 0.4 * glow, 0.29 + 0.62 * glow, 0.35 + 0.65 * glow); G2.tip.color.copy(G2.coil.color);
+    G2.coils.forEach((c, i) => { const v = lit ? (lit[i] ? glow : 0) : glow; c.color.setRGB(0.1 + 0.4 * v, 0.29 + 0.62 * v, 0.35 + 0.65 * v); }); G2.tip.color.copy(G2.coils[0].color);
     G2.orb.visible = orb > 0.002; G2.orb.scale.setScalar(Math.max(0.001, orb));
     if (m.visorMat && s.phase === 'emp') m.visorMat.color.setHex(0x2fb8cc); // 겨누는 동안은 눈이 하늘색: 나를 보는 게 아니라 총에 정신이 팔려 있다
   }
@@ -912,6 +915,8 @@ const WORLD = (() => {
       const fd = Math.hypot(fx - EX.eye.x, fz - EX.eye.z), ty = Math.atan2(-(fx - EX.eye.x), -(fz - EX.eye.z)), tp = Math.atan2(1.0 - EX.eye.y, fd), c = EX.evCam || (EX.evCam = { yaw: 0, pitch: -0.1, last: t }), k = 1 - Math.exp(-clamp(t - c.last, 0, 0.5) * 3.2);
       c.last = t; c.yaw += (ty - c.yaw) * k; c.pitch += (tp - c.pitch) * k; c.fov = (c.fov || 62) + (clamp(64 - (fd - 2.5) * 3.4, 36, 62) - (c.fov || 62)) * k; // 멀어질수록 그쪽에 눈이 간다(조금 당겨 본다)
       EX.views.evict = { yaw: c.yaw, pitch: c.pitch, fov: c.fov }; }
+    if (E.emp && E.emp.phase === 'draw' && EX.views) { const i = E.staff.findIndex(s => s.type === 'robot' && !s.fixed); // [변호사시험 3교시 시작] 총을 꺼내는 AI 감독관 쪽으로 고개가 돌아가고 당겨 본다
+      if (i >= 0) { const p = staffPlace(E.staff[i], i, E), fd = Math.max(0.5, Math.hypot(p.x - EX.eye.x, p.z - EX.eye.z)); EX.views.empdraw = { yaw: Math.atan2(-(p.x - EX.eye.x), -(p.z - EX.eye.z)), pitch: Math.atan2(1.3 - EX.eye.y, fd), fov: clamp(20 + fd * 4, 28, 50) }; } }
     if (EX_DOOR && EX_DOOR.sc === EX.scene) { const V = E.evict && E.evict.plan, t = E.evict ? E.evict.t : 0, win = (a, b) => clamp((t - a) / 0.4, 0, 1) * clamp((b - t) / 0.45, 0, 1); // 데리고 나갈 때 한 번, 셋이 돌아올 때 한 번 열린다
       const o = V ? Math.max(win(V.doors[0] - 0.55, V.tOut + 0.25), win(V.tBack - 0.35, V.back[2].e + 0.9)) : 0; EX_DOOR.hinge.rotation.y = -ease(o) * 1.35; EX_DOOR.glow.intensity = 2.6 * o; }
     const shS = EX.my && EX.views && E.staff.find(s => s.check && s.check.kind === 'sheet');
@@ -920,6 +925,7 @@ const WORLD = (() => {
     const breath = GEN_ROOM ? 0 : 1; // 생성 시험장: 무늬가 촘촘한 그림은 숨 쉬는 흔들림에 화면 전체가 한 칸씩 들썩여 보인다 → 가만히 둔다
     cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003 * breath;
     cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004 * breath;
+    if (E.shake > 0) { const sa = Math.min(1, E.shake / 0.5); cam.rotation.y += (Math.sin(now * 83) * 0.014 + Math.sin(now * 47) * 0.009) * sa; cam.rotation.x += Math.sin(now * 67) * 0.012 * sa; } // [변호사시험 3교시] EMP에 맞은 순간 화면이 흔들린다
     const fov = lerp(a.fov, b.fov, k); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
     const predict = E.gear.predict > 0 || (E.gear.thirdeye > 0 && E.T.mech.includes('threeeyes'));
     // 평행우주: 늘어난 감독관 모델을 만든다

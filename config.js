@@ -191,6 +191,9 @@ window.CONFIG = {
   emp_recoil: { value: 1.0, min: 0.4, max: 3, step: 0.1 },          // 쏘고 나서 총을 내리기까지(초)
   emp_jam: { value: 3.5, min: 0.5, max: 10, step: 0.5 },            // 맞은 뒤 전파 방해가 이어지는 시간(초)
   emp_slow: { value: 2.2, min: 1, max: 5, step: 0.1 },              // 전파 방해 중 스캔 시간 배율 (2.2 = 절반 아래 속도)
+  emp_draw: { value: 2.8, min: 1, max: 4, step: 0.1 },              // 3교시 시작: 총을 꺼내 들어 보이는 장면 길이(초). 쉬는 시간+시작 대기(3.5초) 안에 끝난다
+  iv_cap: { value: 0.95, min: 0.5, max: 1, step: 0.01 },            // 면접 답변 하나의 최고점 (면접관은 만점을 주지 않는다 → 면접은 만점·빨간 등·조사실이 없다)
+  iv_pay: { value: 2.5, min: 1, max: 4, step: 0.1 },                // 면접 합격 보상 배율 (만점 3배가 없는 대신 점수에 곱한다)
   glass_level: { value: 3, min: 1, max: 7, step: 1 },              // 촬영·표시 장비가 이 단계부터 AI 안경(시험지 위 AR). 그 전에는 소매 속 액정
   down_keep: { value: 0.6, min: 0.1, max: 3, step: 0.1 },          // 손을 뗀 뒤 고개를 숙이고 있는 시간(초)
   answer_keep: { value: 3, min: 0.5, max: 8, step: 0.5 },          // AI 답이 뜬 뒤 마킹을 기다리며 숙이고 있는 시간(초)
