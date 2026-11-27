@@ -290,27 +290,59 @@ const WORLD = (() => {
   const HOLO_V = 'varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vec4 wp = modelMatrix * vec4(position, 1.0); vY = wp.y; vN = normalize(mat3(modelMatrix) * normal); vV = normalize(cameraPosition - wp.xyz); gl_Position = projectionMatrix * viewMatrix * wp; }';
   const HOLO_F = 'uniform vec3 col; uniform float time; uniform float alpha; uniform float fadeY; varying vec3 vN; varying vec3 vV; varying float vY;\n' +
     'void main(){ float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.5); float line = mod(floor(gl_FragCoord.y), 3.0) < 1.0 ? 0.18 : 1.0; float band = 0.78 + 0.22 * sin(vY * 26.0 - time * 2.2);\n' +
-    '  float a = (0.26 + 0.74 * fr) * line * band * alpha * smoothstep(fadeY, fadeY + 0.22, vY); gl_FragColor = vec4(col * (0.5 + 0.95 * fr), a); }';
+    '  float key = max(0.0, dot(normalize(vN), vec3(0.0, 0.54, 0.84)));\n' + // 앞 위에서 비추는 듯한 빛: 얼굴·어깨 형태가 읽히게
+    '  float a = (0.2 + 0.55 * fr + 0.4 * key) * line * band * alpha * smoothstep(fadeY, fadeY + 0.22, vY); gl_FragColor = vec4(col * (0.5 + 0.8 * fr + 0.45 * key), a); }';
   function holoMat(hex, a) { return new THREE.ShaderMaterial({ uniforms: { col: { value: new THREE.Color(hex) }, time: { value: 0 }, alpha: { value: a }, fadeY: { value: -99 } }, vertexShader: HOLO_V, fragmentShader: HOLO_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }); }
   const HOLO_RED = new THREE.Color(0xff4a5a);
+  const HOLO_PRIM = /[?&]holo=prim/.test(location.search); // 예전(코드로 만든) 홀로그램 몸으로 비교해 보기
+  const holoModel = () => !HOLO_PRIM && window.HOLO_MODEL ? window.HOLO_MODEL : null; // Meshy로 만든 흉상 (holo-model.js)
+  function holoGeo(o, s) { // 구워 둔 흉상: 16비트 정수 위치 + 16비트 번호. 법선은 여기서 다시 구한다 (매끈하게)
+    const raw = b => { const bin = atob(b), u = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) u[k] = bin.charCodeAt(k); return u.buffer; };
+    const q = new Int16Array(raw(o.p)), f = new Float32Array(q.length); for (let k = 0; k < q.length; k++) f[k] = q[k] / s;
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(f, 3)); g.setIndex(new THREE.BufferAttribute(new Uint16Array(raw(o.i)), 1)); g.computeVertexNormals(); return g; }
+  const HOLO_GLOW = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.7)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); const t = new THREE.CanvasTexture(c); return t; })();
   function makeHolo() {
-    const root = new THREE.Group(), layers = [[0x9ff5d8, 1, 0], [0xff3a5a, 0.36, 0.016], [0x3a78ff, 0.36, -0.016]].map(([c, a, dx]) => ({ mat: holoMat(c, a), base: new THREE.Color(c), dx, main: a === 1 }));
+    const HM = holoModel(), root = new THREE.Group(), layers = [[0x9ff5d8, 1, 0], [0xff3a5a, 0.36, 0.016], [0x3a78ff, 0.36, -0.016]].map(([c, a, dx]) => ({ mat: holoMat(c, a), base: new THREE.Color(c), dx, main: a === 1 }));
     const part = (parent, geo, x, y, z, sx, sy, sz, rz) => { for (const L of layers) { const o = new THREE.Mesh(geo, L.mat); o.position.set(x + L.dx, y, z); o.scale.set(sx, sy, sz); if (rz) o.rotation.z = rz; o.renderOrder = 5; parent.add(o); } };
-    const body = pivot(root, 0, 0, 0);
-    part(body, new THREE.CylinderGeometry(0.25, 0.15, 0.36, 10), 0, 0.18, 0, 1, 1, 0.5);          // 몸통: 어깨가 넓고 아래로 좁아진다
-    part(body, new THREE.IcosahedronGeometry(1, 1), 0, 0.345, 0, 0.27, 0.07, 0.13);             // 둥근 어깨
-    for (const sx of [-1, 1]) part(body, new THREE.CylinderGeometry(0.052, 0.042, 0.27, 6), sx * 0.255, 0.215, 0, 1, 1, 1, sx * 0.07); // 팔
-    for (const sx of [-1, 1]) part(body, new THREE.BoxGeometry(0.016, 0.17, 0.016), sx * 0.04, 0.29, 0.122, 1, 1, 1, sx * 0.45); // 깃(V)
-    part(body, new THREE.BoxGeometry(0.03, 0.15, 0.012), 0, 0.2, 0.124, 1, 1, 1);               // 넥타이
-    part(body, new THREE.CylinderGeometry(0.045, 0.055, 0.08, 6), 0, 0.41, 0, 1, 1, 1);         // 목
-    const head = pivot(body, 0, 0.45, 0);
-    part(head, new THREE.IcosahedronGeometry(0.13, 1), 0, 0.13, 0, 0.88, 1.12, 0.95);           // 머리
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xd8fff6, transparent: true, opacity: 0.95, fog: false, depthWrite: false, blending: THREE.AdditiveBlending });
-    for (const sx of [-1, 1]) { const e = new THREE.Mesh(UNIT, eyeMat); e.scale.set(0.046, 0.013, 0.01); e.position.set(sx * 0.048, 0.15, 0.122); e.renderOrder = 6; head.add(e); }
-    const mouth = new THREE.Mesh(UNIT, eyeMat); mouth.scale.set(0.05, 0.008, 0.01); mouth.position.set(0, 0.065, 0.118); mouth.renderOrder = 6; head.add(mouth);
-    const ringMat = holoMat(0x9ff5d8, 0.8), ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.004, 4, 48), ringMat); // 바닥 고리는 빛 속에 녹지 않게 따로 ring.rotation.x = Math.PI / 2; ring.position.y = 0.02; root.add(ring);
+    const body = pivot(root, 0, 0, 0); let head, eyeAt, mouthAt, eyeW = 0.03;
+    if (HM) { // 흉상 모델: 목을 축으로 머리를 따로 움직인다
+      const gb = holoGeo(HM.body, HM.s), gh = holoGeo(HM.head, HM.s); part(body, gb, 0, 0, 0, 1, 1, 1); head = pivot(body, HM.neck[0], HM.neck[1], HM.neck[2]); part(head, gh, 0, 0, 0, 1, 1, 1);
+      const shell = new THREE.ShaderMaterial({ vertexShader: 'void main(){ vec3 p = position - normal * 0.012; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }', fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }', transparent: true, colorWrite: false, depthWrite: true }); // 겉면만 보이게 하는 깊이 막 (뒤 배경은 그대로 비친다)
+      for (const [par, g] of [[body, gb], [head, gh]]) { const o = new THREE.Mesh(g, shell); o.renderOrder = 4; par.add(o); }
+      eyeAt = HM.eyes || []; mouthAt = HM.mouth || null; if (HM.eyeW) eyeW = HM.eyeW; }
+    else {
+      part(body, new THREE.CylinderGeometry(0.25, 0.15, 0.36, 10), 0, 0.18, 0, 1, 1, 0.5);          // 몸통: 어깨가 넓고 아래로 좁아진다
+      part(body, new THREE.IcosahedronGeometry(1, 1), 0, 0.345, 0, 0.27, 0.07, 0.13);             // 둥근 어깨
+      for (const sx of [-1, 1]) part(body, new THREE.CylinderGeometry(0.052, 0.042, 0.27, 6), sx * 0.255, 0.215, 0, 1, 1, 1, sx * 0.07); // 팔
+      for (const sx of [-1, 1]) part(body, new THREE.BoxGeometry(0.016, 0.17, 0.016), sx * 0.04, 0.29, 0.122, 1, 1, 1, sx * 0.45); // 깃(V)
+      part(body, new THREE.BoxGeometry(0.03, 0.15, 0.012), 0, 0.2, 0.124, 1, 1, 1);               // 넥타이
+      part(body, new THREE.CylinderGeometry(0.045, 0.055, 0.08, 6), 0, 0.41, 0, 1, 1, 1);         // 목
+      head = pivot(body, 0, 0.45, 0); part(head, new THREE.IcosahedronGeometry(0.13, 1), 0, 0.13, 0, 0.88, 1.12, 0.95); // 머리
+      eyeAt = [[-0.048, 0.15, 0.122], [0.048, 0.15, 0.122]]; mouthAt = [0, 0.065, 0.118]; eyeW = 0.046; }
+    // 눈: 빛나는 점 (보통 흰빛 · 분석 예고 노랑 · 분석 빨강). 입: 말할 때만 은은하게 흔들리는 빛 줄
+    const eyeMat = new THREE.MeshBasicMaterial({ map: HOLO_GLOW, color: 0xd8fff6, transparent: true, opacity: 0.95, fog: false, depthWrite: false, blending: THREE.AdditiveBlending });
+    for (const p of eyeAt) { const e = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), eyeMat); e.scale.set(eyeW * 1.6, eyeW * 0.9, 1); e.position.set(p[0], p[1], p[2]); e.renderOrder = 6; head.add(e); }
+    let visor = null, visorMat = null;
+    if (HM && HM.visor && HM.visor.pts && HM.visor.pts.length > 2) { const V = HM.visor, n = V.pts.length, pos = new Float32Array(n * 2 * 3), uv = new Float32Array(n * 2 * 2), idx = [];
+      V.pts.forEach((p, i) => { for (let k = 0; k < 2; k++) { const j = (i * 2 + k); pos[j * 3] = p[0]; pos[j * 3 + 1] = V.y + (k ? 0.5 : -0.5) * V.h; pos[j * 3 + 2] = p[1]; uv[j * 2] = i / (n - 1); uv[j * 2 + 1] = k; } if (i) idx.push(i * 2 - 2, i * 2 - 1, i * 2, i * 2 - 1, i * 2 + 1, i * 2); });
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setIndex(idx);
+      visorMat = new THREE.ShaderMaterial({ uniforms: { col: { value: new THREE.Color(0xd8fff6) }, scan: { value: 0.5 }, amt: { value: 0.3 }, alpha: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+        vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'uniform vec3 col; uniform float scan; uniform float amt; uniform float alpha; varying vec2 vUv; void main(){ float mid = 1.0 - abs(vUv.y - 0.5) * 2.0; float edge = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x); float d = (vUv.x - scan) / 0.09; float hot = exp(-d * d) * amt; float a = alpha * edge * (0.38 + 0.62 * mid) * (0.55 + hot * 1.6); gl_FragColor = vec4(col * a, a); }' });
+      visor = new THREE.Mesh(g, visorMat); visor.renderOrder = 7; head.add(visor); }
+    let mouth = null; if (mouthAt) { mouth = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), eyeMat); mouth.scale.set(eyeW * 1.8, 0.006, 1); mouth.position.set(mouthAt[0], mouthAt[1], mouthAt[2]); mouth.renderOrder = 6; head.add(mouth); }
+    const ringMat = holoMat(0x9ff5d8, 0.8), ring = new THREE.Mesh(new THREE.TorusGeometry(HM ? 0.3 : 0.42, 0.004, 4, 48), ringMat); ring.rotation.x = Math.PI / 2; ring.position.y = 0.02; ring.visible = !HM; root.add(ring); // 바닥 고리는 빛 속에 녹지 않게 따로 (흉상 모델은 투사기 고리·빛 원뿔로 충분해서 숨긴다)
+    // 투사기에서 올라오는 빛 원뿔과, 그 속을 떠오르는 먼지
+    const beamMat = new THREE.ShaderMaterial({ uniforms: { col: { value: new THREE.Color(0x7ff0dc) }, time: { value: 0 }, alpha: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      vertexShader: 'varying float vh; varying vec3 vN; varying vec3 vV; void main(){ vh = clamp((position.y + 0.11) / 0.2, 0.0, 1.0); vec4 wp = modelMatrix * vec4(position, 1.0); vN = normalize(mat3(modelMatrix) * normal); vV = normalize(cameraPosition - wp.xyz); gl_Position = projectionMatrix * viewMatrix * wp; }',
+      fragmentShader: 'uniform vec3 col; uniform float time; uniform float alpha; varying float vh; varying vec3 vN; varying vec3 vV; void main(){ float face = abs(dot(normalize(vN), normalize(vV))); float a = alpha * pow(1.0 - vh, 1.6) * (0.35 + 0.65 * face) * (0.8 + 0.2 * sin(vh * 18.0 - time * 2.6)); gl_FragColor = vec4(col * a, a); }' });
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.08, 0.2, 28, 1, true), beamMat); beam.position.y = HM ? -0.01 : 0.04; beam.renderOrder = 4; root.add(beam);
+    const ND = 24, dpos = new Float32Array(ND * 3), dseed = []; let ds = 977; const dr = () => { ds = (ds * 16807) % 2147483647; return ds / 2147483647; }; for (let i = 0; i < ND; i++) dseed.push([dr() * 6.283, dr(), 0.35 + dr() * 0.65, 0.04 + dr() * 0.06]);
+    const dgeo = new THREE.BufferGeometry(); dgeo.setAttribute('position', new THREE.BufferAttribute(dpos, 3));
+    const dustMat = new THREE.PointsMaterial({ color: 0xbffbe8, size: 1.5, sizeAttenuation: false, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+    const dust = new THREE.Points(dgeo, dustMat); dust.frustumCulled = false; dust.renderOrder = 6; root.add(dust);
     const cone = gazeCone(); cone.visible = false; head.add(cone);
-    return { root, body, head, legs: [], arms: [], cone, holo: true, layers, eyeMat, mouth, ring, ringMat, lean: 0, redK: 0, boot: null, yaw: 0, headYaw: 0, headPitch: 0, last: 0 };
+    return { root, body, head, legs: [], arms: [], cone, holo: true, layers, eyeMat, mouth, visor, visorMat, ring, ringMat, beamMat, dust, dseed, dustMat, lean: 0, redK: 0, boot: null, yaw: 0, headYaw: 0, headPitch: 0, last: 0 };
   }
   function poseHolo(m, o) { // 숨 쉬듯 떠 있고, 표정 분석 때는 몸을 내 쪽으로 기울이며 붉어진다. 질문할 때는 입이 움직인다
     m.root.visible = !o.hidden; if (o.hidden) return;
@@ -324,8 +356,15 @@ const WORLD = (() => {
     for (const L of m.layers) { L.mat.uniforms.time.value = t; L.mat.uniforms.fadeY.value = fy; L.mat.uniforms.col.value.copy(L.base); if (L.main) L.mat.uniforms.col.value.lerp(HOLO_RED, m.redK * 0.8); }
     m.eyeMat.opacity = 0.95 * onE; m.ringMat.uniforms.time.value = t; m.ringMat.uniforms.col.value.setHex(0x9ff5d8).lerp(HOLO_RED, m.redK * 0.8); m.ringMat.uniforms.alpha.value = 0.8 * Math.min(1, on * 3);
     m.eyeMat.color.setHex(red || o.caught ? 0xff3a4a : amb ? 0xffc04a : 0xd8fff6);
-    m.mouth.scale.y = o.talk ? 0.008 * (1 + 2.4 * Math.abs(Math.sin(t * 13))) : 0.008;
+    if (m.visorMat) { const U = m.visorMat.uniforms, hot = red || o.caught; U.col.value.setHex(hot ? 0xff3a4a : amb ? 0xffc04a : 0xd8fff6); U.alpha.value = onE * (hot ? 1.25 : amb ? 1.1 : 0.9);
+      U.scan.value = hot ? 0.5 + 0.48 * Math.sin(t * 6.8) : 0.5 + 0.48 * Math.sin(t * 1.4); U.amt.value = hot ? 1 : amb ? 0.55 : 0.3; } // 분석 중엔 빨간 빛이 바이저를 빠르게 좌우로 훑는다
+    if (m.mouth) m.mouth.scale.y = o.talk ? 0.006 * (1 + 1.6 * Math.abs(Math.sin(t * 11))) : 0.006;
+    if (o.talk) m.head.rotation.x += Math.sin(t * 5.3) * 0.025; // 말할 때 고개를 살짝 끄덕인다
     m.ring.rotation.z = t * 0.4;
+    m.beamMat.uniforms.time.value = t; m.beamMat.uniforms.alpha.value = 0.42 * Math.min(1, on * 2.5); m.beamMat.uniforms.col.value.setHex(0x7ff0dc).lerp(HOLO_RED, m.redK * 0.7);
+    { const P = m.dust.geometry.attributes.position.array; m.dustMat.opacity = 0.55 * onE; m.dustMat.color.setHex(0xbffbe8).lerp(HOLO_RED, m.redK * 0.6); // 빛 속 먼지: 천천히 떠올라 위에서 사라졌다가 다시 아래에서
+      for (let i = 0; i < m.dseed.length; i++) { const d = m.dseed[i], h = (d[1] + t * d[3]) % 1, r = (0.07 + 0.22 * h) * d[2], a = d[0] + t * 0.2; P[i * 3] = Math.cos(a) * r; P[i * 3 + 1] = -0.11 + h * 0.24; P[i * 3 + 2] = Math.sin(a) * r * 0.7; }
+      m.dust.geometry.attributes.position.needsUpdate = true; }
   }
   function makeStaff(type) { const m = type === 'holo' && !IV2_ROBOT ? makeHolo() : type === 'robot' || type === 'holo' ? makeRobot() : type === 'omega' ? makeOmega() : type === 'webcam' ? null : makeHuman(STAFF_LOOK[type] || STAFF_LOOK.dean); if (m) m.type = type; return m; }
   function poseModel(m, o) { // o: {x, y, z, yaw, moving, walk, phase, now, headYaw, headPitch, coneLen, predict, away, hidden, seated}
@@ -803,7 +842,7 @@ const WORLD = (() => {
     B.box(2.6, 0.06, 0.95, R.holo ? 0x10161d : R.cloth ? 0xf2f0ea : 0x5a3a24, 0, 0.74, -0.25); B.box(2.5, 0.7, 0.06, R.holo ? 0x0c1117 : R.cloth ? 0xe8e6e0 : 0x4a3020, 0, 0.36, -0.68);
     if (R.holo) { bx(sc, 2.6, 0.012, 0.012, 0, 0, 0.772, 0.225, glowMat(0x2fb8a8)); // 테이블 앞 가장자리 빛 줄과 투사기
       B.box(0.26, 0.035, 0.26, 0x1a222c, 0, 0.785, -0.6); const pr = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.008, 4, 24), glowMat(0x6ff0e0)); pr.rotation.x = Math.PI / 2; pr.position.set(0, 0.805, -0.6); sc.add(pr);
-      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.1, 0.07, 16, 1, true), holoMat(0x6ff0e0, 0.5)); beam.position.set(0, 0.84, -0.6); sc.add(beam); }
+      }
     if (R.cloth) B.box(2.62, 0.3, 0.02, 0xf2f0ea, 0, 0.6, 0.23);
     const chairs = R.holo ? [] : [-0.9, 0, 0.9].map(x => bx(sc, 0.42, 0.9, 0.08, 0x2a1a12, x, 0.9, -1.12)); // 면접관 의자 등받이 (해외 보스전 3페이즈에서 낮춘다). 홀로그램 면접관은 의자가 없다
     if (R.holo) { B.box(0.3, 0.02, 0.22, 0xd8dee6, -0.75, 0.78, -0.1, 0, 0.2); } // 내 이력서 한 장
@@ -897,7 +936,7 @@ const WORLD = (() => {
       const toMe = x => Math.atan2(EX.eye.x - x, EX.eye.z - (EX.layout === 'table' ? -0.95 : EX.frontZ - 1.55));
       const pitch = s.phase === 'stand' ? 0.55 : s.phase === 'tell' ? 0.22 : 0;
       if (EX.layout === 'table') { const fx = T.staff.map((d, j) => j).filter(j => T.staff[j].fixed), n = fx.length, k = fx.indexOf(i), x = (SEATS[n] || SEATS[3])[Math.max(0, k)];
-        if (s.type === 'holo' && !IV2_ROBOT) return { x: 0, z: -0.6, y: 0.86, scale: 1.25, yaw: 0, moving: false, headPitch: 0, seated: false }; // 투사기(테이블 위) 바로 위에 떠 있는 상반신
+        if (s.type === 'holo' && !IV2_ROBOT) { const hm = !!holoModel(); return { x: 0, z: -0.6, y: hm ? 0.93 : 0.86, scale: hm ? 1.15 : 1.25, yaw: 0, moving: false, headPitch: 0, seated: false }; } // 투사기(테이블 위) 바로 위에 떠 있는 상반신
         const bigAI = s.type === 'robot' || s.type === 'holo'; return { x, z: bigAI ? -0.7 : -0.95, y: bigAI ? -1.15 : 0, scale: bigAI ? 2.2 : 1, yaw: toMe(x) * (s.phase === 'stand' ? 0.3 : 1), moving: false, headPitch: pitch, seated: !bigAI }; }
       if (s.type === 'omega') return { x: 0, y: 2.3, z: -5.5, yaw: s.asleep ? 0 : s.phase === 'stand' ? (s.away ? 0.7 : -0.7) : 0, headPitch: s.phase === 'stand' ? -0.2 : 0.18, moving: false };
       return { x: -1.8, z: EX.frontZ - 1.55, yaw: toMe(-1.8), moving: false, headPitch: pitch, seated: true };
