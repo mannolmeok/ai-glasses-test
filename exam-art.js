@@ -302,7 +302,7 @@ function drawResultPaper(g, Rz) { // 기관에서 발급한 공문서처럼: 문
   table(X0, 214, [110, 194, 110, 194], [['수험번호', String(31000000 + Rz.tier * 1234567), '성 명', '김 수 험'], ['시 험 명', Rz.tierName, '응시 영역', t.subject || '-']], 44, i => i % 2 === 0);
   const verdict = Rz.caught ? '무효' : Rz.passed ? '합격' : Rz.stamp === '합격 취소' ? '취소' : '불합격', vcol = Rz.passed && !Rz.caught ? '#1c5a9a' : red;
   g.fillStyle = ink; g.textAlign = 'left'; g.font = `800 21px ${F}`; g.fillText('1. 성적', X0, 336);
-  table(X0, 348, [152, 96, 96, 110, 78, 76], [['구 분', '문항 수', '정답 수', '합격 기준', '득 점', '판 정'], [t.subject || '-', Rz.qn, Rz.caught ? '-' : Rz.correct, `${Rz.pass}점 이상`, { t: Rz.caught ? 0 : Rz.score, s: 30, w: 800 }, { t: verdict, col: vcol, w: 800 }]], 50, (i, j) => j === 0);
+  table(X0, 348, [152, 96, 96, 110, 78, 76], [['구 분', '문항 수', '정답 수', '합격 기준', '득 점', '판 정'], [t.subject || '-', Rz.qn, Rz.caught ? '-' : +(+Rz.correct || 0).toFixed(1), `${Rz.pass}점 이상`, { t: Rz.caught ? 0 : Rz.score, s: 30, w: 800 }, { t: verdict, col: vcol, w: 800 }]], 50, (i, j) => j === 0);
   g.fillStyle = ink; g.textAlign = 'left'; g.font = `800 21px ${F}`; g.fillText('2. 문항별 채점 결과', X0, 486); g.fillStyle = sub; g.font = `700 15px ${F}`; g.textAlign = 'right'; g.fillText('○ 정답  × 오답  - 무응답', X0 + TW, 486);
   const n = Rz.marks.length, per = n > 24 ? 12 : n > 10 ? Math.ceil(n / Math.ceil(n / 12)) : Math.max(n, 5), rows = Math.ceil(n / per), cw = TW / per, rh = rows > 2 ? 30 : 36; let y = 498;
   for (let r = 0; r < rows; r++) { g.fillStyle = '#e2e3e0'; g.fillRect(X0, y, TW, rh); g.lineWidth = 1.5; g.strokeStyle = line;
@@ -522,8 +522,8 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
           b.beginPath(); b.arc(x, y, 5.5, 0, 7); b.fillStyle = w === 'off' ? 'rgba(8,10,14,0.9)' : c1; b.fill(); b.lineWidth = 1.5; b.strokeStyle = w === 'off' ? 'rgba(255,255,255,0.6)' : c1; b.stroke();
           if (w === 'watch') { b.beginPath(); b.arc(x, y, 9, 0, 7); b.lineWidth = 1.2; b.stroke(); }
           b.restore(); along('후방', 46, -6, tm, 8, w === 'off' ? 'rgba(255,255,255,0.65)' : c1, 14); } }
-      if (!E.caught) along(`${SL} ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에 (적발 화면에서는 사유와 겹치지 않게 지운다)
-      if (eyeM) { const A = E.iv; if (A && A.q === q && A.t >= A.ask) along(`대답 ${Math.round(A.wi / A.words.length * 100)}%`, HH - 40, HH + 8, 0.13, 9, 'rgba(255,255,255,0.75)', -11); }
+      if (!E.caught && !E.result) along(`${SL} ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에 (적발 화면에서는 사유와 겹치지 않게 지운다)
+      if (E.result) { /* 결과 화면: 아래 메뉴(재응시·다음 시험·귀가)와 겹치지 않게 호 위 글씨는 비운다 */ } else if (eyeM) { const A = E.iv; if (A && A.q === q && A.t >= A.ask) along(`대답 ${Math.round(A.wi / A.words.length * 100)}%`, HH - 40, HH + 8, 0.13, 9, 'rgba(255,255,255,0.75)', -11); }
       else along(picked ? `ANS ${q.aiPick + 1}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'READY', HH - 40, HH + 8, 0.13, 9, picked ? '#8dffa8' : 'rgba(255,255,255,0.75)', -11); }
   } else if (ST === 'brain') { // 뇌 임플란트: 숫자도 틀도 없다. 속마음 한 줄과 심장 박동선
     M(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 9, low ? '#ff9a9a' : '#ffd678', 'right', 700); // 생각 기록과 같은 글씨: 금색이 지금 값, 흐린 흰색이 딸린 줄
@@ -663,7 +663,8 @@ function drawEyeline(k, L, E, now, q, ST, INK) {
     const r0 = { x: ST === 'mil' ? 46 : 16, y: ST === 'mil' ? 110 : 124, w: 128 }, r1 = { x: ST === 'mil' ? 66 : 22, y: 70, w: 286 };
     const w = r0.w + (r1.w - r0.w) * look, h = ph * w / pw, x0 = r0.x + (r1.x - r0.x) * look, y0 = r0.y + (r1.y - r0.y) * look;
     if (look > 0.01) { b.globalAlpha = 0.16 * look; k.R(0, 0, W, HH, '#000000'); b.globalAlpha = 1; } // 초점이 대본으로 옮겨 간다: 바깥은 살짝 어둡게
-    eyePanelFlat(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), x0, y0, w, h, 0.42 + 0.58 * sm(0.1, 0.7, look)); edge = { x: x0 + w, y: y0 + h / 2 }; }
+    const done = E.fb ? 1 - sm(0, 0.3, E.fb.t) : 1; // 답이 끝나면 대본 창은 접힌다 (그동안 면접관이 평가 창을 띄운다)
+    if (done > 0.01) eyePanelFlat(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), x0, y0, w, h, (0.42 + 0.58 * sm(0.1, 0.7, look)) * done); edge = { x: x0 + w, y: y0 + h / 2 }; }
   if (!asking && !edge) { // 3D가 없을 때(그래픽 꺼짐): 예전처럼 화면 왼쪽에서 밀려 들어온다
     const px = Math.round(-pw - 12 + (pw + 40) * look); if (look > 0.02) { b.globalAlpha = Math.min(1, look * 1.4); b.drawImage(eyePanelArt(A, q, ST, INK, teach, pw, ph), px, 70, pw, ph); b.globalAlpha = 1; } }
   if (teach && look < 0.3) { const ex = ST === 'mil' ? 46 : 20, ey = ST === 'mil' ? 200 : 232; // 처음엔 왼쪽 아래(대본 창 쪽)에 조작 안내. 군용은 왼쪽 GAZE 막대·글씨를 비켜서
@@ -672,6 +673,37 @@ function drawEyeline(k, L, E, now, q, ST, INK) {
   if (ev.ph === 'warn') { b.globalAlpha = 0.32 * Math.min(1, ev.t / 0.25); b.drawImage(lensGlow('A', '#ffcf5a'), 0, 0); b.globalAlpha = 1; } // 표정 분석 예고: 렌즈 둘레가 은은하게 노랗게 (깜빡이지 않게)
   else if (ev.ph === 'on') { const y = Math.round(((ev.t / Math.max(0.1, ev.dur)) * 2 % 1) * HH); // 분석 중: 붉은 선이 내 얼굴(화면)을 위아래로 두 번 훑는다
     b.globalAlpha = 0.16; k.R(0, y - 12, W, 24, '#ff3a4a'); b.globalAlpha = 0.8; k.R(0, y, W, 1.5, '#ff7a86'); b.globalAlpha = 0.4; b.drawImage(lensGlow('A', '#ff3a4a'), 0, 0); b.globalAlpha = 1; }
+}
+// ---- [AI 대면 면접] 평가 창: 답이 끝나면 홀로그램 면접관의 바이저가 빛을 쏘아 오른쪽 허공에 평가 창을 띄운다 ----
+// 창은 시험장 공간(면접관 옆)에 붙어 있다. 렌즈 HUD가 아니라 면접관이 띄운 홀로그램이라 렌즈 단계와 상관없이 같은 모양
+function drawHoloScore(k, L, E, now) {
+  const r = E.ivLast; if (!r || !r.win || E.caught || E.result || typeof WORLD === 'undefined' || !WORLD.projEx) return;
+  if (r.at == null) r.at = now; const age = now - r.at, LIFE = 3.0; if (age > LIFE) return;
+  const P = WORLD.projEx(0.42, 1.32, -0.55), V = WORLD.projEx(0.13, 1.555, -0.36); if (!P || !V) return;
+  const ok = r.score >= 0.6, col = ok ? '#9ff5d8' : '#ff7a86', sc = Math.round(r.score * 100), b = k.b, cl = (v) => Math.max(0, Math.min(1, v)), sm = (v) => { v = cl(v); return v * v * (3 - 2 * v); };
+  const W0 = 168, H0 = 100, open = sm((age - 0.12) / 0.3) * (1 - sm((age - (LIFE - 0.25)) / 0.25)), h = Math.max(1, H0 * open);
+  let x = Math.round(P[0]), y = Math.round(P[1] - h / 2); if (x + W0 > L.W - 8) x = L.W - 8 - W0;
+  const beam = cl(1 - (age - 0.35) / 0.5) * 0.55 + 0.12 * open; // 바이저에서 창 왼쪽 끝으로 뻗는 빛 (처음에 진하고 곧 옅어진다)
+  hudDraw(k, c => { c.globalCompositeOperation = 'lighter';
+    if (beam > 0.01) { const g = c.createLinearGradient(V[0], V[1], x, y + h / 2); g.addColorStop(0, `rgba(159,245,216,${(0.5 * beam).toFixed(3)})`); g.addColorStop(1, `rgba(159,245,216,${(0.14 * beam).toFixed(3)})`);
+      c.fillStyle = g; c.beginPath(); c.moveTo(V[0], V[1] - 1.5); c.lineTo(x, y); c.lineTo(x, y + h); c.lineTo(V[0], V[1] + 1.5); c.closePath(); c.fill(); }
+    if (open < 0.02) return;
+    c.fillStyle = ok ? 'rgba(60,170,150,0.16)' : 'rgba(190,60,80,0.18)'; c.fillRect(x, y, W0, h);
+    const frame = (dx, cc, a) => { c.strokeStyle = cc; c.globalAlpha = a; c.lineWidth = 1; c.strokeRect(x + 0.5 + dx, y + 0.5, W0 - 1, h - 1); }; // 색 어긋남: 빨강·파랑 테두리를 1칸씩 비켜서
+    frame(-1.2, '#ff3a5a', 0.45); frame(1.2, '#3a78ff', 0.45); frame(0, col, 0.9); c.globalAlpha = 1;
+    c.fillStyle = col; for (const [cx, cy, sx, sy] of [[x, y, 1, 1], [x + W0, y, -1, 1], [x, y + h, 1, -1], [x + W0, y + h, -1, -1]]) { c.fillRect(cx - (sx < 0 ? 8 : 0), cy - (sy < 0 ? 2 : 0), 8, 2); c.fillRect(cx - (sx < 0 ? 2 : 0), cy - (sy < 0 ? 8 : 0), 2, 8); } });
+  if (open < 0.6) return;
+  b.save(); b.beginPath(); b.rect(x, y, W0, h); b.clip(); const a = sm((open - 0.6) / 0.4); b.globalAlpha = a;
+  const cnt = Math.round(sc * sm((age - 0.35) / 0.55)); // 점수가 0부터 빠르게 차오른다
+  k.M(`AI 평가 · ${String((r.qi || 0) + 1).padStart(2, '0')}/${String(E.qs.length).padStart(2, '0')}`, x + 10, y + 12, 7.5, col, 'left', 700);
+  k.M(ok ? '통과' : '미달', x + W0 - 10, y + 12, 7.5, ok ? '#ffffff' : '#ff9aa4', 'right', 800);
+  for (const [dx, cc, al] of [[-1.5, '#ff3a5a', 0.45], [1.5, '#3a78ff', 0.45], [0, '#ffffff', 1]]) { b.globalAlpha = a * al; k.T(String(cnt), x + 12 + dx, y + 40, 30, cc, 'left', 800); }
+  b.globalAlpha = a; const nw = k.TW(String(cnt), 30, 800); k.T('점', x + 16 + nw, y + 44, 12, col, 'left', 700);
+  for (let i = 0; i < 10; i++) { b.globalAlpha = a * (i < Math.round(cnt / 10) ? 0.95 : 0.22); k.R(x + 12 + i * 14.6, y + 62, 11, 5, col); } b.globalAlpha = a;
+  const lines = Object.keys(r.why || {}).filter(key => typeof r.why[key] === 'string' || r.why[key] > 0).map(key => typeof r.why[key] === 'string' ? `${key} ${r.why[key]}` : `${key} -${r.why[key]}`);
+  k.T(lines.length ? lines.join(' · ') : '감점 없음', x + 12, y + 84, 9.5, lines.length ? '#d8fff6' : col, 'left', 700);
+  b.globalAlpha = a * 0.28; for (let yy = y + 2; yy < y + h; yy += 3) k.R(x, yy, W0, 1, '#000000'); // 홀로그램 가로 줄무늬 (타이틀 글자처럼)
+  b.restore();
 }
 // ---- 면접(새 방식): A·B·C 순서 입력. 면접관이 안 볼 때만 누른다 ----
 function drawAbc(k, L, E, now, q) { // 창도 숫자도 없다. 안경이 띄운 블록 세 줄이 허공에서 내려오고, 누를 때마다 한 어절씩 자막으로 말이 나간다
@@ -910,7 +942,7 @@ function drawExamHud(k, L, E, now, H) {
     k.b.globalAlpha = Math.max(0, a); k.b.drawImage(lensGlow('A', C.bad), 0, 0); k.b.globalAlpha = 1;
   }
   const RHV = typeof params !== 'undefined' && params.get('rh');
-  if (E.T.mech.includes('eyeline')) { if (live && q && q.kind === 'speak') drawEyeline(k, L, E, now, q, ST0, INK); } else // [AI 대면 면접] 눈 맞춤 줄다리기는 왼쪽 허공의 대본 창 + 자막
+  if (E.T.mech.includes('eyeline')) { if (live && q && q.kind === 'speak') drawEyeline(k, L, E, now, q, ST0, INK); drawHoloScore(k, L, E, now); } else // [AI 대면 면접] 눈 맞춤 줄다리기는 왼쪽 허공의 대본 창 + 자막
   if ((E.layout === 'table' || (E.qs[Math.min(E.qi, E.qs.length - 1)] || {}).kind === 'speak') && !E.result && RHV !== '3' && !(typeof IVABC !== 'undefined' && IVABC && E.sq && q && E.sq.q === q)) drawArCard(k, L, E, now, H);
   if (typeof IVABC !== 'undefined' && IVABC && live && q && q.kind === 'speak' && E.sq) drawAbc(k, L, E, now, q);
   if (RHV && live && q && q.kind === 'speak') drawRhythmPreview(k, L, E, now, RHV, q);

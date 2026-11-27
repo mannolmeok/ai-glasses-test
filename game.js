@@ -545,6 +545,7 @@ const sfx = {
   radio: () => { for (let i = 0; i < 4; i++) toneAt(440 + (i % 2) * 110, 0.07, 'triangle', 0.03, i * 0.1); },
   ivWarn: () => { toneAt(660, 0.12, 'sine', 0.06); toneAt(880, 0.16, 'sine', 0.06, 0.12); }, // [AI 대면 면접] 면접관이 표정을 살피려 한다
   ivScan: () => { toneAt(150, 1.2, 'sawtooth', 0.035); toneAt(1200, 0.05, 'square', 0.03); }, // 표정 분석: 낮게 웅— 하고 훑는다
+  holoWin: (ok) => { noiseAt(0.18, 0.018, 0, 5200, 2); toneAt(ok ? 784 : 392, 0.18, 'sine', 0.05, 0.04); toneAt(ok ? 1175 : 330, 0.26, 'sine', 0.05, 0.16); for (let i = 0; i < 5; i++) toneAt(2600 + i * 180, 0.02, 'square', 0.008, 0.2 + i * 0.07); }, // [AI 대면 면접] 홀로그램이 평가 창을 띄운다 (점수가 차오르는 작은 틱)
   empCharge: (dur = 1.5) => { const n = Math.max(3, Math.round(dur / 0.1)); for (let i = 0; i < n; i++) toneAt(260 + i * (900 / n), 0.13, 'sawtooth', 0.01 + 0.025 * i / n, i * dur / n); }, // EMP 총 충전: 윙— 하고 올라간다
   empFire: () => { toneAt(1500, 0.06, 'square', 0.07); toneAt(160, 0.4, 'sawtooth', 0.08, 0.02); toneAt(80, 0.5, 'sine', 0.16, 0.02); noiseAt(0.35, 0.1, 0, 1600, 0.7); },
   empHit: () => { noiseAt(0.5, 0.14, 0, 2600, 0.5); toneAt(70, 0.5, 'sine', 0.22); toneAt(420, 0.35, 'sawtooth', 0.05, 0.02); toneAt(2400, 0.05, 'square', 0.03, 0.08); toneAt(1900, 0.05, 'square', 0.03, 0.16); }, // 맞는 순간: 쿵 + 지지직
@@ -880,8 +881,11 @@ function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생
 }
 function ivDone(score, why) { // 면접 한 문항 끝: 부분 점수를 쌓고, 0.6 이상이면 통과한 답으로 친다
   score = Math.min(score, tune.iv_cap); // 면접관은 만점을 주지 않는다: 가장 잘한 답도 95점
-  say(`답변 ${Math.round(score * 100)}점 · ${Object.keys(why).map(k => `${k} -${why[k]}`).join(' · ')}`, score >= 0.6 ? PAL.good : PAL.bad);
-  E.ivScore = (E.ivScore || 0) + score; if (score >= 0.6) E.ivPass = (E.ivPass || 0) + 1; E.ivLast = { score, why, t: 0 }; markAnswer(score >= 0.6 ? 0 : 2, 'speak'); }
+  const holoWin = E.T.mech.includes('eyeline') && typeof WORLD !== 'undefined' && WORLD.ok; // [AI 대면 면접] 점수는 홀로그램 면접관이 옆에 띄우는 평가 창으로 (자막 대신)
+  if (holoWin) sfx.holoWin(score >= 0.6); else say(`답변 ${Math.round(score * 100)}점 · ${Object.keys(why).map(k => typeof why[k] === 'string' ? `${k} ${why[k]}` : `${k} -${why[k]}`).join(' · ')}`, score >= 0.6 ? PAL.good : PAL.bad);
+  E.ivScore = (E.ivScore || 0) + score; if (score >= 0.6) E.ivPass = (E.ivPass || 0) + 1; E.ivLast = { score, why, t: 0, qi: E.qi, win: holoWin }; markAnswer(score >= 0.6 ? 0 : 2, 'speak');
+  if (holoWin && E.fb) { E.fb.hold = E.qi + 1 >= E.qs.length ? 2.6 : 1.3; // 평가 창이 열리는 동안 한 박자 쉬고 다음 질문 (마지막 답은 창을 다 보고 끝낸다)
+    const ev = E.ivEv; if (ev && ev.ph !== 'idle') { ev.ph = 'idle'; ev.t = 0; ev.next = between(tune.iv_gap_min, tune.iv_gap_max) * (1 - 0.12 * Math.min(4, E.qi + 1)); } } } // 답이 끝나면 하던 표정 분석도 끝난다 (붉은 선이 멈춘 채 남지 않게)
 const FAMILY_LINES = ['아들, 과일 먹고 해~', '빨래 여기 둔다?', '밥은 먹고 하니?', '택배 온 거 네 거니?'];
 function earCheck() { // 듣기 방송 중 귀 확인: 이어폰을 귀에 꽂고 있을 때(어금니 스피커 전)만. 나를 보러 오는 감독관을 돌려준다
   const q = E.qs[E.qi]; if (!q || q.kind !== 'listen' || E.ai || E.fb || E.dead) return null; const e = G.gear.earbud; if (!(e > 0 && e < 4)) return null;
@@ -1183,7 +1187,7 @@ function updateExam(dt) {
         if (reading) { A.wt += dt; if (A.wt >= tune.iv_word) { A.wt -= tune.iv_word; A.wi++; } A.pause = 0; A.stalled = false; G.hints.iv = true; E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); } }
         else if (A.wi > 0) { A.pause += dt; if (A.pause > tune.iv_stall && !A.stalled) { A.stalled = true; A.stalls++; } }
         if (A.wi >= A.words.length) { E.wasHold = hold; G.hints.eyeline = true; ivDone(clamp(1 - A.stalls * 0.15, 0, 1), { 유창함: A.stalls }); }
-        else if (A.left <= 0) { E.wasHold = hold; ivDone(clamp(0.6 * A.wi / A.words.length - 0.15 * A.stalls, 0, 1), { 유창함: A.stalls }); } } }
+        else if (A.left <= 0) { E.wasHold = hold; ivDone(clamp(0.6 * A.wi / A.words.length - 0.15 * A.stalls, 0, 1), { 유창함: A.stalls, 시간: '초과' }); } } }
     const fx = ev.ph === 'on' ? 'watch' : ev.ph === 'warn' ? 'tell' : 'stand'; for (const s of E.staff) if (s.fixed && s.phase !== fx) { s.phase = fx; s.t = 0; s.dur = 99; } // 눈 색: 보통 · 노랑 · 빨강
   } else
   if (speak && !E.fb && IVABC && table && !T.mech.includes('gaze')) { // 면접(새 방식): 면접관이 안 보는 틈에 A·B·C를 뜬 순서대로 전부 누른다
@@ -1265,7 +1269,7 @@ function updateExam(dt) {
     else if (Math.floor(E.scan * 3 + 1e-6) > before) sfx.elim();
   }
   if (E.ai && !E.fb && g.lens >= 7 && !T.noAuto && !essay && q.conf >= tune.earbud_threshold) { /* 자동 마킹은 뇌 임플란트부터: 그 전에는 답을 직접 고른다 */ E.earbudT += dt; if (E.earbudT >= tune.earbud_delay) markAnswer(q.aiPick, 'auto'); }
-  if (E.fb) { E.fb.t += dt; if (E.fb.t >= 0.35 && !E.caught) nextQuestion(); }
+  if (E.fb) { E.fb.t += dt; if (E.fb.t >= (E.fb.hold || 0.35) && !E.caught) nextQuestion(); }
   if (E.sus > 0.3) { E.beat -= dt; if (E.beat <= 0) { E.beat = 1 - 0.55 * E.sus; sfx.beat(0.08 + 0.12 * E.sus); } } else E.beat = 0;
   E.hint = examHint();
 }

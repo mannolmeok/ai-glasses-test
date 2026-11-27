@@ -301,7 +301,7 @@ function drawResultHud(k, L, Rz, now, H) { // 결과 화면: 위에는 연동해
   const good = Rz.passed && !Rz.caught, col = Rz.caught ? '#ff8a8a' : good ? '#8dffa8' : '#ffcf7a';
   const head = Rz.caught ? '적발 · 퇴실' : Rz.audited ? '가채점은 합격인데...' : `가채점 ${Rz.score}점 · `, tail = Rz.caught || Rz.audited ? '' : Rz.passed ? '합격 예상' : '불합격 예상';
   const hw = k.TW(head, 14, 800); T(head, cx + 45, cy + 31, 14, Rz.caught ? col : '#ffffff', 'left', 800); if (tail) T(tail, cx + 45 + hw, cy + 31, 14, col, 'left', 800);
-  T(Rz.caught ? '이번 시험은 무효 처리돼요.' : `정답 ${Rz.correct}/${Rz.qn} · 합격선 ${Rz.pass}점. 통지표는 우편으로 갑니다.`, cx + 45, cy + 48, 9.5, '#c9d0dc', 'left', 700);
+  T(Rz.caught ? '이번 시험은 무효 처리돼요.' : `정답 ${+(+Rz.correct || 0).toFixed(1)}/${Rz.qn} · 합격선 ${Rz.pass}점. 통지표는 우편으로 갑니다.`, cx + 45, cy + 48, 9.5, '#c9d0dc', 'left', 700);
   // 아래: 다음에 할 일 (자막 글씨)
   const defs = [[Rz.canRetry ? '재응시' : '응시료 부족', 'R', 'retry', Rz.canRetry]];
   if (Rz.next != null) defs.push([Rz.final ? '엔딩' : Rz.canNext ? '다음 시험' : '응시료 부족', 'N', 'next', Rz.final || Rz.canNext]);
@@ -331,7 +331,7 @@ function drawResults(k, L, Rz, now, H) {
     TO(m.r, cx, my, 16, col, 'center');
     if (m.via === 'ai' || m.via === 'auto') R(cx - 6, my + 12, 12, 2, H.c);
   });
-  T(Rz.caught ? '적발 · 0점 처리' : `정답 ${Rz.correct}/${Rz.qn} · ${Rz.score}점 (합격선 ${Rz.pass}점)`, L.W / 2, y + 116, 13, C.white, 'center', 800);
+  T(Rz.caught ? '적발 · 0점 처리' : `정답 ${+(+Rz.correct || 0).toFixed(1)}/${Rz.qn} · ${Rz.score}점 (합격선 ${Rz.pass}점)`, L.W / 2, y + 116, 13, C.white, 'center', 800);
   let ly = y + 138;
   if (Rz.fee > 0) { T(`응시료 -${won(Rz.fee)}원`, L.W / 2, ly, 11, '#d6a0a0', 'center', 700); ly += 18; }
   T(Rz.reward > 0 ? `${Rz.pay} +${won(Rz.reward)}원` : '보상 없음', L.W / 2, ly, 15, Rz.reward > 0 ? C.gold : '#8f89a3', 'center', 800); ly += 19;
