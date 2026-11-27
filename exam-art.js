@@ -612,30 +612,50 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
     if (scanning) { const y = HH / 2, w = Math.round((W / 2 - 170) * E.scan); b.globalAlpha = 0.6; R(116, y, w, 1, G1); R(W - 116 - w, y, w, 1, G1); b.globalAlpha = 1; }
   }
 }
-// ---- [AI 대면 면접 · 눈 맞춤 줄다리기] 대본은 왼쪽 허공에: 꾹 누르면 고개가 그쪽으로 돌며 창이 들어온다. 말은 자막으로, 표정 분석은 붉은 훑기 선으로 ----
+// ---- [AI 대면 면접 · 눈 맞춤 줄다리기] 대본 창은 왼쪽 허공에 떠 있다 (3D 공간에 고정된, 살짝 굽은 창). 꾹 누르면 고개가 그쪽으로 돌아가야 읽힌다 ----
+// 창은 내 눈에서 0.85m, 왼쪽 50° 쪽에서 나를 마주 본다. 렌즈가 그 자리에 그려 주는 것이라 앞을 볼 때는 화면 왼쪽 끝에 비스듬히 흐릿하게 걸쳐 보인다
+const EYEP = { cv: null, key: '', PSI: 0.87, D: 0.85, M: 0.0027, RC: 1.5, DY: -0.01, N: 28 };
+function eyePanelArt(A, q, ST, INK, teach, pw, ph) { // 창 그림을 따로 그려 둔다 (안경 단계 모양 그대로). 내용이 바뀔 때만 다시 그린다
+  const S = Math.min(4, (HUD_SCALE || 1) * 1.5), key = [ST, q.q, A.wi, teach ? 1 : 0, pw, ph, S, STATE.touchUI ? 1 : 0].join('|');
+  if (EYEP.cv && EYEP.key === key) return EYEP.cv;
+  const cv = EYEP.cv || (EYEP.cv = document.createElement('canvas')); cv.width = Math.ceil(pw * S); cv.height = Math.ceil(ph * S);
+  const c = cv.getContext('2d'); c.setTransform(S, 0, 0, S, 0, 0); c.clearRect(0, 0, pw, ph); const k2 = makeKit(c); k2.S = S;
+  const ink = INK || '#7fe9ff', mono = ST === 'used' || ST === 'mil', n = q.lines.length;
+  if (ST === 'contact') { rrect(c, 1, 1, pw - 2, ph - 2, 14); c.fillStyle = 'rgba(8,44,52,0.72)'; c.fill(); c.strokeStyle = 'rgba(127,233,255,0.95)'; c.lineWidth = 1.4; c.stroke(); }
+  else if (ST === 'mil') { c.fillStyle = 'rgba(40,26,6,0.74)'; c.fillRect(0, 0, pw, ph); c.strokeStyle = ink; c.lineWidth = 1; c.strokeRect(0.5, 0.5, pw - 1, ph - 1); c.fillStyle = ink; c.fillRect(0, 0, pw, 2); }
+  else if (ST === 'proto') panelBox(k2, 0, 0, pw, ph, ink, '');
+  else if (ST === 'used') { c.fillStyle = 'rgba(4,16,8,0.5)'; c.fillRect(0, 0, pw, ph); c.fillStyle = ink; for (const [x, y, w, h] of [[0, 0, 12, 1.5], [0, 0, 1.5, 12], [pw - 12, ph - 1.5, 12, 1.5], [pw - 1.5, ph - 12, 1.5, 12]]) c.fillRect(x, y, w, h); }
+  else if (ST !== 'brain') { c.fillStyle = 'rgba(6,22,26,0.7)'; c.fillRect(0, 0, pw, ph); }
+  const title = ST === 'mil' ? 'SCRIPT · LIVE' : ST === 'used' ? 'SCRIPT' : ST === 'brain' ? '떠오르는 말' : '내 AI의 대본';
+  (mono ? k2.M : k2.T)(title, 12, 13, 7.5, ink, 'left', 700);
+  for (let li = 0; li < n; li++) { let x = 12; const y = 34 + li * 22;
+    A.words.forEach((o, i) => { if (o.li !== li) return; const col = i < A.wi ? 'rgba(170,220,205,0.42)' : i === A.wi ? ink : ST === 'brain' ? '#ffe9b8' : '#f0f4f2'; (mono ? k2.M : k2.T)(o.w, x, y, 10.5, col, 'left', 700); x += k2.TW(o.w, 10.5, 700) + 4; }); }
+  if (teach) (mono ? k2.M : k2.T)(STATE.touchUI ? '손을 떼면 면접관 눈을 본다' : '스페이스를 떼면 면접관 눈을 본다', 12, ph - 11, 8, 'rgba(240,244,242,0.75)', 'left', 500);
+  EYEP.key = key; return cv;
+}
+function eyePanelWarp(k, cv, pw, ph, a) { // 굽은 창을 세로 띠로 잘라, 띠마다 3D 자리에 맞춰 그린다 (가까운 쪽은 크게, 먼 쪽은 작게)
+  const eye = typeof WORLD !== 'undefined' && WORLD.exEye ? WORLD.exEye() : null; if (!eye) return null;
+  const P = EYEP, f = [-Math.sin(P.PSI), -Math.cos(P.PSI)], r = [Math.cos(P.PSI), -Math.sin(P.PSI)], hw = pw * P.M / 2, hh = ph * P.M / 2, yc = eye.y + P.DY, pts = [];
+  for (let j = 0; j <= P.N; j++) { const th = (j / P.N * 2 - 1) * hw / P.RC, side = Math.sin(th) * P.RC, near = P.RC * (1 - Math.cos(th)); // 가장자리일수록 나를 향해 조금 굽는다
+    const X = eye.x + f[0] * (P.D - near) + r[0] * side, Z = eye.z + f[1] * (P.D - near) + r[1] * side, t = WORLD.projEx(X, yc + hh, Z), bt = WORLD.projEx(X, yc - hh, Z); pts.push(t && bt ? [t[0], t[1], bt[0], bt[1]] : null); }
+  hudDraw(k, c => { c.imageSmoothingEnabled = true; c.globalAlpha = a; const sw = cv.width / P.N;
+    for (let j = 0; j < P.N; j++) { const p0 = pts[j], p1 = pts[j + 1]; if (!p0 || !p1) continue; const x0 = (p0[0] + p0[2]) / 2, x1 = (p1[0] + p1[2]) / 2; if (x1 <= x0 || x1 < -20 || x0 > 660) continue;
+      const y0 = (p0[1] + p1[1]) / 2, y1 = (p0[3] + p1[3]) / 2; c.drawImage(cv, j * sw, 0, sw, cv.height, x0, y0, x1 - x0 + 0.6, y1 - y0); } });
+  const e = pts[P.N]; return e ? { x: (e[0] + e[2]) / 2, y: (e[1] + e[3]) / 2, top: e[1], bot: e[3] } : null; // 창 오른쪽 끝(앞을 볼 때 보이는 쪽)
+}
 function drawEyeline(k, L, E, now, q, ST, INK) {
   const A = E.iv, W = L.W, HH = L.H, b = k.b, ev = E.ivEv || { ph: 'idle', t: 0 }; if (!A || A.q !== q) return;
   const lk = Math.max(0, Math.min(1, E.ivLook || 0)), look = lk * lk * (3 - 2 * lk), ink = INK || '#7fe9ff', mono = ST === 'used' || ST === 'mil';
-  if (A.t < A.ask) { // 면접관이 질문하는 동안: 자막 두 줄
-    const lines = wrapKit(k, 'AI 면접관: ' + q.q, 560, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 96 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); }
-  else {
-    const teach = !G.hints.eyeline, n = q.lines.length, pw = 238, ph = 40 + n * 22 + (teach ? 14 : 0), x0 = ST === 'mil' ? 66 : 28, tx = ST === 'mil' ? 38 : 0, px = Math.round(-pw - 12 + (pw + 12 + x0) * look), py = 70;
-    if (look > 0.02) { b.globalAlpha = Math.min(1, look * 1.4); // 대본 창: 안경 단계마다 그 화면의 모양으로
-      if (ST === 'contact') hudDraw(k, c => { rrect(c, px, py, pw, ph, 14); c.fillStyle = 'rgba(8,44,52,0.62)'; c.fill(); c.strokeStyle = 'rgba(127,233,255,0.9)'; c.lineWidth = 1.2; c.stroke(); });
-      else if (ST === 'mil') hudDraw(k, c => { c.fillStyle = 'rgba(40,26,6,0.66)'; c.fillRect(px, py, pw, ph); c.strokeStyle = ink; c.lineWidth = 1; c.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1); c.fillStyle = ink; c.fillRect(px, py, pw, 2); });
-      else if (ST === 'proto') panelBox(k, px, py, pw, ph, ink, '');
-      else if (ST !== 'used' && ST !== 'brain') { b.globalAlpha *= 0.8; k.R(px, py, pw, ph, '#06161a'); b.globalAlpha = Math.min(1, look * 1.4); }
-      const title = ST === 'mil' ? 'SCRIPT · LIVE' : ST === 'used' ? 'SCRIPT' : ST === 'brain' ? '떠오르는 말' : '내 AI의 대본';
-      (mono ? k.M : k.T)(title, px + 12, py + 13, 7.5, ink, 'left', 700);
-      for (let li = 0; li < n; li++) { let x = px + 12; const y = py + 34 + li * 22;
-        A.words.forEach((o, i) => { if (o.li !== li) return; const col = i < A.wi ? 'rgba(170,220,205,0.42)' : i === A.wi ? ink : '#f0f4f2'; (mono ? k.M : k.T)(o.w, x, y, 10.5, col, 'left', 700); x += k.TW(o.w, 10.5, 700) + 4; }); }
-      if (teach) (mono ? k.M : k.T)(STATE.touchUI ? '손을 떼면 면접관 눈을 본다' : '스페이스를 떼면 면접관 눈을 본다', px + 12, py + ph - 11, 8, 'rgba(240,244,242,0.7)', 'left', 500);
-      b.globalAlpha = 1; }
-    else { b.globalAlpha = 0.85; k.R(tx, 150, 18, 56, '#06161a'); b.globalAlpha = 1; k.T('◀', tx + 9, 170, 9, ink, 'center', 700); k.T('대본', tx + 9, 190, 7, ink, 'center', 700); // 대본이 있는 쪽
-      if (teach) { k.SUB(STATE.touchUI ? '꾹 누르면 대본을 본다' : '스페이스 꾹: 대본을 본다', tx + 26, 172, 10, '#ffffff', 'left'); k.SUB('보는 동안 말이 나간다', tx + 26, 189, 8.5, '#d8e8e4', 'left'); } }
-    if (A.wi > 0) { const li = A.words[A.wi - 1].li, said = A.words.filter((o, i) => o.li === li && i < A.wi).map(o => o.w).join(' '); k.SUB(`"${said}${A.pause > tune.iv_stall ? '… 어…' : ''}"`, W / 2, HH - 86, 13, '#ffffff', 'center'); } // 내가 하는 말 (기본 자막 자리)
-  }
-  if (ev.ph === 'warn') { b.globalAlpha = 0.3 + 0.12 * Math.sin(now * 9); b.drawImage(lensGlow('A', '#ffcf5a'), 0, 0); b.globalAlpha = 1; } // 표정 분석 예고: 렌즈 둘레가 은은하게 노랗게
+  const asking = A.t < A.ask, teach = !G.hints.eyeline && !asking, n = q.lines.length, pw = 268, ph = 40 + n * 22 + (teach ? 14 : 0);
+  if (asking) { const lines = wrapKit(k, 'AI 면접관: ' + q.q, 560, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 96 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); } // 면접관이 질문하는 동안: 자막 두 줄
+  const sm = (e0, e1, v) => { const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+  const edge = asking ? null : eyePanelWarp(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), pw, ph, 0.2 + 0.8 * sm(0.15, 0.75, look)); // 질문이 끝나면 왼쪽 허공에 대본이 뜬다
+  if (!asking && !edge) { // 3D가 없을 때(그래픽 꺼짐): 예전처럼 화면 왼쪽에서 밀려 들어온다
+    const px = Math.round(-pw - 12 + (pw + 40) * look); if (look > 0.02) { b.globalAlpha = Math.min(1, look * 1.4); b.drawImage(eyePanelArt(A, q, ST, INK, teach, pw, ph), px, 70, pw, ph); b.globalAlpha = 1; } }
+  if (teach && look < 0.3) { const ex = ST === 'mil' ? 46 : 20, ey = ST === 'mil' ? 196 : 232; // 처음엔 왼쪽 아래(대본 창 쪽)에 조작 안내. 군용은 왼쪽 GAZE 막대·글씨를 비켜서
+    k.SUB(STATE.touchUI ? '◀ 꾹 누르면 왼쪽 대본을 본다' : '◀ 스페이스 꾹: 왼쪽 대본을 본다', ex, ey, 10, '#ffffff', 'left'); k.SUB('보는 동안 말이 나간다', ex + 12, ey + 17, 8.5, '#d8e8e4', 'left'); }
+  if (!asking && A.wi > 0) { const li = A.words[A.wi - 1].li, said = A.words.filter((o, i) => o.li === li && i < A.wi).map(o => o.w).join(' '); k.SUB(`"${said}${A.pause > tune.iv_stall ? '… 어…' : ''}"`, W / 2, HH - 86, 13, '#ffffff', 'center'); } // 내가 하는 말 (기본 자막 자리)
+  if (ev.ph === 'warn') { b.globalAlpha = 0.32 * Math.min(1, ev.t / 0.25); b.drawImage(lensGlow('A', '#ffcf5a'), 0, 0); b.globalAlpha = 1; } // 표정 분석 예고: 렌즈 둘레가 은은하게 노랗게 (깜빡이지 않게)
   else if (ev.ph === 'on') { const y = Math.round(((ev.t / Math.max(0.1, ev.dur)) * 2 % 1) * HH); // 분석 중: 붉은 선이 내 얼굴(화면)을 위아래로 두 번 훑는다
     b.globalAlpha = 0.16; k.R(0, y - 12, W, 24, '#ff3a4a'); b.globalAlpha = 0.8; k.R(0, y, W, 1.5, '#ff7a86'); b.globalAlpha = 0.4; b.drawImage(lensGlow('A', '#ff3a4a'), 0, 0); b.globalAlpha = 1; }
 }

@@ -982,7 +982,7 @@ const WORLD = (() => {
     const breath = GEN_ROOM ? 0 : 1; // 생성 시험장: 무늬가 촘촘한 그림은 숨 쉬는 흔들림에 화면 전체가 한 칸씩 들썩여 보인다 → 가만히 둔다
     cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003 * breath;
     cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004 * breath;
-    if (EX.layout === 'table' && E.ivLook != null) { const u = ease(clamp(E.ivLook, 0, 1)); cam.rotation.y += 0.42 * u; cam.rotation.x -= 0.07 * u; } // [AI 대면 면접] 대본을 보는 동안 고개가 왼쪽으로 돈다
+    if (EX.layout === 'table' && E.ivLook != null) { const u = ease(clamp(E.ivLook, 0, 1)); cam.rotation.y += 0.62 * u; cam.rotation.x -= 0.05 * u; } // [AI 대면 면접] 대본을 보는 동안 고개가 왼쪽 허공의 대본 창으로 돈다 (면접관은 오른쪽 끝에 남는다)
     if (E.shake > 0) { const sa = Math.min(1, E.shake / 0.5); cam.rotation.y += (Math.sin(now * 83) * 0.014 + Math.sin(now * 47) * 0.009) * sa; cam.rotation.x += Math.sin(now * 67) * 0.012 * sa; } // [변호사시험 3교시] EMP에 맞은 순간 화면이 흔들린다
     const fov = lerp(a.fov, b.fov, k); if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
     const predict = E.gear.predict > 0 || (E.gear.thirdeye > 0 && E.T.mech.includes('threeeyes'));
@@ -1419,6 +1419,9 @@ const WORLD = (() => {
     if (!W.ok || !MOLE || !MOLE.obj || !EX.cam || MOLE.sc !== EX.scene) return null; _p.setFromMatrixPosition(MOLE.obj.matrixWorld); const bx = _p.x, bz = _p.z;
     _p.set(bx, 0.6, bz); _p.project(EX.cam); if (_p.z > 1 || Math.abs(_p.x) > 1.2) return null; const x = (_p.x + 1) / 2 * RW, y1 = (1 - _p.y) / 2 * RH;
     _p.set(bx, 1.32, bz); _p.project(EX.cam); const y0 = (1 - _p.y) / 2 * RH, h = y1 - y0; if (h <= 0) return null; return { x: x - h * 0.32, y: y0, w: h * 0.64, h }; }
+  const _pj = new THREE.Vector3();
+  function projEx(x, y, z) { if (!W.ok || !EX.cam) return null; _pj.set(x, y, z).project(EX.cam); if (_pj.z > 1) return null; return [(_pj.x + 1) * 320, (1 - _pj.y) * 180]; } // 시험장 카메라로 본 점의 화면 자리 (640x360). 카메라 뒤면 null
+  function exEye() { return W.ok && EX.cam ? EX.eye || null : null; } // 시험장에서 내 눈 자리
   function staffRects() { // 시험장의 감독관들이 화면에서 차지하는 자리 (640x360 좌표). 군용 렌즈의 표적 표시에 쓴다
     const out = []; if (!W.ok || !EX.staff || !EX.cam) return out;
     EX.staff.forEach((m, i) => { if (!m || !m.root || !m.root.visible) return;
@@ -1707,5 +1710,5 @@ const WORLD = (() => {
   }
 
   function hasView(v) { return !!(EX && EX.views && EX.views[v]); }
-  return Object.assign(W, { hasView, init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, moleRect, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
+  return Object.assign(W, { projEx, exEye, hasView, init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, moleRect, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
 })();
