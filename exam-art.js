@@ -384,6 +384,16 @@ function wrapKit(k, str, maxW, size) {
   for (const w of String(str).split(' ')) { const t = cur ? cur + ' ' + w : w; if (k.TW(t, size, 800) <= maxW || !cur) cur = t; else { out.push(cur); cur = w; } }
   if (cur) out.push(cur); return out.slice(0, 3);
 }
+function wrapSent(k, str, maxW, size, each) { // 자막 줄바꿈: 문장 끝(. ? !)에서 끊는다 (each: 짧아도 문장마다 줄을 바꾼다). 한 문장이 한 줄보다 길 때만 그 문장을 두 줄 길이가 비슷해지는 곳에서 나눈다
+  const s = String(str), tw = t => k.TW(t, size, 800); if (!each && tw(s) <= maxW) return [s];
+  const out = []; let cur = '';
+  for (const sen of s.replace(/([.?!])\s+/g, '$1\n').split('\n')) { const t = cur ? cur + ' ' + sen : sen;
+    if (!each && tw(t) <= maxW) { cur = t; continue; } if (cur) out.push(cur);
+    if (tw(sen) <= maxW) { cur = sen; continue; }
+    const w = sen.split(' '); let best = 1, bw = Infinity; for (let i = 1; i < w.length; i++) { const m = Math.max(tw(w.slice(0, i).join(' ')), tw(w.slice(i).join(' '))); if (m < bw) { bw = m; best = i; } }
+    out.push(w.slice(0, best).join(' ')); cur = w.slice(best).join(' '); }
+  if (cur) out.push(cur); return out;
+}
 function drawArCard(k, L, E, now, H) {
   const { R, T } = k, C = PAL, q = E.qs[Math.min(E.qi, E.qs.length - 1)];
   E.arRows = [];
@@ -655,7 +665,7 @@ function drawEyeline(k, L, E, now, q, ST, INK) {
   const A = E.iv, W = L.W, HH = L.H, b = k.b, ev = E.ivEv || { ph: 'idle', t: 0 }; if (!A || A.q !== q) return;
   const lk = Math.max(0, Math.min(1, E.ivLook || 0)), look = lk * lk * (3 - 2 * lk), ink = INK || '#7fe9ff', mono = ST === 'used' || ST === 'mil';
   const asking = A.t < A.ask, teach = !G.hints.eyeline && !asking, n = q.lines.length, pw = 268, ph = 40 + n * 22 + (teach ? 14 : 0);
-  if (asking) { const lines = wrapKit(k, 'AI 면접관: ' + q.q, 500, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 134 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); } // 면접관이 질문하는 동안: 자막 두 줄 (바로 아래 줄은 직전 답의 점수 알림 자리라 비워 둔다)
+  if (asking) { const lines = wrapSent(k, 'AI 면접관: ' + q.q, 500, 13, true).slice(0, 3), y0 = HH - 134 + (2 - lines.length) * (lines.length > 2 ? 19 : 10); lines.forEach((ln, i) => k.SUB(ln, W / 2, y0 + i * 19, 13, '#ffe9b0', 'center')); } // 면접관이 질문하는 동안: 자막 두 줄 (바로 아래 줄은 직전 답의 점수 알림 자리라 비워 둔다)
   const sm = (e0, e1, v) => { const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
   let edge = null;
   if (!asking && EYE_HEAD) edge = eyePanelWarp(k, eyePanelArt(A, q, ST, INK, teach, pw, ph), pw, ph, 0.16 + 0.84 * sm(0.15, 0.75, look)); // (비교용) 왼쪽 허공의 3D 대본 창
