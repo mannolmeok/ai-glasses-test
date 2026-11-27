@@ -940,6 +940,13 @@ const CAUGHT_LINE = {
 const PROCTOR_NAME = { homeroom: '담임', dean: '감독관', suneung: '수능 감독관', agent: '시험 관리관', robot: 'AI 감독관', holo: 'AI 면접관', ta: '조교', prof: '교수님',
   teacher: '미국 선생님', cnproctor: '가오카오 감독관', don: '옥스퍼드 교수', don2: '논리학 교수', judge: '소믈리에 심사위원', banker: '면접관', alien: '외계인', reaper: '저승사자', yeomra: '염라대왕', omega: 'Ω', webcam: '웹캠' };
 
+// 시험이 끝날 때 마지막 말 [다 답했을 때, 시간이 다 됐을 때]. 말로 보는 시험은 답안지를 걷지 않는다 (나머지 시험은 '답안지 걷겠습니다.' · '시험 종료. 필기구 내려놓으세요.')
+const END_SAY = {
+  aiiv: ['면접을 종료합니다.', '시간이 다 됐습니다. 면접을 종료합니다.'], aiiv2: ['면접을 종료합니다.', '시간이 다 됐습니다. 면접을 종료합니다.'],
+  oxford: ['좋아요, 오늘은 여기까지 하죠.', '시간이 다 됐네요. 오늘은 여기까지 하죠.'], ielts: ['말하기 시험은 여기까지입니다.', '시간이 다 됐습니다. 말하기 시험은 여기까지입니다.'],
+  taxi: ['오늘 구술은 여기까지입니다.', '시간이 다 됐습니다. 오늘 구술은 여기까지입니다.'], ibank: ['…좋습니다. 다음 주에 연락드리죠.', '여기까지 하죠.'],
+};
+
 // 시험마다 다른 장치 이름 (일정표·시작 화면)
 const SEC_NAME = { cctv: 'CCTV 회전', pulse: 'AI 탐지 전파', drone: '드론 전파 감시', screen: '화면 검사', alert: '불시 재난문자', emp: 'EMP' };
 const MECH_NAME = { peek: '책상 밑 감시', sticker: '단추 스티커', tutorial: '걸려도 혼나고 끝', metal: '입실 금속탐지기', visit: '불시 순시', listen: '듣기 문항', webcam: '웹캠 원격 감독',

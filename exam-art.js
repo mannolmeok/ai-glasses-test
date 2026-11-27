@@ -1063,7 +1063,7 @@ function drawExamOverlays(k, L, E, now, H) {
     let s1 = 12; while (k.TW(l1, s1, 800) > L.W - 40 && s1 > 9) s1--; k.SUB(l1, L.W / 2, L.H - 48, s1, C.white, 'center', 800);
     if (l2) { let s2 = 11; while (k.TW(l2, s2, 700) > L.W - 40 && s2 > 8) s2--; T(l2, L.W / 2, L.H - 30, s2, '#d8d3e6', 'center', 700); }
   }
-  if (E.over && !E.caught) {  k.SUB(E.endLine || `${tier.staff[0].name}: "${E.all ? '답안지 걷겠습니다.' : '시험 종료. 필기구 내려놓으세요.'}"`, L.W / 2, L.H - 48, 12, C.white, 'center', 800); }
+  if (E.over && !E.caught) { const es = (typeof END_SAY !== 'undefined' && END_SAY[tier.id]) || ['답안지 걷겠습니다.', '시험 종료. 필기구 내려놓으세요.']; k.SUB(E.endLine || `${tier.staff[0].name}: "${E.all ? es[0] : es[1]}"`, L.W / 2, L.H - 48, 12, C.white, 'center', 800); } // 면접·구술은 시험마다 맞는 마지막 말 (END_SAY)
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
