@@ -137,6 +137,7 @@ const WORLD = (() => {
   const glowMat = color => new THREE.MeshBasicMaterial({ color, fog: false });
   const UNIT = new THREE.BoxGeometry(1, 1, 1), UNI = UNIT.clone().toNonIndexed();
   function bx(parent, w, h, d, color, x, y, z, m) { const o = new THREE.Mesh(UNIT, m || mat(color)); o.scale.set(w, h, d); o.position.set(x, y, z); parent.add(o); return o; }
+  const MOLE2 = !!new URLSearchParams(location.search).get('mole2'); // 시안: 앞자리 비밀 감독관 새 연출 (글씨 없이 의자째 떨다가 돌아본다)
   function pivot(parent, x, y, z) { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g; }
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _v = new THREE.Vector3();
   function batch() {
@@ -783,14 +784,16 @@ const WORLD = (() => {
         sc.add(sp); mole(sp); return;
       }
       if (front && tier.id === 'bar') { const st = makeHuman({ top: cl, sleeve: cl, leg: 0x2b2f3d, shirt: 0xe8e8e8, hairC: hr, skin: sk }); sc.add(st.root); EVS = { m: st, x, z: z + 0.42, sc, plan: null }; return; }
-      B.box(0.34, 0.14, 0.36, 0x2b2f3d, x, 0.52, z + 0.3);
-      B.box(0.12, 0.42, 0.12, 0x2b2f3d, x - 0.08, 0.22, z + 0.12); B.box(0.12, 0.42, 0.12, 0x2b2f3d, x + 0.08, 0.22, z + 0.12);
+      const moleSeat = front && tier.mech.includes('mole'), seat = moleSeat ? pivot(sc, x, 0, z) : null; // 앞자리 비밀 감독관의 의자는 따로 떼어 둔다 (들썩일 때 같이 흔들리게)
+      if (seat) { seat.userData.x0 = x; bx(seat, 0.34, 0.14, 0.36, 0x2b2f3d, 0, 0.52, 0.3); bx(seat, 0.12, 0.42, 0.12, 0x2b2f3d, -0.08, 0.22, 0.12); bx(seat, 0.12, 0.42, 0.12, 0x2b2f3d, 0.08, 0.22, 0.12); }
+      else { B.box(0.34, 0.14, 0.36, 0x2b2f3d, x, 0.52, z + 0.3);
+      B.box(0.12, 0.42, 0.12, 0x2b2f3d, x - 0.08, 0.22, z + 0.12); B.box(0.12, 0.42, 0.12, 0x2b2f3d, x + 0.08, 0.22, z + 0.12); }
       if (front && (tier.mech.includes('mole') || tier.id === 'bar')) { // 앞자리 비밀 감독관(또는 변호사시험에서 끌려 나가는 수험생): 윗몸을 따로 만들어 움직일 수 있게 한다
         const g = pivot(sc, x, 0, z + 0.4); bx(g, 0.36, 0.46, 0.2, cl, 0, 0.8, 0.04); bx(g, 0.09, 0.1, 0.3, cl, -0.17, 0.79, -0.2); bx(g, 0.09, 0.1, 0.3, cl, 0.17, 0.79, -0.2);
         bx(g, 0.19, 0.22, 0.2, sk, 0, 1.08, -0.05); bx(g, 0.2, 0.09, 0.21, hr, 0, 1.19, -0.04); bx(g, 0.2, 0.17, 0.06, hr, 0, 1.11, 0.06);
         bx(g, 0.16, 0.035, 0.012, 0x15161c, 0, 1.1, -0.156); bx(g, 0.07, 0.012, 0.012, 0x5a2a22, 0, 1.02, -0.156); // 선글라스 같은 검은 안경과 굳게 다문 입
         const eyes = pivot(g, 0, 1.1, -0.165); bx(eyes, 0.035, 0.022, 0.01, 0, -0.045, 0, 0, glowMat(0xff3048)); bx(eyes, 0.035, 0.022, 0.01, 0, 0.045, 0, 0, glowMat(0xff3048)); eyes.visible = false;
-        MOLE = { obj: g, eyes, y0: 0, ry0: 0, sx: 1, sprite: false, sc }; return; }
+        MOLE = { obj: g, eyes, y0: 0, ry0: 0, sx: 1, sprite: false, sc, seat, x0: g.position.x }; return; }
       B.box(0.36, 0.46, 0.2, cl, x, 0.8, z + 0.44, -lean);
       B.box(0.09, 0.1, 0.34, cl, x - 0.17, 0.79, z + 0.16); B.box(0.09, 0.1, 0.34, cl, x + 0.17, 0.79, z + 0.16);
       B.box(0.19, 0.22, 0.2, sk, x, 1.08, z + 0.33, -lean * 0.6);
@@ -1092,7 +1095,8 @@ const WORLD = (() => {
       o.visible = t < 3.4; o.position.y = MOLE.y0 + Math.min(0.26, t * 0.5) + (t > 0.7 ? Math.abs(Math.sin(t * 9)) * 0.02 : 0); if (!MOLE.sprite) o.rotation.y = MOLE.ry0 + clamp((t - 0.5) / 0.5, 0, 1) * -Math.PI / 2; o.position.x = MOLE.x0 + Math.max(0, t - 0.9) * 1.5; o.rotation.z = t > 0.9 ? Math.sin(t * 9) * 0.05 : 0; MOLE.eyes.visible = false; }
     else if (MOLE && MOLE.obj && MOLE.sc === EX.scene) { const m = E.mole, o = MOLE.obj, caughtM = E.caught && E.caughtHow === 'mole', ph = caughtM ? 'look' : m ? m.phase : 'idle'; // 앞자리 비밀 감독관: 들썩 → 뒤돌아봄
       const turn = ph === 'look' ? clamp((caughtM ? 1 : m.k / 0.25), 0, 1) : 0;
-      o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0) ;
+      if (MOLE2) { const v = ph === 'tell' ? (Math.sin(now * 24) * 0.65 + Math.sin(now * 13.7) * 0.35) * 0.024 : 0; o.rotation.z = 0; o.position.y = MOLE.y0; if (MOLE.x0 != null) o.position.x = MOLE.x0 + v; if (MOLE.seat) MOLE.seat.position.x = MOLE.seat.userData.x0 + v; } // 시안: 의자째 좌우로 잘게 떤다 (눈치챌 만큼만)
+      else { o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0); }
       if (MOLE.sprite) o.scale.x = MOLE.sx * (1 - 2 * turn) || 0.001; else o.rotation.y = MOLE.ry0 + Math.PI * turn;
       MOLE.eyes.visible = turn > 0.6; }
     if (EX.cctv) {

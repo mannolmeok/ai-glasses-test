@@ -290,12 +290,13 @@ function plate(k, x, y, w, h, H) {
 }
 
 // ======================= 결과 · 허브 · 타이틀 · 엔딩 · figures =======================
+function drawCrown(b, x, y, w, col, edge) { // 작은 왕관 (만점 상금을 받은 표시): 가운데 뾰족한 세 봉우리 + 아래 띠
+  const h = w * 0.72; b.save(); b.fillStyle = col; b.beginPath(); b.moveTo(x, y + h); b.lineTo(x, y + h * 0.28); b.lineTo(x + w * 0.27, y + h * 0.58); b.lineTo(x + w * 0.5, y); b.lineTo(x + w * 0.73, y + h * 0.58); b.lineTo(x + w, y + h * 0.28); b.lineTo(x + w, y + h); b.closePath(); b.fill();
+  if (edge) { b.strokeStyle = edge; b.lineWidth = Math.max(0.8, w / 14); b.stroke(); } b.fillStyle = edge || col; b.fillRect(x, y + h * 0.8, w, h * 0.2); b.restore(); }
 function drawResultHud(k, L, Rz, now, H) { // 결과 화면: 위에는 연동해 둔 AI(답안봇)의 문자 알림, 아래에는 자막 글씨의 다음 할 일
   const { R, T } = k, C = PAL, b = k.b, W = L.W, blink = Math.floor(now * 2) % 2 === 0;
   if (Rz.shownAt == null || now < Rz.shownAt) Rz.shownAt = now;
-  const JH = (new URLSearchParams(location.search).get('jackhint') || '').toUpperCase(), tt = CONFIG.tiers[Rz.tier] || {}, ivT = (tt.mech || []).includes('interview') || (tt.mech || []).includes('gaze'); // 만점 상금 알림 시안 비교용 (A: 답안봇 한 줄)
-  const jl = JH.includes('A') && Rz.passed && !Rz.caught && !Rz.audited && !ivT ? (Rz.jack ? { t: `수석 합격 · ${Rz.pay} 3배로 들어와요`, c: '#ffd678' } : !Rz.perfect && !(G.best[Rz.tier] >= 100) && !(G.noJack && G.noJack[Rz.tier]) ? { t: `만점이었으면 ${Rz.pay}${(() => { const c = String(Rz.pay).charCodeAt(String(Rz.pay).length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? '이' : '가'; })()} 3배였어요`, c: '#ffd678' } : null) : null; // 답안봇이 돈 얘기로 알려 준다: 아깝게 놓쳤을 때와 받았을 때
-  const a = Math.min(1, (now - Rz.shownAt) / 0.35), e = 1 - (1 - a) * (1 - a), cw = 300, ch = jl ? 76 : 62, cx = W / 2 - cw / 2, cy = -ch + (ch + 16) * e;
+  const a = Math.min(1, (now - Rz.shownAt) / 0.35), e = 1 - (1 - a) * (1 - a), cw = 300, ch = 62, cx = W / 2 - cw / 2, cy = -ch + (ch + 16) * e;
   let gr = b.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, 'rgba(0,0,0,0.28)'); gr.addColorStop(0.35, 'rgba(0,0,0,0)'); gr.addColorStop(0.65, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.6)'); b.fillStyle = gr; b.fillRect(0, 0, W, L.H);
   const rr = (x, y, w, h, r, col) => { b.fillStyle = col; b.beginPath(); if (b.roundRect) b.roundRect(x, y, w, h, r); else b.rect(x, y, w, h); b.fill(); };
   rr(cx + 1, cy + 4, cw, ch, 12, 'rgba(0,0,0,0.35)'); rr(cx, cy, cw, ch, 12, 'rgba(28,30,38,0.94)'); rr(cx + 11, cy + 10, 24, 24, 6, '#5eb5f7');
@@ -304,7 +305,12 @@ function drawResultHud(k, L, Rz, now, H) { // 결과 화면: 위에는 연동해
   const head = Rz.caught ? '적발 · 퇴실' : Rz.audited ? '가채점은 합격인데...' : `가채점 ${Rz.score}점 · `, tail = Rz.caught || Rz.audited ? '' : Rz.passed ? '합격 예상' : '불합격 예상';
   const hw = k.TW(head, 14, 800); T(head, cx + 45, cy + 31, 14, Rz.caught ? col : '#ffffff', 'left', 800); if (tail) T(tail, cx + 45 + hw, cy + 31, 14, col, 'left', 800);
   T(Rz.caught ? '이번 시험은 무효 처리돼요.' : `정답 ${+(+Rz.correct || 0).toFixed(1)}/${Rz.qn} · 합격선 ${Rz.pass}점. 통지표는 우편으로 갑니다.`, cx + 45, cy + 48, 9.5, '#c9d0dc', 'left', 700);
-  if (jl) T(jl.t, cx + 45, cy + 63, 9.5, jl.c, 'left', 800);
+  const JX = new URLSearchParams(location.search).get('jackx'); // 만점 상금 x3 표시 시안 비교용 (1: 답안봇 카드 옆 딱지 · 2: 아래 메뉴 위 한 줄). 시험마다 첫 만점일 때만
+  if (JX && Rz.jack && !Rz.caught && !Rz.audited) { const a2 = Math.min(1, Math.max(0, (now - Rz.shownAt - 0.45) / 0.25)), pop = a2 < 1 ? 0.8 + 0.3 * Math.sin(a2 * Math.PI / 2) : 1;
+    if (a2 > 0 && JX === '1') { const bw = 62, bh = 62, bx2 = cx + cw + 10, by2 = cy; b.save(); b.globalAlpha = a2; b.translate(bx2 + bw / 2, by2 + bh / 2); b.scale(pop, pop); b.translate(-bw / 2, -bh / 2);
+      rr(1, 4, bw, bh, 12, 'rgba(0,0,0,0.35)'); rr(0, 0, bw, bh, 12, 'rgba(28,30,38,0.94)'); b.strokeStyle = '#ffd678'; b.lineWidth = 1.5; b.beginPath(); if (b.roundRect) b.roundRect(0.75, 0.75, bw - 1.5, bh - 1.5, 11); else b.rect(0.75, 0.75, bw - 1.5, bh - 1.5); b.stroke();
+      drawCrown(b, bw / 2 - 9, 8, 18, '#ffd678'); b.restore(); b.save(); b.globalAlpha = a2; T('×3', bx2 + bw / 2, by2 + 37, 15, '#ffd678', 'center', 800); T('만점 상금', bx2 + bw / 2, by2 + 52, 8, '#c9d0dc', 'center', 700); b.restore(); }
+    if (a2 > 0 && JX === '2') { b.save(); b.globalAlpha = a2; const s1 = '만점 상금 ×3', tw1 = k.TW(s1, 13, 800), x1 = W / 2 - (tw1 + 20) / 2; drawCrown(b, x1, L.H - 66, 15, '#ffd678', '#7a5a10'); k.SUB(s1, x1 + 20 + tw1 / 2, L.H - 60, 13, '#ffd678', 'center'); b.restore(); } }
   // 아래: 다음에 할 일 (자막 글씨)
   const defs = [[Rz.canRetry ? '재응시' : '응시료 부족', 'R', 'retry', Rz.canRetry]];
   if (Rz.next != null) defs.push([Rz.final ? '엔딩' : Rz.canNext ? '다음 시험' : '응시료 부족', 'N', 'next', Rz.final || Rz.canNext]);

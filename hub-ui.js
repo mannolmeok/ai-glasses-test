@@ -176,7 +176,8 @@ const HUBUI = (() => {
       R(13, ry, w - 26, rh - 5, i === nt ? '#fff3c8' : '#f1ede0'); k.frame(13, ry, w - 26, rh - 5, i === nt ? '#d9a02a' : '#d8d2c0', 1);
       R(19, ry + 7, 22, 18, '#2b5f8a'); T(String(i + 1), 30, ry + 16, 12, C.white, 'center', 800);
       if (locked) { T('? ? ?', 48, ry + 17, 15, '#8a8676', 'left', 800); T('앞 시험에 합격하면 공개', 48, ry + 38, 12, '#a09a88', 'left', 700); return; }
-      const name = t.name + (t.boss ? ' [보스]' : ''); T(name, 48, ry + 16, fitText(k, name, tw, 15, 11), '#2a2838', 'left', 800);
+      const name = t.name + (t.boss ? ' [보스]' : ''), crowned = new URLSearchParams(location.search).get('crown') && G.best[i] >= 100, nfs = fitText(k, name, tw - (crowned ? 20 : 0), 15, 11); T(name, 48, ry + 16, nfs, '#2a2838', 'left', 800);
+      if (crowned) drawCrown(k.b, 48 + k.TW(name, nfs, 800) + 5, ry + 9, 15, '#e0a823', '#8a6410'); // 시안: 만점 상금을 이미 받은 시험은 이름 옆에 왕관
       const mech = [...t.mech.filter(m => m !== 'tutorial').map(m => m === 'idcheck' && t.check === 'calc' ? MECH_NAME.calc : MECH_NAME[m]), ...t.sec.map(s => s === 'pulse' && t.pulse ? SEC_NAME[t.pulse] : SEC_NAME[s])].filter(Boolean); // 이름 없는 장치는 '유의:' 줄에서 뺀다 (쉼표만 남지 않게)
       const info = `${t.subject} · ${t.qn * (t.parts ? t.parts.length : 1)}문항`; T(info, 48, ry + 33, fitText(k, info, tw, 12, 9), '#6c6a80', 'left', 700);
       const fee = examFee(t), ok = G.money >= fee, warn = mech.length ? `유의: ${mech.join(', ')}` : fee ? `응시료 ${won(fee)}원` : '응시료 없음';

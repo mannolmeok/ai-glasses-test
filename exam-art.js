@@ -472,6 +472,7 @@ function choiceConf(q) { // 보기 네 개의 확신도 (고른 보기는 q.conf
   const rest = 100 - q.conf, w = [0, 1, 2, 3].map(i => i === q.aiPick ? 0 : (q.elim.includes(i) ? 1 : 3) + ((i * 7 + q.aiPick * 3) % 3)), sum = w.reduce((a, b) => a + b, 0) || 1;
   const out = w.map(v => Math.floor(rest * v / sum)); out[q.aiPick] = q.conf; return out;
 }
+const MOLE2 = !!new URLSearchParams(location.search).get('mole2'); // 시안: 앞자리 비밀 감독관 새 연출 — 글씨 없이 의자째 떨다 돌아보고, 예측 HUD는 텔레그램 조력자의 '앞자리 감지 업데이트'를 사야 뜬다
 const BRAIN_HUD = (new URLSearchParams(location.search).get('brainhud') || '').toUpperCase(); // 뉴럴링코 감시·의심 표시 시안 비교용 (A 신경망 색 · B 속마음 줄 · C 맥박 고리)
 function brainRisk(E, sd) { // 2 = 지금 보고 있다(스캔하면 의심이 오른다) · 1 = 곧 돌아본다 · 0 = 괜찮다. sd가 'L'·'R'이면 그쪽 감독관만 (사람 아닌 눈·앞자리는 양쪽 다)
   let v = 0, who = null;
@@ -554,10 +555,10 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     k.poly([[px - 12, y], [px - 6, y - 8 - sus * 8], [px - 3, y], [px, y + 9 + sus * 6], [px + 4, y - 4], [px + 8, y], [px + 8, y + 1.5], [px - 12, y + 1.5]], ecg); k.b.globalAlpha = 1;
     if (live && BRAIN_HUD) { const rk = brainRisk(E), rc = rk.v === 2 ? '#ff6a6a' : rk.v === 1 ? '#ffcf5a' : '#9dff8a', sc = sus >= 0.6 ? '#ff6a6a' : sus >= 0.3 ? '#ffcf5a' : '#ffffff';
       if (BRAIN_HUD === 'A') M(`심박 ${Math.round(66 + sus * 110)}`, 22, y - 9, 8, sc, 'left', 700); // A: 의심은 심박으로 (심장 박동선과 같은 색)
-      else if (BRAIN_HUD === 'B') { const side = rk.who && rk.who.side ? (rk.who.side === 'L' ? '왼쪽이 ' : '오른쪽이 ') : rk.who === 'mole' ? '앞자리가 ' : rk.who === 'eye' ? '카메라가 ' : '누가 ';
+      if (BRAIN_HUD === 'B') { const side = rk.who && rk.who.side ? (rk.who.side === 'L' ? '왼쪽이 ' : '오른쪽이 ') : rk.who === 'mole' ? '앞자리가 ' : rk.who === 'eye' ? '카메라가 ' : '누가 ';
         M(rk.v === 2 ? `…${side}보고 있다` : rk.v === 1 ? `…${side.replace('누가 ', '')}곧 돌아본다` : '…지금은 아무도 안 본다', W - 22, 50, 9, rc, 'right', 700); // B: 생각 기록 줄에 지금 감시 상태와 의심을 한 줄씩
         k.b.globalAlpha = 0.85; M(`의심 ${sp}%`, W - 22, 63, 8, sc, 'right', 700); k.b.globalAlpha = 1; }
-      else if (BRAIN_HUD === 'C') { const cx = W / 2, cy = y; hudDraw(k, c => { c.fillStyle = 'rgba(18,10,30,0.88)'; c.beginPath(); c.arc(cx, cy, 13, 0, 7); c.fill(); c.lineWidth = 2.2; c.strokeStyle = rc; c.beginPath(); c.arc(cx, cy, 13, 0, 7); c.stroke();
+      if (BRAIN_HUD.includes('C')) { const cx = W / 2, cy = y; hudDraw(k, c => { c.fillStyle = 'rgba(18,10,30,0.88)'; c.beginPath(); c.arc(cx, cy, 13, 0, 7); c.fill(); c.lineWidth = 2.2; c.strokeStyle = rc; c.beginPath(); c.arc(cx, cy, 13, 0, 7); c.stroke();
           c.globalAlpha = 0.28; c.fillStyle = rc; c.beginPath(); c.arc(cx, cy, 19, 0, 7); c.fill(); }); T(`${sp}`, cx, cy + 0.5, 9, '#ffffff', 'center', 800); // C: 박동선 가운데 고리 하나 = 신호등 (안의 숫자가 의심 %)
         M(rk.v === 2 ? '보고 있다' : rk.v === 1 ? '곧 돌아본다' : '괜찮다', cx + 22, cy - 1, 8, rc, 'left', 700); } }
     if (live && picked && !E.finalQ) k.SUB(q.conf >= 70 ? `…${q.aiPick + 1}번이다. 왜인지는 모르겠다.` : `…${q.aiPick + 1}번인 것 같다.`, W / 2, HH - 34, 13, '#ffffff', 'center');
@@ -632,7 +633,7 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
           else { c.fillStyle = 'rgba(201,160,255,0.7)'; c.beginPath(); c.arc(x, yc, 2.2, 0, 7); c.fill(); } } });
       for (let i = 0; i < n; i++) { const a = E.answers[i], cur = i === E.qi; if (a != null && i < E.qi) T(String(a + 1), cx(i), yc + 0.5, 8, '#2a1c00', 'center', 800); else if (cur && picked) T(String(q.aiPick + 1), cx(i), yc + 0.5, 8, '#ffffff', 'center', 800); } }
     b.globalAlpha = 0.22 + 0.08 * Math.sin(now * 5); b.drawImage(lensGlow('A', '#b07aff'), 0, 0); b.globalAlpha = 1;
-    hudDraw(k, c => { for (const side of [0, 1]) { const P = NEURO.map(([x, y]) => [side ? W - x : x, y]), lit = i => (i + 1) / P.length <= ph + 0.001 || Math.sin(now * 2 + i * 1.7 + side) > 0.93, rv = BRAIN_HUD === 'A' ? brainRisk(E, side ? 'R' : 'L').v : -1, V1 = rv >= 0 ? ['#9dff8a', '#ffcf5a', '#ff4a5a'][rv] : '#c9a0ff', VA = rv > 0 ? 0.75 : rv === 0 ? 0.42 : 0.28; // A: 그쪽 감독관이 보면 그쪽 신경망이 붉게 (곧 돌아보면 노랗게, 괜찮으면 초록)
+    hudDraw(k, c => { for (const side of [0, 1]) { const P = NEURO.map(([x, y]) => [side ? W - x : x, y]), lit = i => (i + 1) / P.length <= ph + 0.001 || Math.sin(now * 2 + i * 1.7 + side) > 0.93, rv = BRAIN_HUD.includes('A') ? brainRisk(E, side ? 'R' : 'L').v : -1, V1 = rv >= 0 ? ['#9dff8a', '#ffcf5a', '#ff4a5a'][rv] : '#c9a0ff', VA = rv > 0 ? 0.75 : rv === 0 ? 0.42 : 0.28; // A: 그쪽 감독관이 보면 그쪽 신경망이 붉게 (곧 돌아보면 노랗게, 괜찮으면 초록)
         c.lineWidth = 1; for (let i = 0; i < P.length; i++) for (const j of [i + 1, i + 2]) { if (j >= P.length) continue; const on = lit(i) && lit(j); c.strokeStyle = on ? G1 : V1; c.globalAlpha = on ? 0.85 : VA; c.beginPath(); c.moveTo(P[i][0], P[i][1]); c.lineTo(P[j][0], P[j][1]); c.stroke();
           if (on || scanning) { const f = (now * 1.6 + i * 0.37 + j * 0.11) % 1; c.globalAlpha = 0.9; c.fillStyle = '#ffffff'; c.fillRect(P[i][0] + (P[j][0] - P[i][0]) * f - 1, P[i][1] + (P[j][1] - P[i][1]) * f - 1, 2, 2); } }
         for (let i = 0; i < P.length; i++) { const on = lit(i); c.globalAlpha = on ? 1 : Math.max(0.5, VA + 0.15); c.fillStyle = on ? G1 : V1; c.beginPath(); c.arc(P[i][0], P[i][1], on ? 3.5 : rv > 0 ? 3 : 2.2, 0, 7); c.fill(); if (on || rv > 0) { c.globalAlpha = on ? 0.25 : 0.3; c.beginPath(); c.arc(P[i][0], P[i][1], 7, 0, 7); c.fill(); } } }
@@ -1013,8 +1014,8 @@ function drawExamHud(k, L, E, now, H) {
   }
   if (live && E.call) drawCallHud(k, L, E, now); // [저승] 내 이름을 부르는 속삭임
   if (live && E.staff.some(s => s.phase === 'peek' && s.peek.stage === 'sneak') && E.gear.predict >= 2) { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('발소리가 사라졌다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; }
-  if (live && E.mole && E.mole.phase === 'tell') { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('앞자리 의자가 들썩인다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; } // 비밀 감독관이 돌아보기 직전
-  if (live && E.mole && E.gear.predict >= 4 && WORLD.moleRect) { const r0 = WORLD.moleRect(), r = r0 && r0.h > 30 && r0.y + r0.h > 20 && r0.y < L.H - 20 ? r0 : null, m = E.mole; // 감독관 동선 AI: 들썩인 뒤 언제 돌아볼지를 센다. 앞을 볼 때는 앞자리 사람에게 붙고, 시험지를 볼 때는 화면 위쪽에 붙는다
+  if (live && E.mole && E.mole.phase === 'tell' && !MOLE2) { k.b.globalAlpha = Math.floor(now * 8) % 2 ? 0.9 : 0.4; TO('앞자리 의자가 들썩인다…', L.W / 2, 96, 12, C.warn); k.b.globalAlpha = 1; } // 비밀 감독관이 돌아보기 직전
+  if (live && E.mole && (MOLE2 ? tgHas('molekit') : E.gear.predict >= 4) && WORLD.moleRect) { const r0 = WORLD.moleRect(), r = r0 && r0.h > 30 && r0.y + r0.h > 20 && r0.y < L.H - 20 ? r0 : null, m = E.mole; // 감독관 동선 AI: 들썩인 뒤 언제 돌아볼지를 센다. 앞을 볼 때는 앞자리 사람에게 붙고, 시험지를 볼 때는 화면 위쪽에 붙는다
     const col = m.phase === 'look' ? '#ff5a5a' : m.phase === 'tell' ? '#ffcf5a' : '#7fe9ff', txt = m.phase === 'look' ? '주시 중' : m.phase === 'tell' ? `돌아봄까지 ${Math.max(0, m.t).toFixed(1)}초` : '움직임 없음', f = m.phase === 'tell' ? clamp(1 - m.t / (m.tell || 2), 0, 1) : m.phase === 'look' ? 1 : 0;
     if (r) { const lx = Math.max(8, r.x - 120), ly = r.y + 4, q0 = 9;
       hudDraw(k, c => { c.strokeStyle = col; c.lineWidth = 1.5; c.beginPath(); for (const [cx, cy, dx, dy] of [[r.x, r.y, 1, 1], [r.x + r.w, r.y, -1, 1], [r.x, r.y + r.h, 1, -1], [r.x + r.w, r.y + r.h, -1, -1]]) { c.moveTo(cx + dx * q0, cy); c.lineTo(cx, cy); c.lineTo(cx, cy + dy * q0); } c.stroke();

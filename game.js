@@ -1255,7 +1255,7 @@ function updateExam(dt) {
       for (const s of E.staff) if (!s.out && !s.fixed && s.phase !== 'check' && s.phase !== 'help' && s.phase !== 'peek') { setPhase(s, 'watch', tune.sea_flail); s.away = false; } } }
   if (M_.includes('helmet')) E.fog = clamp((E.fog || 0) + (hold ? dt / 3.2 : -dt / 2.2), 0, 1);
   const peeker = E.staff.find(s => s.phase === 'peek' && s.peek.stage === 'stare');
-  if (E.mole && E.mole.phase === 'look' && E.mole.k > 0.25 && risky) { E.sus = 1; E.source = { how: 'mole', by: E.staff[0] }; getCaught(); return; } // 돌아본 앞자리와 눈이 마주친 채 스캔하면 끝 (책상 밑 감시와 같은 규칙)
+  if (E.mole && E.mole.phase === 'look' && E.mole.k > 0.25 && risky) { E.sus = 1; E.source = { how: 'mole', by: E.staff[0] }; G.flags.moleMet = true; getCaught(); return; } // 처음 걸리면 텔레그램 조력자가 '앞자리 감지 업데이트'로 연락해 온다 (시안) // 돌아본 앞자리와 눈이 마주친 채 스캔하면 끝 (책상 밑 감시와 같은 규칙)
   if (peeker && risky) { E.sus = 1; E.source = { how: 'peek', by: peeker }; getCaught(); return; } // 올려다보는 눈과 마주친 채 스캔하면 끝
   if (!hold && !E.ai && !E.fb && E.scan > 0) E.scan = table ? Math.floor(E.scan * 4 + 1e-6) / 4 : tune.scan_drop >= 10 ? 0 : Math.max(0, E.scan - tune.scan_drop * dt); // 손을 떼면 스캔이 처음으로 돌아간다
   E.wasHold = hold; E.holding = hold; E.autoHolding = autoHold && !manual;
@@ -1294,7 +1294,7 @@ function addLamp() { // TV 밑 빨간 등: 만점·제보마다 하나씩. 켜�
   G.lamps = Math.min(3, (G.lamps || 0) + 1);
   if (G.lamps >= 3 && !G.audit && G.lastPass) { // 셋 다 켜지면 가장 최근에 합격한 시험을 다시 치르라는 통보가 온다 (면접처럼 종이로 못 보는 시험이면 가장 최근의 필기시험)
     G.audit = Object.assign({}, paperAudit(G.lastPass));
-    tvNews({ tag: '속보', h: '고득점자 재검증 착수… 재시험 통보', s: `${G.audit.tierName} 합격자에게 출석 요구`, tk: ['시험관리위 "그날 문제 그대로, 조사관 입회하에"', '합격선 미달이면 합격 취소·고발', '전자기기 반입 단속 강화'], icon: 'paper', cap: '자료 화면 · 답안지' });
+    tvNews({ tag: '속보', h: '고득점자 재검증 착수… 재시험 통보', s: `${G.audit.tierName} 합격자에게 출석 요구`, tk: ['시험관리위 "조사관 입회하에 다시 치른다"', '합격선 미달이면 합격 취소·고발', '전자기기 반입 단속 강화'], icon: 'paper', cap: '자료 화면 · 답안지' });
     addNews('reg', `시험관리위원회: ${G.audit.tierName} 재시험 출석 통보. 우편을 확인하세요`);
   }
 }
@@ -1421,7 +1421,7 @@ function finishExam() {
   if (!tut && jack && !final && !G.audit && E.tier >= tune.lamp_from) { // 만점은 상금이 크지만 TV 밑 빨간 등이 하나 켜진다 (쉬운 초반 시험은 만점이어도 의심받지 않는다)
     const n = G.flags.perfN = (G.flags.perfN || 0) + 1;
     if (n === 1) { tvNews({ tag: '사회', h: `${T.name} 사상 첫 만점자 나왔다`, s: '출제위원 "만점이 나올 수 없게 낸 시험인데…"', tk: ['수험생 커뮤니티 "사람 맞나" 술렁', '시험관리위 "답안지 원본 확인 중"', '내일 전국 흐리고 비'], icon: 'room', cap: '자료 화면 · 시험장' }); }
-    else tvNews({ tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T.name}에서도 만점 · 같은 수험번호`, tk: ['시험관리위 "만점자는 그날 문제 그대로 재시험"', '전자기기 반입 단속 강화', 'AI 안경 판매량 석 달 새 4배'], icon: 'paper', cap: '자료 화면 · 답안지' });
+    else tvNews({ tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T.name}에서도 만점 · 같은 수험번호`, tk: ['시험관리위 "고득점자 답안 재검증 준비"', '전자기기 반입 단속 강화', 'AI 안경 판매량 석 달 새 4배'], icon: 'paper', cap: '자료 화면 · 답안지' });
     addLamp();
     lampLine = G.lamps >= 3 ? '(감독관이 내 수험번호를 받아 적는다)' : G.lamps === 2 ? '(감독관이 내 답안지를 들고 어딘가로 전화를 건다)' : '감독관: …이 시험은 만점이 나올 수가 없는데.';
   }
@@ -1451,7 +1451,7 @@ function leaveTitle(T0) { if (!CHECKED && netOn()) runPending(1); /* 첫 시험�
 function goHub(view) { scene = 'hub'; const hv = STATE.hv; hv.view = 'room'; hv.target = 'room'; hv.zoom = 0; hv.bpage = null; if (view) enterView(view, true); }
 function tgHas(id) { return !!(G.tg && G.tg[id]); }
 function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].base * tune.reward_scale * tune.cost_scale * costFix(h.tier)); }
-function helperOpen() { return CONFIG.helper.filter(h => G.unlocked - 1 >= h.tier); } // 그 시험이 일정표에 열리면 연락이 온다
+function helperOpen() { return CONFIG.helper.filter(h => G.unlocked - 1 >= h.tier && (!h.when || (MOLE2 && G.flags[h.when]))); } // 그 시험이 일정표에 열리면 연락이 온다 (when: 어떤 일을 겪은 뒤에만, 시안)
 function helperPending() { return helperOpen().filter(h => !tgHas(h.id)).pop() || null; }
 function helperLast() { return helperOpen().pop() || null; }
 function buyHelper(id) { const h = CONFIG.helper.find(x => x.id === id); if (!h || tgHas(id)) return; if (G.audit) { sfx.no(); STATE.note = { text: '결제가 막혔습니다', sub: '재시험 통보가 와 있다 · 우편부터 확인', t: 0 }; return; } const c = helperCost(h); if (G.money < c) { sfx.no(); return; } G.money -= c; (G.tg || (G.tg = {}))[id] = true; sfx.buy(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: `${h.name} 받음`, col: PAL.good || PAL.white }); save(); }
