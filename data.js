@@ -930,14 +930,14 @@ function alienWord(seed, len) { const a = []; for (let i = 0; i < len; i++) a.pu
 // 감독관 대사 (적발될 때)
 const CAUGHT_LINE = {
   homeroom: '"잠깐만, 그 안경 좀 보자."', dean: '"수험생, 그 안경 잠깐 벗어 보세요."', suneung: '"금속탐지기에 반응이 있네요?"',
-  agent: '"부정행위로 퇴실 조치합니다."', robot: '"AI가 AI를 못 알아볼 줄 알았나?"', ta: '"교수님, 여기요! 이 학생 안경이..."',
+  agent: '"부정행위로 퇴실 조치합니다."', robot: '"AI가 AI를 못 알아볼 줄 알았나?"', holo: '"방금 그 답, 어디를 보면서 하셨죠?"', ta: '"교수님, 여기요! 이 학생 안경이..."',
   prof: '"자네, 학점은 포기한 건가?"', teacher: '"Excuse me. Glasses off, please."', cnproctor: '"안경 이리 주세요. 검사합니다."',
   don: '"흥미롭군요. 그 대답은 안경이 한 거죠?"', don2: '"논리적으로, 당신은 방금 걸렸습니다."', judge: '"향이 아니라 렌즈를 맡고 계셨군요."', banker: '"방금 그 답, 본인 생각입니까?"',
   alien: '"삐빅. 반칙 전파 감지."', reaper: '"명부에 커닝도 적혀 있구나."', yeomra: '"이승에서 하던 짓을 여기서도 하느냐!"',
   ghost: '"…이제 같이 가자."', // [저승] 물을 떨어뜨리던 망자와 눈이 마주쳤을 때
   omega: '"이미 예측했습니다."', gaze: '"시선 이탈이 5초를 넘었습니다. 응시를 종료합니다."', webcam: '"응시자분, 화면에서 눈을 떼지 마세요."', loop: '"지난번에도 딱 이때 숙였지."', breath: '"거기, 공기 방울."', mind: '"방금 그 답, 네 생각이 아니구나."',
 };
-const PROCTOR_NAME = { homeroom: '담임', dean: '감독관', suneung: '수능 감독관', agent: '시험 관리관', robot: 'AI 감독관', ta: '조교', prof: '교수님',
+const PROCTOR_NAME = { homeroom: '담임', dean: '감독관', suneung: '수능 감독관', agent: '시험 관리관', robot: 'AI 감독관', holo: 'AI 면접관', ta: '조교', prof: '교수님',
   teacher: '미국 선생님', cnproctor: '가오카오 감독관', don: '옥스퍼드 교수', don2: '논리학 교수', judge: '소믈리에 심사위원', banker: '면접관', alien: '외계인', reaper: '저승사자', yeomra: '염라대왕', omega: 'Ω', webcam: '웹캠' };
 
 // 시험마다 다른 장치 이름 (일정표·시작 화면)

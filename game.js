@@ -430,7 +430,7 @@ function takeTaps() { const t = ptr.taps; ptr.taps = []; return t; }
 function takeReleases() { const r = releases; releases = []; return r; }
 function hitBtn(btns, x, y) { return (btns || []).find(b => x >= b.x && x <= b.x + b.w && y >= b.y - 2 && y <= b.y + b.h + 2); }
 const IVABC = params.get('iv') !== 'old'; // 면접을 버튼 순서 입력으로 (시험 중인 새 방식)
-function scanHeld() { return down.has('Space') || (E && E.layout === 'table' && !(IVABC && !E.T.mech.includes('gaze')) && (down.has('ArrowLeft') || down.has('KeyA'))) || scanPointer(); }
+function scanHeld() { return down.has('Space') || (E && E.layout === 'table' && !(IVABC && !E.T.mech.includes('gaze') && !E.T.mech.includes('eyeline')) && (down.has('ArrowLeft') || down.has('KeyA'))) || scanPointer(); }
 function EXV(v) { return typeof WORLD !== "undefined" && !!WORLD.hasView && WORLD.hasView(v); }
 function setView(v) { // 고개를 그쪽으로 돌려 둔다 (다시 바꿀 때까지 그대로)
   if (!E || v === E.view) return;
@@ -453,7 +453,7 @@ function viewInput(taps) { // 화면 왼쪽·오른쪽·위를 누르고 있는 
   setView((mir ? wantR : wantL) ? 'left' : (mir ? wantL : wantR) ? 'right' : z === 'T' || down.has('ArrowUp') || down.has('KeyW') ? front : 'paper');
 }
 function scanPointer() { // 시험장: 가운데를 꾹. 면접: 화면 왼쪽(AI 답변이 뜨는 쪽)을 꾹
-  if (IVABC && E && E.layout === 'table' && !E.T.mech.includes('gaze')) return false;
+  if (IVABC && E && E.layout === 'table' && !E.T.mech.includes('gaze') && !E.T.mech.includes('eyeline')) return false;
   for (const p of ptrs.values()) if (E && E.layout === 'table' ? p.y < 300 : p.zone === 'C') return true; return false; }
 
 // ---- Audio: started on first input, mute on M --------------------------------------------
@@ -543,6 +543,8 @@ const sfx = {
   bubble: () => { for (let i = 0; i < 6; i++) toneAt(420 + i * 90, 0.06, 'sine', 0.07, i * 0.06); },
   omega: () => { toneAt(110, 1.2, 'sawtooth', 0.1); toneAt(116.5, 1.2, 'sawtooth', 0.1); toneAt(55, 1.4, 'sine', 0.18, 0.05); },
   radio: () => { for (let i = 0; i < 4; i++) toneAt(440 + (i % 2) * 110, 0.07, 'triangle', 0.03, i * 0.1); },
+  ivWarn: () => { toneAt(660, 0.12, 'sine', 0.06); toneAt(880, 0.16, 'sine', 0.06, 0.12); }, // [AI 대면 면접] 면접관이 표정을 살피려 한다
+  ivScan: () => { toneAt(150, 1.2, 'sawtooth', 0.035); toneAt(1200, 0.05, 'square', 0.03); }, // 표정 분석: 낮게 웅— 하고 훑는다
   empCharge: (dur = 1.5) => { const n = Math.max(3, Math.round(dur / 0.1)); for (let i = 0; i < n; i++) toneAt(260 + i * (900 / n), 0.13, 'sawtooth', 0.01 + 0.025 * i / n, i * dur / n); }, // EMP 총 충전: 윙— 하고 올라간다
   empFire: () => { toneAt(1500, 0.06, 'square', 0.07); toneAt(160, 0.4, 'sawtooth', 0.08, 0.02); toneAt(80, 0.5, 'sine', 0.16, 0.02); noiseAt(0.35, 0.1, 0, 1600, 0.7); },
   empHit: () => { noiseAt(0.5, 0.14, 0, 2600, 0.5); toneAt(70, 0.5, 'sine', 0.22); toneAt(420, 0.35, 'sawtooth', 0.05, 0.02); toneAt(2400, 0.05, 'square', 0.03, 0.08); toneAt(1900, 0.05, 'square', 0.03, 0.16); }, // 맞는 순간: 쿵 + 지지직
@@ -620,6 +622,7 @@ function startExam(ti) {
     pulse: T.sec.includes('pulse') ? { next: 3 + rng() * 3, warn: 0, active: 0 } : null };
   if (T.id === 'afterlife' && tgHas('coin')) { const r0 = E.staff.find(s => s.type === 'reaper'); if (r0) { r0.visit = 'drop'; r0.out = true; r0.outT = 40; } } // 노잣돈: 저승사자 한 명이 늦게 온다
   E.pulseCut = T.pulse === 'screen' ? gearCut(g.screenfilm) : jamFactor(g.jammer, 3);
+  if (T.mech.includes('eyeline')) { E.eye = 1; E.ivLook = 0; E.ivEv = { ph: 'idle', t: 0, next: between(3, 4.5), dur: tune.iv_scan }; } // [AI 대면 면접] 시선 게이지(1 = 다 비었음 아님: 남은 눈 맞춤) · 고개가 대본 쪽으로 돈 정도
   E.stickerSlow = 1; E.dead = null; E.deadNext = null; E.intro = null; E.wetT = 0; // 단추 스티커는 이제 느려지는 게 아니라 아예 가려진다 (E.dead)
   // 입실 검사: 시작부터 의심을 안고 들어간다
   const stealth = Math.pow(1 - tune.stealth_cut, g.stealth), N = E.startNotes;
@@ -716,6 +719,7 @@ function stepStaff(s, T, dt) {
     } else { c.k -= dt / 1.1; s.walk += dt; if (c.k <= 0) { s.check = null; setPhase(s, 'stand', procDur(T.stand)); s.away = rng() < 0.5; } }
     return;
   }
+  if (s.fixed && T.mech.includes('eyeline')) return; // [AI 대면 면접] 홀로그램 면접관의 눈은 표정 분석(E.ivEv)이 정한다
   if (s.fixed) return stepFixed(s, T, dt);
   if (s.phase === 'walk' || s.phase === 'cross') { // 걸을 때만 발소리가 난다
     s.walk += dt; s.stepT += dt;
@@ -893,7 +897,7 @@ function stepHazard(T, dt) { const Z = HAZ[T.id]; if (!Z) return; const h = E.hz
   else { if (Z.kind === 'dead' && E.dead === 'storm') E.dead = null; h.block = false; h.phase = 'idle'; h.t = between(Z.gap[0], Z.gap[1]); } }
 function threat() { // 지금 스캔하면 초당 오르는 의심도와, 스캔하지 않아도 오르는 의심도
   const T = E.T, g = G.gear, base = T.sus * tune.sus_scale, table = E.layout === 'table';
-  if (T.mech.includes('gaze')) return { r: 0, idle: 0, src: null }; // AI 면접: 의심이 쌓이는 게 아니라 시선 5초 규칙으로만 걸린다
+  if (T.mech.includes('gaze') || T.mech.includes('eyeline')) return { r: 0, idle: 0, src: null }; // AI 면접: 의심이 쌓이는 게 아니라 시선 규칙으로만 걸린다
   let r = 0, idle = 0, src = null;
   const add = (v, how, by) => { if (v > 0) { r += v; if (!src || v > src.v) src = { v, how, by }; } };
   for (const s of E.staff) {
@@ -1039,6 +1043,7 @@ function examHint() { // 첫 시험(모의평가)에서만, 한 번에 하나
   if (E.dead) return E.dead === 'water' ? '안경이 물을 먹어 켜지지 않는다 · 직접 풀기' : E.dead === 'sticker' ? '단추 카메라가 가려졌다 · 직접 풀기' : E.dead === 'storm' ? '모래폭풍에 전원이 끊겼다 · 다시 켜질 때까지 기다리기' : E.dead === 'bolt' ? '번개에 안경이 꺼졌다 · 다시 켜질 때까지 기다리기' : 'EMP에 장비가 전부 꺼졌다 · 직접 풀기';
   const q0 = E.qs[E.qi]; if (E.rising && (E.layout === 'table' || (q0 && q0.kind === 'essay'))) return '보고 있어요! 손 떼기';
   if (q0 && q0.kind === 'essay' && !G.hints.essay) return '서술형: 꾹 눌러 읽고 옮겨 쓰기 · 손을 떼면 지워진다 · 볼 때는 멈추기';
+  if (q0 && q0.kind === 'speak' && E.T.mech.includes('eyeline')) return null; // [AI 대면 면접] 조작 안내는 왼쪽 대본 탭 옆에 (drawEyeline)
   if (q0 && q0.kind === 'speak' && E.T.mech.includes('gaze') && !G.hints.iv) return '화면 아무 데나 꾹 누르고 있으면 대본을 읽는다 · LIVE일 때는 떼기';
   if (E.family && E.family.phase === 'in') return '화면 왼쪽(문 쪽)을 꾹 눌러 내보내기';
   if (q0 && q0.kind === 'listen' && earCheck()) { const s = earCheck(); return `${s.side === 'L' ? '왼쪽' : '오른쪽'} 화면을 눌러 귀 가리기`; }
@@ -1162,6 +1167,25 @@ function updateExam(dt) {
     if (hold) es.eraseT = 0;
   }
   const speak = q.kind === 'speak';
+  if (speak && T.mech.includes('eyeline')) { // [AI 대면 면접 · 눈 맞춤 줄다리기] 꾹 = 고개를 왼쪽 대본으로(읽는 동안 말이 나간다) · 떼면 면접관 눈을 본다. 대본을 보는 동안 시선 게이지가 차고, 다 차면 탈락
+    if (!E.iv || E.iv.q !== q) { const words = []; q.lines.forEach((ln, li) => ln.split(' ').forEach(w => words.push({ w, li }))); E.iv = { q, words, wi: 0, wt: 0, pause: 0, stalled: false, stalls: 0, t: 0, ask: tune.iv_ask, left: tune.iv_answer }; }
+    const A = E.iv, ev = E.ivEv, asking = A.t < A.ask, look = hold && !asking && !E.fb;
+    E.ivLook += ((look ? 1 : 0) - E.ivLook) * Math.min(1, dt * 9);
+    if (!E.fb) { A.t += dt;
+      if (!asking) { A.left -= dt; ev.t += dt; // 면접관의 표정 분석: 예고(눈이 노랑) → 분석(눈이 빨강). 뒤 문항일수록 잦아진다
+        if (ev.ph === 'idle' && ev.t >= ev.next) { ev.ph = 'warn'; ev.t = 0; sfx.ivWarn(); }
+        else if (ev.ph === 'warn' && ev.t >= tune.iv_warn) { ev.ph = 'on'; ev.t = 0; ev.dur = tune.iv_scan; sfx.ivScan(); }
+        else if (ev.ph === 'on' && ev.t >= ev.dur) { ev.ph = 'idle'; ev.t = 0; ev.next = between(tune.iv_gap_min, tune.iv_gap_max) * (1 - 0.12 * Math.min(4, E.qi)); }
+        const away = E.ivLook > 0.5, reading = look && E.ivLook > 0.7, budget = tune.iv_eye + g.gazefix * 0.5;
+        if (away) E.eye -= dt / budget * (ev.ph === 'on' ? tune.iv_scan_mult : 1); else E.eye += dt / tune.iv_refill;
+        E.eye = clamp(E.eye, 0, 1); E.rising = false;
+        if (E.eye <= 0) { if (g.deepcam > 0 && !E.gazeSaved) { E.gazeSaved = true; E.eye = 0.5; sfx.ai(); } else { E.sus = 1; E.source = { how: 'eyeline', by: E.staff[0] }; getCaught(); return; } } // 딥페이크 웹캠: 한 번은 막아 준다
+        if (reading) { A.wt += dt; if (A.wt >= tune.iv_word) { A.wt -= tune.iv_word; A.wi++; } A.pause = 0; A.stalled = false; G.hints.iv = true; E.tick += dt; if (E.tick > 0.12) { E.tick = 0; sfx.scan(); } }
+        else if (A.wi > 0) { A.pause += dt; if (A.pause > tune.iv_stall && !A.stalled) { A.stalled = true; A.stalls++; } }
+        if (A.wi >= A.words.length) { E.wasHold = hold; G.hints.eyeline = true; ivDone(clamp(1 - A.stalls * 0.15, 0, 1), { 유창함: A.stalls }); }
+        else if (A.left <= 0) { E.wasHold = hold; ivDone(clamp(0.6 * A.wi / A.words.length - 0.15 * A.stalls, 0, 1), { 유창함: A.stalls }); } } }
+    const fx = ev.ph === 'on' ? 'watch' : ev.ph === 'warn' ? 'tell' : 'stand'; for (const s of E.staff) if (s.fixed && s.phase !== fx) { s.phase = fx; s.t = 0; s.dur = 99; } // 눈 색: 보통 · 노랑 · 빨강
+  } else
   if (speak && !E.fb && IVABC && table && !T.mech.includes('gaze')) { // 면접(새 방식): 면접관이 안 보는 틈에 A·B·C를 뜬 순서대로 전부 누른다
     if (!E.sq || E.sq.q !== q) { // 대답의 어절 하나가 블록 하나. 누를 때마다 한 어절씩 말이 나간다
       const cap = 16 + Math.min(12, Math.floor(E.tier / 3)), groups = []; let cnt = 0; for (const ln of q.lines) { const w = ln.split(' '); if (groups.length >= 2 && cnt + w.length > cap) break; groups.push(w); cnt += w.length; }

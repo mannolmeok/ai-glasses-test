@@ -462,7 +462,7 @@ function choiceConf(q) { // 보기 네 개의 확신도 (고른 보기는 q.conf
 function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
   const { R, T } = k, M = k.M, W = L.W, HH = L.H, tier = E.T, C = PAL;
   const mm = String(Math.floor(sec / 60)).padStart(2, '0'), ss = String(sec % 60).padStart(2, '0'), qn = Math.min(E.qi + 1, E.qs.length), qt = E.qs.length, q2 = n => String(n).padStart(2, '0');
-  const sus = Math.max(0, Math.min(1, E.sus)), sp = Math.round(sus * 100), low = E.timeLeft < 10 && Math.floor(now * 4) % 2, part = tier.parts ? ` · ${tier.parts[E.part]}` : '';
+  const eyeM = tier.mech.includes('eyeline'), SL = eyeM ? '시선' : '의심', sus = Math.max(0, Math.min(1, eyeM ? 1 - (E.eye == null ? 1 : E.eye) : E.sus)), sp = Math.round(sus * 100), low = E.timeLeft < 10 && Math.floor(now * 4) % 2, part = tier.parts ? ` · ${tier.parts[E.part]}` : ''; // [AI 대면 면접] 의심 칸 자리에 시선 게이지
   const frac = E.timeTotal ? Math.max(0, Math.min(1, E.timeLeft / E.timeTotal)) : 1, picked = E.ai && !E.fb && q, scanning = E.scan > 0 && !E.ai && !E.fb;
   if (ST === 'case' || ST === 'eraser') { // 맨눈: 남은 시간과 문항 번호만. 의심은 화면 가장자리가 붉어지는 것뿐
     k.SUB(E.finalQ ? '--:--' : `${Math.floor(sec / 60)}:${ss}`, W - 18, 20, 14, low ? '#ff6a6a' : '#ffffff', 'right');
@@ -473,14 +473,14 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     M(`BAT ${'▮'.repeat(cells)}${'▯'.repeat(3 - cells)} ${bat}%`, x0, y0 + 13, 9, bat < 20 && Math.floor(now * 3) % 2 ? '#ff5a5a' : INK, 'left', 700);
     M(E.finalQ ? '--:--' : `${mm}:${ss}`, W - x0, y0 + 2, 18, low ? '#ff5a5a' : INK, 'right', 700); M(`Q ${q2(qn)}/${q2(qt)}${part}`, W - x0, y0 + 18, 8, INK, 'right', 700);
     const n = 8, on = Math.round(sus * n), bx = W / 2 - 44;
-    M('의심', bx - 8, y0, 9, E.rising ? '#ff5a5a' : INK, 'right', 700); for (let i = 0; i < n; i++) { k.b.globalAlpha = i < on ? 1 : 0.3; R(bx + i * 9, y0 - 5, 6, 10, i < on && sp >= 60 ? '#ff5a5a' : INK); } k.b.globalAlpha = 1; M(`${sp}%`, bx + n * 9 + 4, y0, 9, INK, 'left', 700);
+    M(SL, bx - 8, y0, 9, E.rising ? '#ff5a5a' : INK, 'right', 700); for (let i = 0; i < n; i++) { k.b.globalAlpha = i < on ? 1 : 0.3; R(bx + i * 9, y0 - 5, 6, 10, i < on && sp >= 60 ? '#ff5a5a' : INK); } k.b.globalAlpha = 1; M(`${sp}%`, bx + n * 9 + 4, y0, 9, INK, 'left', 700);
     const gl = (now * 0.37) % 1; if (gl < 0.045) { k.b.globalAlpha = 0.35; R(0, 80 + Math.floor(((now * 7.3) % 1) * 200), W, 5, INK); R(0, 150 + Math.floor(((now * 3.1) % 1) * 150), W, 2, INK); k.b.globalAlpha = 1; } // 화면 밀림
   } else if (ST === 'proto') { // 시제품 안경: 얇은 선, 흰색과 하늘색
     const x0 = 40, y0 = 30, ink = '#ffffff';
     k.disc(x0, y0, 2.5, INK); M(`Lens Pro · ${CONFIG.models[E.gear.model] ? CONFIG.models[E.gear.model].name : 'AI'} 연결됨`, x0 + 8, y0 + 0.5, 7.5, ink, 'left', 500);
     M(E.finalQ ? '--:--' : `${Math.floor(sec / 60)}:${ss}`, W - x0, y0 + 2, 16, low ? '#ff6a6a' : ink, 'right', 500); M(`${qn} / ${qt}${part}`, W - x0, y0 + 17, 7.5, '#dfe6ee', 'right', 500);
     const bw = 130, bx = W / 2 - bw / 2;
-    M('의심', bx - 8, y0, 7.5, ink, 'right', 500); k.b.globalAlpha = 0.35; R(bx, y0 - 1, bw, 1.5, ink); k.b.globalAlpha = 1; R(bx, y0 - 1, Math.round(bw * sus), 1.5, sp >= 60 ? '#ff6a6a' : '#ffcf5a'); M(`${sp}%`, bx + bw + 8, y0, 7.5, E.rising ? '#ff6a6a' : ink, 'left', 500);
+    M(SL, bx - 8, y0, 7.5, ink, 'right', 500); k.b.globalAlpha = 0.35; R(bx, y0 - 1, bw, 1.5, ink); k.b.globalAlpha = 1; R(bx, y0 - 1, Math.round(bw * sus), 1.5, sp >= 60 ? '#ff6a6a' : '#ffcf5a'); M(`${sp}%`, bx + bw + 8, y0, 7.5, E.rising ? '#ff6a6a' : ink, 'left', 500);
   } else if (ST === 'mil') { // 군용 정찰 렌즈: 호박색 전술 화면. 감독관을 표적으로 잡고, 답은 어디를 봐도 떠 있다
     k.b.globalAlpha = 0.55; for (const [cx, cy, sx, sy] of [[0, 0, 1, 1], [W, 0, -1, 1], [0, HH, 1, -1], [W, HH, -1, -1]]) k.poly([[cx, cy], [cx + sx * 70, cy], [cx, cy + sy * 70]], '#000000'); k.b.globalAlpha = 1;
     const off = E.view === 'left' ? 2 : E.view === 'right' ? -2 : 0, dirs = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE', 'S'];
@@ -488,7 +488,7 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
     R(W / 2 - 140, 28, 280, 1, INK); R(W / 2, 28, 1, 5, '#ffffff');
     k.ring(W / 2, HH / 2, 14, INK); R(W / 2 - 1, HH / 2 - 1, 2, 2, INK);
     const tx = 30, ty = 96, th = 150; k.frame(tx, ty, 7, th, INK, 1); R(tx + 1, ty + th - Math.round((th - 2) * sus) - 1, 5, Math.round((th - 2) * sus), sp >= 60 ? '#ff5a5a' : INK);
-    M('THREAT', tx + 12, ty + th - 14, 7.5, E.rising ? '#ff5a5a' : INK, 'left', 700); M(`${sp}%`, tx + 12, ty + th - 4, 9, E.rising ? '#ff5a5a' : INK, 'left', 700);
+    M(eyeM ? 'GAZE' : 'THREAT', tx + 12, ty + th - 14, 7.5, E.rising ? '#ff5a5a' : INK, 'left', 700); M(`${sp}%`, tx + 12, ty + th - 4, 9, E.rising ? '#ff5a5a' : INK, 'left', 700);
     if (live && E.layout === 'room' && WORLD.staffRects) WORLD.staffRects().forEach((r, n) => { // 표적 꺾쇠
       const s = E.staff[r.i]; if (!s || r.h < 30) return; const col = s.phase === 'watch' ? '#ff5a5a' : INK, x0 = Math.round(r.x), y0 = Math.round(r.y), x1 = Math.round(r.x + r.w), y1 = Math.round(Math.min(HH - 6, r.y + r.h)), l = 10;
       for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { R(sx > 0 ? cx : cx - l, sy > 0 ? cy : cy - 1.5, l, 1.5, col); R(sx > 0 ? cx : cx - 1.5, sy > 0 ? cy : cy - l, 1.5, l, col); }
@@ -522,8 +522,9 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
           b.beginPath(); b.arc(x, y, 5.5, 0, 7); b.fillStyle = w === 'off' ? 'rgba(8,10,14,0.9)' : c1; b.fill(); b.lineWidth = 1.5; b.strokeStyle = w === 'off' ? 'rgba(255,255,255,0.6)' : c1; b.stroke();
           if (w === 'watch') { b.beginPath(); b.arc(x, y, 9, 0, 7); b.lineWidth = 1.2; b.stroke(); }
           b.restore(); along('후방', 46, -6, tm, 8, w === 'off' ? 'rgba(255,255,255,0.65)' : c1, 14); } }
-      along(`의심 ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에
-      along(picked ? `ANS ${q.aiPick + 1}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'READY', HH - 40, HH + 8, 0.13, 9, picked ? '#8dffa8' : 'rgba(255,255,255,0.75)', -11); }
+      if (!E.caught) along(`${SL} ${sp}%`, HH - 40, HH + 8, 0.5, 13, sp >= 60 ? '#ff6a6a' : sp >= 30 ? '#ffcf5a' : '#ffffff', -13);     // 아래 호 = 의심도. 호 바로 위에 (적발 화면에서는 사유와 겹치지 않게 지운다)
+      if (eyeM) { const A = E.iv; if (A && A.q === q && A.t >= A.ask) along(`대답 ${Math.round(A.wi / A.words.length * 100)}%`, HH - 40, HH + 8, 0.13, 9, 'rgba(255,255,255,0.75)', -11); }
+      else along(picked ? `ANS ${q.aiPick + 1}` : scanning ? `SCAN ${Math.round(E.scan * 100)}%` : 'READY', HH - 40, HH + 8, 0.13, 9, picked ? '#8dffa8' : 'rgba(255,255,255,0.75)', -11); }
   } else if (ST === 'brain') { // 뇌 임플란트: 숫자도 틀도 없다. 속마음 한 줄과 심장 박동선
     M(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 9, low ? '#ff9a9a' : '#ffd678', 'right', 700); // 생각 기록과 같은 글씨: 금색이 지금 값, 흐린 흰색이 딸린 줄
     k.b.globalAlpha = 0.6; M(`${qn}번째 문제${part}`, W - 22, 33, 7.5, '#ffffff', 'right', 700); k.b.globalAlpha = 1;
@@ -610,6 +611,33 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
     log.forEach((ln, i) => { b.globalAlpha = i === log.length - 1 ? 1 : 0.6; M(ln, 120, HH - 118 + i * 12, 7.5, i === log.length - 1 ? G1 : '#ffffff', 'left', 700); }); b.globalAlpha = 1;
     if (scanning) { const y = HH / 2, w = Math.round((W / 2 - 170) * E.scan); b.globalAlpha = 0.6; R(116, y, w, 1, G1); R(W - 116 - w, y, w, 1, G1); b.globalAlpha = 1; }
   }
+}
+// ---- [AI 대면 면접 · 눈 맞춤 줄다리기] 대본은 왼쪽 허공에: 꾹 누르면 고개가 그쪽으로 돌며 창이 들어온다. 말은 자막으로, 표정 분석은 붉은 훑기 선으로 ----
+function drawEyeline(k, L, E, now, q, ST, INK) {
+  const A = E.iv, W = L.W, HH = L.H, b = k.b, ev = E.ivEv || { ph: 'idle', t: 0 }; if (!A || A.q !== q) return;
+  const lk = Math.max(0, Math.min(1, E.ivLook || 0)), look = lk * lk * (3 - 2 * lk), ink = INK || '#7fe9ff', mono = ST === 'used' || ST === 'mil';
+  if (A.t < A.ask) { // 면접관이 질문하는 동안: 자막 두 줄
+    const lines = wrapKit(k, 'AI 면접관: ' + q.q, 560, 13).slice(0, 2); lines.forEach((ln, i) => k.SUB(ln, W / 2, HH - 96 + (2 - lines.length) * 10 + i * 19, 13, '#ffe9b0', 'center')); }
+  else {
+    const teach = !G.hints.eyeline, n = q.lines.length, pw = 238, ph = 40 + n * 22 + (teach ? 14 : 0), x0 = ST === 'mil' ? 66 : 28, tx = ST === 'mil' ? 38 : 0, px = Math.round(-pw - 12 + (pw + 12 + x0) * look), py = 70;
+    if (look > 0.02) { b.globalAlpha = Math.min(1, look * 1.4); // 대본 창: 안경 단계마다 그 화면의 모양으로
+      if (ST === 'contact') hudDraw(k, c => { rrect(c, px, py, pw, ph, 14); c.fillStyle = 'rgba(8,44,52,0.62)'; c.fill(); c.strokeStyle = 'rgba(127,233,255,0.9)'; c.lineWidth = 1.2; c.stroke(); });
+      else if (ST === 'mil') hudDraw(k, c => { c.fillStyle = 'rgba(40,26,6,0.66)'; c.fillRect(px, py, pw, ph); c.strokeStyle = ink; c.lineWidth = 1; c.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1); c.fillStyle = ink; c.fillRect(px, py, pw, 2); });
+      else if (ST === 'proto') panelBox(k, px, py, pw, ph, ink, '');
+      else if (ST !== 'used' && ST !== 'brain') { b.globalAlpha *= 0.8; k.R(px, py, pw, ph, '#06161a'); b.globalAlpha = Math.min(1, look * 1.4); }
+      const title = ST === 'mil' ? 'SCRIPT · LIVE' : ST === 'used' ? 'SCRIPT' : ST === 'brain' ? '떠오르는 말' : '내 AI의 대본';
+      (mono ? k.M : k.T)(title, px + 12, py + 13, 7.5, ink, 'left', 700);
+      for (let li = 0; li < n; li++) { let x = px + 12; const y = py + 34 + li * 22;
+        A.words.forEach((o, i) => { if (o.li !== li) return; const col = i < A.wi ? 'rgba(170,220,205,0.42)' : i === A.wi ? ink : '#f0f4f2'; (mono ? k.M : k.T)(o.w, x, y, 10.5, col, 'left', 700); x += k.TW(o.w, 10.5, 700) + 4; }); }
+      if (teach) (mono ? k.M : k.T)(STATE.touchUI ? '손을 떼면 면접관 눈을 본다' : '스페이스를 떼면 면접관 눈을 본다', px + 12, py + ph - 11, 8, 'rgba(240,244,242,0.7)', 'left', 500);
+      b.globalAlpha = 1; }
+    else { b.globalAlpha = 0.85; k.R(tx, 150, 18, 56, '#06161a'); b.globalAlpha = 1; k.T('◀', tx + 9, 170, 9, ink, 'center', 700); k.T('대본', tx + 9, 190, 7, ink, 'center', 700); // 대본이 있는 쪽
+      if (teach) { k.SUB(STATE.touchUI ? '꾹 누르면 대본을 본다' : '스페이스 꾹: 대본을 본다', tx + 26, 172, 10, '#ffffff', 'left'); k.SUB('보는 동안 말이 나간다', tx + 26, 189, 8.5, '#d8e8e4', 'left'); } }
+    if (A.wi > 0) { const li = A.words[A.wi - 1].li, said = A.words.filter((o, i) => o.li === li && i < A.wi).map(o => o.w).join(' '); k.SUB(`"${said}${A.pause > tune.iv_stall ? '… 어…' : ''}"`, W / 2, HH - 86, 13, '#ffffff', 'center'); } // 내가 하는 말 (기본 자막 자리)
+  }
+  if (ev.ph === 'warn') { b.globalAlpha = 0.3 + 0.12 * Math.sin(now * 9); b.drawImage(lensGlow('A', '#ffcf5a'), 0, 0); b.globalAlpha = 1; } // 표정 분석 예고: 렌즈 둘레가 은은하게 노랗게
+  else if (ev.ph === 'on') { const y = Math.round(((ev.t / Math.max(0.1, ev.dur)) * 2 % 1) * HH); // 분석 중: 붉은 선이 내 얼굴(화면)을 위아래로 두 번 훑는다
+    b.globalAlpha = 0.16; k.R(0, y - 12, W, 24, '#ff3a4a'); b.globalAlpha = 0.8; k.R(0, y, W, 1.5, '#ff7a86'); b.globalAlpha = 0.4; b.drawImage(lensGlow('A', '#ff3a4a'), 0, 0); b.globalAlpha = 1; }
 }
 // ---- 면접(새 방식): A·B·C 순서 입력. 면접관이 안 볼 때만 누른다 ----
 function drawAbc(k, L, E, now, q) { // 창도 숫자도 없다. 안경이 띄운 블록 세 줄이 허공에서 내려오고, 누를 때마다 한 어절씩 자막으로 말이 나간다
@@ -842,11 +870,13 @@ function drawExamHud(k, L, E, now, H) {
     const fx = E.staff.filter(s => s.fixed && s.type !== 'webcam');
     if (fx.some(s => s.phase === 'tell')) { k.b.globalAlpha = Math.floor(now * 6) % 2 ? 0.8 : 0.4; k.b.drawImage(lensGlow('T', C.warn), 0, 0); k.b.globalAlpha = 1; }
   }
-  if (E.sus > 0.02 || E.rising) { // 의심도: 렌즈 둘레가 붉어지고, 보는 중에 스캔하면 깜빡인다
-    const base = Math.min(0.85, 0.12 + E.sus * 0.9), a = E.rising ? Math.min(1, base + 0.35 + 0.3 * Math.sin(now * 16)) : base;
+  const sv = E.T.mech.includes('eyeline') ? Math.max(0, (0.75 - (E.eye == null ? 1 : E.eye)) / 0.75) : E.sus; // [AI 대면 면접] 시선 게이지가 차면 렌즈 둘레가 붉어진다
+  if (sv > 0.02 || E.rising) { // 의심도: 렌즈 둘레가 붉어지고, 보는 중에 스캔하면 깜빡인다
+    const base = Math.min(0.85, 0.12 + sv * 0.9), a = E.rising ? Math.min(1, base + 0.35 + 0.3 * Math.sin(now * 16)) : base;
     k.b.globalAlpha = Math.max(0, a); k.b.drawImage(lensGlow('A', C.bad), 0, 0); k.b.globalAlpha = 1;
   }
   const RHV = typeof params !== 'undefined' && params.get('rh');
+  if (E.T.mech.includes('eyeline')) { if (live && q && q.kind === 'speak') drawEyeline(k, L, E, now, q, ST0, INK); } else // [AI 대면 면접] 눈 맞춤 줄다리기는 왼쪽 허공의 대본 창 + 자막
   if ((E.layout === 'table' || (E.qs[Math.min(E.qi, E.qs.length - 1)] || {}).kind === 'speak') && !E.result && RHV !== '3' && !(typeof IVABC !== 'undefined' && IVABC && E.sq && q && E.sq.q === q)) drawArCard(k, L, E, now, H);
   if (typeof IVABC !== 'undefined' && IVABC && live && q && q.kind === 'speak' && E.sq) drawAbc(k, L, E, now, q);
   if (RHV && live && q && q.kind === 'speak') drawRhythmPreview(k, L, E, now, RHV, q);
@@ -961,7 +991,7 @@ function drawExamOverlays(k, L, E, now, H) {
   if (E.caught) { // 적발: 타이틀과 같은 안경 화면이 빨갛게 바뀐다
     const who = E.caughtBy || tier.staff[0];
     const why = { peek: '책상 밑에서 올려다보던 눈과 마주침', emp: 'EMP에 기기가 드러남', cctv: 'CCTV에 찍힘', pulse: 'AI 탐지 전파에 걸림', drone: '드론 전파에 걸림', screen: '화면 검사에 걸림', check: '책상 앞 검사에 걸림',
-      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', mirror: '거울에 비친 감독관에게 들킴', sweep: '전수 스캔에 걸림', noise: '생각이 새어 나감', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '숨이 막혀 허우적거림', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음', call: '세 번 부를 때까지 돌아보지 않음', ghost: '물이 떨어지는 쪽을 올려다봄' }[E.caughtHow] || `${who.name}에게 걸림`;
+      webcam: '웹캠에 찍힘', looks: '시선 이탈 횟수 초과', ear: '귀의 이어폰을 들킴', mole: '앞자리 비밀 감독관과 눈이 마주침', mirror: '거울에 비친 감독관에게 들킴', sweep: '전수 스캔에 걸림', noise: '생각이 새어 나감', drone: '드론에 찍힘', loop: '지난 회차와 같은 때에 숙임', breath: '숨이 막혀 허우적거림', mind: '떠올린 답을 읽힘', gaze: '시선 이탈 5초', eyeline: '대본만 너무 오래 봄 · 시선 이탈', ai: 'AI 사용이 감지됨', omega: 'Ω가 스캔 박자를 읽음', call: '세 번 부를 때까지 돌아보지 않음', ghost: '물이 떨어지는 쪽을 올려다봄' }[E.caughtHow] || `${who.name}에게 걸림`;
     drawLensScreen(k, L, now, { col: '#ff5a5a', glow: '#4a0a0a', tint: '#28060a', big: '적발', lines: ['LENS-OS 0.9b', `${who.name} ....... 정면 주시`, '장비 ......... 노출됨', '연결 ......... 끊김'], sub: E.T.mech.includes('tutorial') ? '혼나고 끝 (모의고사라 다행)' : '이번 시험 0점 처리' });
     k.SUB(`${who.name}: ${CAUGHT_LINE[who.type] || CAUGHT_LINE.dean}`, L.W / 2, L.H - 62, 13, '#ffffff', 'center');
     k.SUB(why, L.W / 2, L.H - 42, 9, '#e8e4da', 'center');

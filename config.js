@@ -194,6 +194,17 @@ window.CONFIG = {
   emp_draw: { value: 2.8, min: 1, max: 4, step: 0.1 },              // 3교시 시작: 총을 꺼내 들어 보이는 장면 길이(초). 쉬는 시간+시작 대기(3.5초) 안에 끝난다
   iv_cap: { value: 0.95, min: 0.5, max: 1, step: 0.01 },            // 면접 답변 하나의 최고점 (면접관은 만점을 주지 않는다 → 면접은 만점·빨간 등·조사실이 없다)
   iv_pay: { value: 2.5, min: 1, max: 4, step: 0.1 },                // 면접 합격 보상 배율 (만점 3배가 없는 대신 점수에 곱한다)
+  iv_ask: { value: 2.6, min: 0.5, max: 6, step: 0.1 },              // [AI 대면 면접] 면접관이 질문하는 시간(초): 이 동안은 대본이 없다
+  iv_eye: { value: 3.5, min: 1, max: 8, step: 0.1 },                // 대본을 볼 수 있는 시간(초): 시선 게이지가 다 차기까지 (시선 고정 장비 단계마다 +0.5초)
+  iv_refill: { value: 1.2, min: 0.3, max: 4, step: 0.1 },           // 면접관 눈을 보면 시선 게이지가 다 빠지기까지(초)
+  iv_scan_mult: { value: 3, min: 1, max: 6, step: 0.5 },            // 표정 분석 중에 대본을 보면 게이지가 차는 배율
+  iv_warn: { value: 0.7, min: 0.2, max: 2, step: 0.1 },             // 표정 분석 예고(눈이 노랑) 시간(초)
+  iv_scan: { value: 1.8, min: 0.5, max: 4, step: 0.1 },             // 표정 분석(눈이 빨강) 시간(초)
+  iv_gap_min: { value: 4.5, min: 1, max: 15, step: 0.5 },           // 표정 분석 사이 간격(초) 최소 (뒤 문항일수록 짧아진다)
+  iv_gap_max: { value: 7, min: 1, max: 20, step: 0.5 },             // 표정 분석 사이 간격(초) 최대
+  iv_word: { value: 0.32, min: 0.1, max: 1, step: 0.02 },           // 대본을 보는 동안 한 어절을 말하는 시간(초)
+  iv_stall: { value: 1.5, min: 0.5, max: 4, step: 0.1 },            // 말이 이만큼(초) 끊기면 '말 끊김' 한 번 (답변 -15점)
+  iv_answer: { value: 22, min: 8, max: 60, step: 1 },               // 답변 하나에 쓸 수 있는 시간(초): 넘기면 말한 데까지만
   glass_level: { value: 3, min: 1, max: 7, step: 1 },              // 촬영·표시 장비가 이 단계부터 AI 안경(시험지 위 AR). 그 전에는 소매 속 액정
   down_keep: { value: 0.6, min: 0.1, max: 3, step: 0.1 },          // 손을 뗀 뒤 고개를 숙이고 있는 시간(초)
   answer_keep: { value: 3, min: 0.5, max: 8, step: 0.5 },          // AI 답이 뜬 뒤 마킹을 기다리며 숙이고 있는 시간(초)
@@ -397,8 +408,8 @@ window.CONFIG = {
       how: '신들만 아는 문제 · 번개가 칠 때마다 장비가 꺼진다', beat: '천둥이 우르릉 하면 곧 번개. 번개가 치면 2.4초 동안 안경이 먹통이고 읽던 것도 날아간다. 그동안은 경고도 안 뜨니 고개를 들고 기다린다' },
     aiiv: { slot: 10, act: 1, name: '대기업 AI 역량검사', subject: '상황 면접', gen: 'aiiv', qn: 5, time: 170, room: 'home', device: 'laptop', sec: [], mech: ['webcam', 'gaze'], think: 6, staff: [{ type: 'webcam', name: 'AI 면접 시스템', fixed: true }], head: ['AI 역량검사', '상황 면접'], lines: [],
       how: '집에서 노트북으로 보는 AI 면접 · 감정평가사 다음 차례', beat: '시선이 5초 넘게 벗어나면 탈락. 대본을 두세 줄씩 끊어 읽고 카메라를 1초 이상 다시 본다. 생각할 시간이 6초로 줄었다' },
-    aiiv2: { slot: 17, act: 2, name: '글로벌 기업 AI 대면 면접', subject: 'AI 면접관', gen: 'aiiv', qn: 5, time: 160, room: 'aiface', layout: 'table', device: 'ar', sec: [], mech: ['interview', 'gaze'], think: 4, gazeLimit: 3.5, check: null, staff: [{ type: 'robot', name: 'AI 면접관', fixed: true }], head: ['AI Interview', 'Final Round'], lines: [],
-      how: '면접실에서 AI 면접관과 마주 앉는다 · 눈앞에 AI가 있다', beat: '시선 허용이 3.5초로 줄고 생각할 시간은 4초. AI 면접관이 나를 볼 때는 대본이 읽히지 않는다. 고개를 돌린 틈에 한두 줄씩 읽는다' },
+    aiiv2: { slot: 17, act: 2, name: '글로벌 기업 AI 대면 면접', subject: 'AI 면접관', gen: 'aiiv', qn: 5, time: 160, room: 'aiholo', layout: 'table', device: 'ar', sec: [], mech: ['interview', 'eyeline'], check: null, staff: [{ type: 'holo', name: 'AI 면접관', fixed: true }], head: ['AI Interview', 'Final Round'], lines: [],
+      how: '어두운 면접실 테이블 위 투사기에서 비춰지는 홀로그램 AI 면접관 (주소에 iv2=robot 이면 예전 로봇·흰 방)', beat: '눈 맞춤 줄다리기: 꾹 누르면 고개가 왼쪽 대본으로 돌아가며 말이 나가고, 시선 게이지가 찬다. 떼고 면접관 눈을 보면 게이지가 빠진다. 면접관이 표정을 살필 때(눈이 빨강) 대본을 보면 세 배로 찬다. 다 차면 탈락' },
   },
   // AI 모델 15단계: 2026년 10월 Artificial Analysis 지능 지수 v5 순서 + 3막은 회사마다 이름 규칙을 이어 지음.
   // rel: 처음 합격하면 이 모델이 출시되는 시험 번호(0부터), -1은 처음부터
