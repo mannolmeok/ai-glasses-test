@@ -208,12 +208,12 @@ function drawNoticePaper(g, A) {
   g.strokeStyle = line; g.lineWidth = 4; g.strokeRect(26, 26, W - 52, H - 52); g.lineWidth = 1.5; g.strokeRect(34, 34, W - 68, H - 68);
   g.fillStyle = sub; g.textAlign = 'left'; g.font = `700 17px ${F}`; g.fillText(`시험관리위원회 제 2026-조사-${String(417 + A.tier * 13).padStart(4, '0')} 호`, 52, 66);
   g.fillStyle = ink; g.textAlign = 'center'; g.font = `800 50px ${F}`; g.fillText('재시험 출석 통보', W / 2, 170); g.fillRect(W / 2 - 200, 186, 400, 3); g.fillRect(W / 2 - 200, 192, 400, 1);
-  const rows = [['수험번호', String(31000000 + A.tier * 1234567), ink], ['성 명', '김 수 험', ink], ['대상 시험', `${A.tierName} (득점 100)`, ink], ['사 유', '고득점자 답안 재검증', red]];
+  const sc = A.mail && A.mail.score != null ? A.mail.score : 100, rows = [['수험번호', String(31000000 + A.tier * 1234567), ink], ['성 명', '김 수 험', ink], ['대상 시험', `${A.tierName} (득점 ${sc})`, ink], ['사 유', sc >= 100 ? '만점 답안 재검증' : '제보에 따른 답안 재검증', red]];
   rows.forEach(([a, b, col], i) => { const y = 236 + i * 56; g.fillStyle = '#e2e3e0'; g.fillRect(56, y, 150, 56); g.lineWidth = 1.5; g.strokeRect(56, y, 150, 56); g.strokeRect(206, y, W - 262, 56);
     g.fillStyle = ink; g.textAlign = 'center'; g.font = `700 22px ${F}`; g.fillText(a, 131, y + 36); g.fillStyle = col; g.textAlign = 'left'; let fs = 24; g.font = `800 ${fs}px ${F}`; while (g.measureText(b).width > W - 300 && fs > 14) { fs--; g.font = `800 ${fs}px ${F}`; } g.fillText(b, 224, y + 37); });
   g.lineWidth = 3; g.strokeRect(56, 236, W - 112, 224);
   g.fillStyle = ink; g.textAlign = 'left'; g.font = `500 25px ${F}`;
-  ['귀하는 답안 재검증 대상으로 선정되었습니다.', '조사관 입회하에 같은 과목 재시험에', '응시하시기 바랍니다.'].forEach((s, i) => g.fillText(s, 64, 520 + i * 40));
+  ['귀하는 답안 재검증 대상으로 선정되었습니다.', '조사관 입회하에 그날 출제된 문항 그대로', '다시 응시하시기 바랍니다.'].forEach((s, i) => g.fillText(s, 64, 520 + i * 40)); // 그날 본 문제가 그대로 나온다: 만점의 대가
   g.font = `800 25px ${F}`; g.fillText('전자기기와 안경류는 입실 전 제출합니다.', 64, 660);
   g.font = `500 25px ${F}`; g.fillText('5문항 중 3문항 이상 맞히면 재검증을 마칩니다.', 64, 712); g.fillStyle = red; g.font = `800 25px ${F}`; g.fillText('미달하면 합격을 취소하고 고발합니다.', 64, 752);
   g.fillStyle = ink; g.textAlign = 'center'; g.font = `800 34px ${F}`; g.fillText('시험관리위원회 조사국장', W / 2 - 30, 870);
@@ -256,13 +256,16 @@ function drawProbeHud(k, L, P, now, spot) { // 조사실: 초록 HUD 없이 맨�
   if (P.phase === 'in') {
     const a = Math.max(0, 1 - t / 1.5) * (Math.floor(now * 22) % 3 ? 1 : 0.55); // 안경을 벗는 순간: 초록 화면이 지직거리며 꺼진다
     if (a > 0) { b.globalAlpha = 0.6 * a; R(0, 0, W, H, '#061e0e'); b.globalAlpha = 0.16 * a; for (let y = 0; y < H; y += 1.5) R(0, y, W, 0.5, '#000000'); b.globalAlpha = a; b.font = `400 12.5px ${BOOT_FONT}`; b.textAlign = 'left'; b.fillStyle = '#74ff8e'; ['LENS-OS 0.9b', '착용 ......... 해제됨', '전원 ......... 강제 종료'].forEach((ln, i) => b.fillText(ln, 65, 60 + i * 15.6)); b.globalAlpha = 1; b.drawImage(rimFor('land'), 0, 0); }
-    if (t > 0.3 && t < 2.3) k.SUB('조사관: 안경은 여기 두시죠.', W / 2, H - 34, 13);
-    else if (t >= 2.3) k.SUB('(안경이 없다. 글자가 그냥 글자다)', W / 2, H - 34, 12, '#e8e4da');
+    const say = (s, sz, col) => { let f = sz; while (k.TW(s, f, 800) > W - 40 && f > 9) f--; k.SUB(s, W / 2, H - 34, f, col); }; // 조사관의 말: 어떤 시험의 문제를 그대로 다시 푸는지 (만점이라는 양날의 검)
+    if (t > 0.3 && t < 2.0) say('조사관: 안경은 여기 두시죠.', 13);
+    else if (t >= 2.0 && t < 3.5) say(`조사관: ${P.T.name}${P.perfect ? ' 만점 답안지' : ' 답안지'}, 잘 봤습니다.`, 13);
+    else if (t >= 3.5 && t < 5.0) say(P.same ? '조사관: 그날 그 문제, 그대로 다시 풀어 보시죠.' : '조사관: 같은 범위에서 다시 풀어 보시죠.', 13);
+    else if (t >= 5.0) say('(안경이 없다. 글자가 그냥 글자다)', 12, '#e8e4da');
   } else if (P.phase === 'play') {
     const s = Math.max(0, Math.ceil(P.left)), low = P.left < 10;
     k.SUB(`${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`, W - 24, 24, 17, low && Math.floor(now * 4) % 2 ? '#ff6a6a' : '#ffffff', 'right');
     k.SUB(`재시험 ${Math.min(P.qi + 1, P.qs.length)} / ${P.qs.length} · 3개 이상`, W - 24, 42, 9, '#ffffff', 'right');
-    if (P.qi === 0 && !P.mark) k.SUB('보기를 눌러 답하기 [1~4]', W / 2, H - 14, 9, '#e8e4da');
+    if (P.qi === 0 && !P.mark) k.SUB('보기를 눌러 답하기 [1~4]', W - 24, 58, 9, '#e8e4da', 'right'); // 시험지 보기와 겹치지 않게 위쪽 시계 밑에
   } else if (P.phase === 'judge') k.SUB('(조사관이 답안지를 넘겨 본다)', W / 2, H - 34, 12, '#e8e4da');
   else if (P.phase === 'pass') { if (t > 0.5) k.SUB('조사관: …실력이셨군요. 돌아가셔도 됩니다.', W / 2, H - 34, 13); }
   else if (P.phase === 'fail') {
@@ -469,6 +472,15 @@ function choiceConf(q) { // 보기 네 개의 확신도 (고른 보기는 q.conf
   const rest = 100 - q.conf, w = [0, 1, 2, 3].map(i => i === q.aiPick ? 0 : (q.elim.includes(i) ? 1 : 3) + ((i * 7 + q.aiPick * 3) % 3)), sum = w.reduce((a, b) => a + b, 0) || 1;
   const out = w.map(v => Math.floor(rest * v / sum)); out[q.aiPick] = q.conf; return out;
 }
+const BRAIN_HUD = (new URLSearchParams(location.search).get('brainhud') || '').toUpperCase(); // 뉴럴링코 감시·의심 표시 시안 비교용 (A 신경망 색 · B 속마음 줄 · C 맥박 고리)
+function brainRisk(E, sd) { // 2 = 지금 보고 있다(스캔하면 의심이 오른다) · 1 = 곧 돌아본다 · 0 = 괜찮다. sd가 'L'·'R'이면 그쪽 감독관만 (사람 아닌 눈·앞자리는 양쪽 다)
+  let v = 0, who = null;
+  for (const s of E.staff) { if (s.out || s.blink > 0 || (sd && s.side !== sd)) continue;
+    if (s.phase === 'watch' || s.phase === 'check' || s.phase === 'peek') { v = 2; who = s; } else if (v < 1 && (s.phase === 'tell' || omenOf(s) > 0)) { v = 1; who = s; } }
+  const m = E.mole; if (m && m.phase === 'look') { v = 2; who = 'mole'; } else if (m && m.phase === 'tell' && v < 1) { v = 1; who = 'mole'; }
+  if (v < 2 && E.danger && !E.staff.some(s => !s.out && (s.phase === 'watch' || s.phase === 'tell' || s.phase === 'check'))) { v = 2; who = 'eye'; } // CCTV·드론·탐지 전파·거울처럼 사람 아닌 눈
+  if (v < 1 && E.hz && E.hz.phase === 'warn') v = 1;
+  return { v, who }; }
 function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
   const { R, T } = k, M = k.M, W = L.W, HH = L.H, tier = E.T, C = PAL;
   const mm = String(Math.floor(sec / 60)).padStart(2, '0'), ss = String(sec % 60).padStart(2, '0'), qn = Math.min(E.qi + 1, E.qs.length), qt = E.qs.length, q2 = n => String(n).padStart(2, '0');
@@ -538,8 +550,16 @@ function drawStageHud(k, L, E, now, ST, INK, sec, pl, live, q) {
   } else if (ST === 'brain') { // 뇌 임플란트: 숫자도 틀도 없다. 속마음 한 줄과 심장 박동선
     M(E.finalQ ? '시간이 느껴지지 않는다' : sec > 5 ? `${sec}초쯤 남았다는 느낌` : '거의 끝났다는 느낌', W - 22, 20, 9, low ? '#ff9a9a' : '#ffd678', 'right', 700); // 생각 기록과 같은 글씨: 금색이 지금 값, 흐린 흰색이 딸린 줄
     k.b.globalAlpha = 0.6; M(`${qn}번째 문제${part}`, W - 22, 33, 7.5, '#ffffff', 'right', 700); k.b.globalAlpha = 1;
-    const y = HH - 12, sp2 = 60 + sus * 240, px = (now * sp2) % (W + 60) - 30; k.b.globalAlpha = 0.35 + sus * 0.5; R(0, y, W, 1, '#ff5a5a');
-    k.poly([[px - 12, y], [px - 6, y - 8 - sus * 8], [px - 3, y], [px, y + 9 + sus * 6], [px + 4, y - 4], [px + 8, y], [px + 8, y + 1.5], [px - 12, y + 1.5]], '#ff5a5a'); k.b.globalAlpha = 1;
+    const y = HH - 12, sp2 = 60 + sus * 240, px = (now * sp2) % (W + 60) - 30, ecg = BRAIN_HUD && BRAIN_HUD !== 'B' ? (sus >= 0.6 ? '#ff5a5a' : sus >= 0.3 ? '#ffcf5a' : '#9dff8a') : '#ff5a5a'; k.b.globalAlpha = BRAIN_HUD && BRAIN_HUD !== 'B' ? 0.55 + sus * 0.4 : 0.35 + sus * 0.5; R(0, y, W, 1, ecg);
+    k.poly([[px - 12, y], [px - 6, y - 8 - sus * 8], [px - 3, y], [px, y + 9 + sus * 6], [px + 4, y - 4], [px + 8, y], [px + 8, y + 1.5], [px - 12, y + 1.5]], ecg); k.b.globalAlpha = 1;
+    if (live && BRAIN_HUD) { const rk = brainRisk(E), rc = rk.v === 2 ? '#ff6a6a' : rk.v === 1 ? '#ffcf5a' : '#9dff8a', sc = sus >= 0.6 ? '#ff6a6a' : sus >= 0.3 ? '#ffcf5a' : '#ffffff';
+      if (BRAIN_HUD === 'A') M(`심박 ${Math.round(66 + sus * 110)}`, 22, y - 9, 8, sc, 'left', 700); // A: 의심은 심박으로 (심장 박동선과 같은 색)
+      else if (BRAIN_HUD === 'B') { const side = rk.who && rk.who.side ? (rk.who.side === 'L' ? '왼쪽이 ' : '오른쪽이 ') : rk.who === 'mole' ? '앞자리가 ' : rk.who === 'eye' ? '카메라가 ' : '누가 ';
+        M(rk.v === 2 ? `…${side}보고 있다` : rk.v === 1 ? `…${side.replace('누가 ', '')}곧 돌아본다` : '…지금은 아무도 안 본다', W - 22, 50, 9, rc, 'right', 700); // B: 생각 기록 줄에 지금 감시 상태와 의심을 한 줄씩
+        k.b.globalAlpha = 0.85; M(`의심 ${sp}%`, W - 22, 63, 8, sc, 'right', 700); k.b.globalAlpha = 1; }
+      else if (BRAIN_HUD === 'C') { const cx = W / 2, cy = y; hudDraw(k, c => { c.fillStyle = 'rgba(18,10,30,0.88)'; c.beginPath(); c.arc(cx, cy, 13, 0, 7); c.fill(); c.lineWidth = 2.2; c.strokeStyle = rc; c.beginPath(); c.arc(cx, cy, 13, 0, 7); c.stroke();
+          c.globalAlpha = 0.28; c.fillStyle = rc; c.beginPath(); c.arc(cx, cy, 19, 0, 7); c.fill(); }); T(`${sp}`, cx, cy + 0.5, 9, '#ffffff', 'center', 800); // C: 박동선 가운데 고리 하나 = 신호등 (안의 숫자가 의심 %)
+        M(rk.v === 2 ? '보고 있다' : rk.v === 1 ? '곧 돌아본다' : '괜찮다', cx + 22, cy - 1, 8, rc, 'left', 700); } }
     if (live && picked && !E.finalQ) k.SUB(q.conf >= 70 ? `…${q.aiPick + 1}번이다. 왜인지는 모르겠다.` : `…${q.aiPick + 1}번인 것 같다.`, W / 2, HH - 34, 13, '#ffffff', 'center');
     else if (live && scanning) k.SUB('…'.repeat(1 + Math.floor(E.scan * 3)), W / 2, HH - 34, 13, '#ffffff', 'center');
     if (live && scanning && !E.rising && !E.staff.some(s => s.phase === 'watch' || s.phase === 'tell' || omenOf(s) > 0)) { // 안전할 때: 금빛 줄이 시야를 훑어 내린다
@@ -612,10 +632,10 @@ function drawStageFx(k, L, E, now, ST, INK, live, q) {
           else { c.fillStyle = 'rgba(201,160,255,0.7)'; c.beginPath(); c.arc(x, yc, 2.2, 0, 7); c.fill(); } } });
       for (let i = 0; i < n; i++) { const a = E.answers[i], cur = i === E.qi; if (a != null && i < E.qi) T(String(a + 1), cx(i), yc + 0.5, 8, '#2a1c00', 'center', 800); else if (cur && picked) T(String(q.aiPick + 1), cx(i), yc + 0.5, 8, '#ffffff', 'center', 800); } }
     b.globalAlpha = 0.22 + 0.08 * Math.sin(now * 5); b.drawImage(lensGlow('A', '#b07aff'), 0, 0); b.globalAlpha = 1;
-    hudDraw(k, c => { for (const side of [0, 1]) { const P = NEURO.map(([x, y]) => [side ? W - x : x, y]), lit = i => (i + 1) / P.length <= ph + 0.001 || Math.sin(now * 2 + i * 1.7 + side) > 0.93;
-        c.lineWidth = 1; for (let i = 0; i < P.length; i++) for (const j of [i + 1, i + 2]) { if (j >= P.length) continue; const on = lit(i) && lit(j); c.strokeStyle = on ? G1 : V1; c.globalAlpha = on ? 0.85 : 0.28; c.beginPath(); c.moveTo(P[i][0], P[i][1]); c.lineTo(P[j][0], P[j][1]); c.stroke();
+    hudDraw(k, c => { for (const side of [0, 1]) { const P = NEURO.map(([x, y]) => [side ? W - x : x, y]), lit = i => (i + 1) / P.length <= ph + 0.001 || Math.sin(now * 2 + i * 1.7 + side) > 0.93, rv = BRAIN_HUD === 'A' ? brainRisk(E, side ? 'R' : 'L').v : -1, V1 = rv >= 0 ? ['#9dff8a', '#ffcf5a', '#ff4a5a'][rv] : '#c9a0ff', VA = rv > 0 ? 0.75 : rv === 0 ? 0.42 : 0.28; // A: 그쪽 감독관이 보면 그쪽 신경망이 붉게 (곧 돌아보면 노랗게, 괜찮으면 초록)
+        c.lineWidth = 1; for (let i = 0; i < P.length; i++) for (const j of [i + 1, i + 2]) { if (j >= P.length) continue; const on = lit(i) && lit(j); c.strokeStyle = on ? G1 : V1; c.globalAlpha = on ? 0.85 : VA; c.beginPath(); c.moveTo(P[i][0], P[i][1]); c.lineTo(P[j][0], P[j][1]); c.stroke();
           if (on || scanning) { const f = (now * 1.6 + i * 0.37 + j * 0.11) % 1; c.globalAlpha = 0.9; c.fillStyle = '#ffffff'; c.fillRect(P[i][0] + (P[j][0] - P[i][0]) * f - 1, P[i][1] + (P[j][1] - P[i][1]) * f - 1, 2, 2); } }
-        for (let i = 0; i < P.length; i++) { const on = lit(i); c.globalAlpha = on ? 1 : 0.5; c.fillStyle = on ? G1 : V1; c.beginPath(); c.arc(P[i][0], P[i][1], on ? 3.5 : 2.2, 0, 7); c.fill(); if (on) { c.globalAlpha = 0.25; c.beginPath(); c.arc(P[i][0], P[i][1], 7, 0, 7); c.fill(); } } }
+        for (let i = 0; i < P.length; i++) { const on = lit(i); c.globalAlpha = on ? 1 : Math.max(0.5, VA + 0.15); c.fillStyle = on ? G1 : V1; c.beginPath(); c.arc(P[i][0], P[i][1], on ? 3.5 : rv > 0 ? 3 : 2.2, 0, 7); c.fill(); if (on || rv > 0) { c.globalAlpha = on ? 0.25 : 0.3; c.beginPath(); c.arc(P[i][0], P[i][1], 7, 0, 7); c.fill(); } } }
       if (picked) { const f = (now * 0.9) % 1; c.globalAlpha = 0.5 * (1 - f); c.strokeStyle = G1; c.lineWidth = 2; c.beginPath(); c.arc(W / 2, HH / 2, 40 + f * 150, 0, 7); c.stroke(); } });
     const log = []; if (scanning || picked) { log.push(`문제 ${E.qi + 1} 인식`); if (ph > 0.2) log.push('조건 추출'); elim.forEach(i => log.push(`보기 ${i + 1}번 소거`)); if (picked) log.push(`결론 ${q.aiPick + 1}번 · ${q.conf}%`); }
     log.forEach((ln, i) => { b.globalAlpha = i === log.length - 1 ? 1 : 0.6; M(ln, 120, HH - 118 + i * 12, 7.5, i === log.length - 1 ? G1 : '#ffffff', 'left', 700); }); b.globalAlpha = 1;

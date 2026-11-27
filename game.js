@@ -592,6 +592,7 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
   E.timeLeft = E.timeTotal; E.partOver = false;
   if (p > 0) {
     E.sus *= tune.session_keep; E.breakT = tune.break_time;
+    resetWatch(T); // 종이 울리면 쳐다보던 감독관·앞자리 비밀 감독관도 고개를 돌리고, 다음 교시는 처음 상태로 (아래 교시별 연출이 그 위에 덮는다)
     if (E.T.id === 'leet' && p === 1 && CONFIG.eggs.stairs) E.stairs = { phase: 'intro', t: 0, steps: 0, last: null, left: tune.stairs_time, stumble: 0, result: null }; // 쉬는 시간: 계단 앞에 서 있다
     if (T.id === 'bar' && p === 1) { const T2 = E.T = Object.assign({}, T, { stand: T.stand.map(v => v * 0.75), walk: T.walk.map(v => v * 0.8), speed: T.speed * 1.3 }); E.staff.push(newStaff({ type: 'dean', name: '추가 감독관' }, E.staff.length, T2)); E.evict = { t: 0 }; E.breakT = 9;
       E.staff.forEach((s, i) => { s.u = 0.94 - (i === 2 ? 0.1 : 0); s.dir = -1; s.out = false; s.help = s.check = s.peek = null; setPhase(s, 'walk', procDur(T2.walk)); }); } // 쉬는 시간에 감독관 둘이 앞자리를 데리고 나가고 셋이 돌아온다(그림은 world3d). 끝나면 셋 다 앞쪽에서 걸어 들어온 자리에서 이어 간다 // 2교시: 감독관 한 명 더, 순찰이 빨라진다
@@ -599,6 +600,14 @@ function beginPart(p, firstEver) { // 교시·모듈·블록 하나를 시작
     if (T.swap && T.swap[p]) { E.staff = T.swap[p].map((type, i) => newStaff({ type, name: PROCTOR_NAME[type] }, i, T)); flash('감독관 교대', PAL.hud); } // 블록마다 새 감독관
     if (E.boss && BOSS[E.boss].part) BOSS[E.boss].part(p); // 보스전: 단계 사이 연출
   }
+}
+function resetWatch(T) { // 새 교시: 감독관은 그 자리에서 처음 상태(서 있기)로, 비밀 감독관·탐지 전파·책상 밑·순회 타이머도 처음부터. 자리는 그대로 둔다 (순간이동하면 화면에서 튄다)
+  E.staff.forEach((s, i) => { if (s.bossCtl || s.out) return; setPhase(s, 'stand', procDur(T.stand) + i * 0.7); s.help = s.check = s.peek = null; s.blink = 0; });
+  if (E.mole) E.mole = { phase: 'idle', t: between(7, 12), k: 0 };
+  if (E.pulse) Object.assign(E.pulse, { next: 3 + rng() * 3, warn: 0, active: 0 });
+  if (T.mech.includes('peek')) E.peekT = between(tune.peek_gap_min, tune.peek_gap_max);
+  if (T.mech.includes('crowd')) E.crowdT = between(tune.crowd_gap_min, tune.crowd_gap_max) * 0.6;
+  if (T.mech.includes('idcheck')) E.checkT = between(tune.check_gap_min, tune.check_gap_max) * 0.6;
 }
 function startExam(ti) {
   if (G.audit && !STATE.titleBuild) { G.mail = null; goHub('mail'); return true; } // 타이틀 뒤 배경 시험장은 통보와 상관없이 만든다 (막으면 타이틀이 검은 화면에서 멈춘다). 재시험 통보가 와 있으면 다른 시험은 못 본다: 통보부터 읽게 한다
@@ -1285,7 +1294,7 @@ function addLamp() { // TV 밑 빨간 등: 만점·제보마다 하나씩. 켜�
   G.lamps = Math.min(3, (G.lamps || 0) + 1);
   if (G.lamps >= 3 && !G.audit && G.lastPass) { // 셋 다 켜지면 가장 최근에 합격한 시험을 다시 치르라는 통보가 온다 (면접처럼 종이로 못 보는 시험이면 가장 최근의 필기시험)
     G.audit = Object.assign({}, paperAudit(G.lastPass));
-    tvNews({ tag: '속보', h: '고득점자 재검증 착수… 재시험 통보', s: `${G.audit.tierName} 합격자에게 출석 요구`, tk: ['시험관리위 "조사관 입회하에 다시 치른다"', '합격선 미달이면 합격 취소·고발', '전자기기 반입 단속 강화'], icon: 'paper', cap: '자료 화면 · 답안지' });
+    tvNews({ tag: '속보', h: '고득점자 재검증 착수… 재시험 통보', s: `${G.audit.tierName} 합격자에게 출석 요구`, tk: ['시험관리위 "그날 문제 그대로, 조사관 입회하에"', '합격선 미달이면 합격 취소·고발', '전자기기 반입 단속 강화'], icon: 'paper', cap: '자료 화면 · 답안지' });
     addNews('reg', `시험관리위원회: ${G.audit.tierName} 재시험 출석 통보. 우편을 확인하세요`);
   }
 }
@@ -1321,7 +1330,8 @@ function startProbe() {
   if (Array.isArray(a.qs) && a.tier === TIERS.indexOf(T)) { const pool = a.qs.filter(probeQ); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } qs.push(...pool.slice(0, 5)); } // 그 시험에서 본 문제 중 다섯
   for (let n = 0; qs.length < 5 && n < 12; n++) for (const q of makeQuestions(rng, T, 0)) if (qs.length < 5 && probeQ(q) && !qs.some(o => o.q === q.q && String(o.choices) === String(q.choices))) qs.push(q); // 예전 저장(본 문제 기록 없음)이면 같은 출제 범위에서
   for (let n = 0; qs.length < 5 && n < 12; n++) for (const q of makeQuestions(rng, T, 0)) if (qs.length < 5 && probeQ(q)) qs.push(q); // 문제 풀이 아주 작은 시험: 겹쳐도 그 시험 문제로 채운다
-  STATE.probe = { T, tier: TIERS.indexOf(T), qs, qi: 0, ans: [], phase: 'in', t: 0, left: tune.probe_time, mark: null, correct: 0, snap: true, sig: '' };
+  STATE.probe = { T, tier: TIERS.indexOf(T), qs, qi: 0, ans: [], phase: 'in', t: 0, perfect: !!(a.mail && a.mail.score >= 100 && a.tier === TIERS.indexOf(T)), same: qs.some(q => q.no), // 입실 대사: 만점이었나 · 그날 본 문제를 그대로 내나
+    left: tune.probe_time, mark: null, correct: 0, snap: true, sig: '' };
   G.mail = null; ptrs.clear(); releases = []; scene = 'probe'; save(); return true;
 }
 function endProbe() { // 판정: 5문제 중 3문제 이상이면 통과
@@ -1344,7 +1354,9 @@ function endProbe() { // 판정: 5문제 중 3문제 이상이면 통과
 }
 function updateProbe(dt) {
   const P = STATE.probe, taps = takeTaps(); takeReleases(); P.t += dt;
-  if (P.phase === 'in') { if (P.t > 3.6 || (P.t > 1.2 && (taps.length || pressed('Enter') || pressed('Space')))) { P.phase = 'play'; P.t = 0; } }
+  if (P.phase === 'in') { const tap = P.t > 1.0 && (taps.length || pressed('Enter') || pressed('Space'));
+    if (tap) { if (P.t < 2.0) P.t = 2.0; else if (P.t < 3.5) P.t = 3.5; else if (P.t > 4.3) P.t = 99; } // 눌러서 넘겨도 조사관의 '그날 그 문제' 두 마디는 한 번씩 보고 간다
+    if (P.t > 6.3) { P.phase = 'play'; P.t = 0; } }
   else if (P.phase === 'play') {
     P.left -= dt;
     if (P.mark) { P.mark.t -= dt; if (P.mark.t <= 0) { P.mark = null; P.qi++; } }
@@ -1409,7 +1421,7 @@ function finishExam() {
   if (!tut && jack && !final && !G.audit && E.tier >= tune.lamp_from) { // 만점은 상금이 크지만 TV 밑 빨간 등이 하나 켜진다 (쉬운 초반 시험은 만점이어도 의심받지 않는다)
     const n = G.flags.perfN = (G.flags.perfN || 0) + 1;
     if (n === 1) { tvNews({ tag: '사회', h: `${T.name} 사상 첫 만점자 나왔다`, s: '출제위원 "만점이 나올 수 없게 낸 시험인데…"', tk: ['수험생 커뮤니티 "사람 맞나" 술렁', '시험관리위 "답안지 원본 확인 중"', '내일 전국 흐리고 비'], icon: 'room', cap: '자료 화면 · 시험장' }); }
-    else tvNews({ tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T.name}에서도 만점 · 같은 수험번호`, tk: ['시험관리위 "고득점자 답안 재검증 준비"', '전자기기 반입 단속 강화', 'AI 안경 판매량 석 달 새 4배'], icon: 'paper', cap: '자료 화면 · 답안지' });
+    else tvNews({ tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T.name}에서도 만점 · 같은 수험번호`, tk: ['시험관리위 "만점자는 그날 문제 그대로 재시험"', '전자기기 반입 단속 강화', 'AI 안경 판매량 석 달 새 4배'], icon: 'paper', cap: '자료 화면 · 답안지' });
     addLamp();
     lampLine = G.lamps >= 3 ? '(감독관이 내 수험번호를 받아 적는다)' : G.lamps === 2 ? '(감독관이 내 답안지를 들고 어딘가로 전화를 건다)' : '감독관: …이 시험은 만점이 나올 수가 없는데.';
   }

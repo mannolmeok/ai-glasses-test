@@ -293,7 +293,9 @@ function plate(k, x, y, w, h, H) {
 function drawResultHud(k, L, Rz, now, H) { // 결과 화면: 위에는 연동해 둔 AI(답안봇)의 문자 알림, 아래에는 자막 글씨의 다음 할 일
   const { R, T } = k, C = PAL, b = k.b, W = L.W, blink = Math.floor(now * 2) % 2 === 0;
   if (Rz.shownAt == null || now < Rz.shownAt) Rz.shownAt = now;
-  const a = Math.min(1, (now - Rz.shownAt) / 0.35), e = 1 - (1 - a) * (1 - a), cw = 300, ch = 62, cx = W / 2 - cw / 2, cy = -ch + (ch + 16) * e;
+  const JH = (new URLSearchParams(location.search).get('jackhint') || '').toUpperCase(), tt = CONFIG.tiers[Rz.tier] || {}, ivT = (tt.mech || []).includes('interview') || (tt.mech || []).includes('gaze'); // 만점 상금 알림 시안 비교용 (A: 답안봇 한 줄)
+  const jl = JH.includes('A') && Rz.passed && !Rz.caught && !Rz.audited && !ivT ? (Rz.jack ? { t: `수석 합격 · ${Rz.pay} 3배로 들어와요`, c: '#ffd678' } : !Rz.perfect && !(G.best[Rz.tier] >= 100) && !(G.noJack && G.noJack[Rz.tier]) ? { t: `만점이었으면 ${Rz.pay}${(() => { const c = String(Rz.pay).charCodeAt(String(Rz.pay).length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? '이' : '가'; })()} 3배였어요`, c: '#ffd678' } : null) : null; // 답안봇이 돈 얘기로 알려 준다: 아깝게 놓쳤을 때와 받았을 때
+  const a = Math.min(1, (now - Rz.shownAt) / 0.35), e = 1 - (1 - a) * (1 - a), cw = 300, ch = jl ? 76 : 62, cx = W / 2 - cw / 2, cy = -ch + (ch + 16) * e;
   let gr = b.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, 'rgba(0,0,0,0.28)'); gr.addColorStop(0.35, 'rgba(0,0,0,0)'); gr.addColorStop(0.65, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.6)'); b.fillStyle = gr; b.fillRect(0, 0, W, L.H);
   const rr = (x, y, w, h, r, col) => { b.fillStyle = col; b.beginPath(); if (b.roundRect) b.roundRect(x, y, w, h, r); else b.rect(x, y, w, h); b.fill(); };
   rr(cx + 1, cy + 4, cw, ch, 12, 'rgba(0,0,0,0.35)'); rr(cx, cy, cw, ch, 12, 'rgba(28,30,38,0.94)'); rr(cx + 11, cy + 10, 24, 24, 6, '#5eb5f7');
@@ -302,6 +304,7 @@ function drawResultHud(k, L, Rz, now, H) { // 결과 화면: 위에는 연동해
   const head = Rz.caught ? '적발 · 퇴실' : Rz.audited ? '가채점은 합격인데...' : `가채점 ${Rz.score}점 · `, tail = Rz.caught || Rz.audited ? '' : Rz.passed ? '합격 예상' : '불합격 예상';
   const hw = k.TW(head, 14, 800); T(head, cx + 45, cy + 31, 14, Rz.caught ? col : '#ffffff', 'left', 800); if (tail) T(tail, cx + 45 + hw, cy + 31, 14, col, 'left', 800);
   T(Rz.caught ? '이번 시험은 무효 처리돼요.' : `정답 ${+(+Rz.correct || 0).toFixed(1)}/${Rz.qn} · 합격선 ${Rz.pass}점. 통지표는 우편으로 갑니다.`, cx + 45, cy + 48, 9.5, '#c9d0dc', 'left', 700);
+  if (jl) T(jl.t, cx + 45, cy + 63, 9.5, jl.c, 'left', 800);
   // 아래: 다음에 할 일 (자막 글씨)
   const defs = [[Rz.canRetry ? '재응시' : '응시료 부족', 'R', 'retry', Rz.canRetry]];
   if (Rz.next != null) defs.push([Rz.final ? '엔딩' : Rz.canNext ? '다음 시험' : '응시료 부족', 'N', 'next', Rz.final || Rz.canNext]);
