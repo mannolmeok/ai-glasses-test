@@ -538,6 +538,10 @@ const sfx = {
   zoom: () => { toneAt(320, 0.05, 'triangle', 0.05); toneAt(480, 0.06, 'triangle', 0.04, 0.04); },
   news: () => { toneAt(1175, 0.08, 'sine', 0.1); toneAt(1568, 0.14, 'sine', 0.1, 0.09); },
   hand: () => { toneAt(700, 0.05, 'triangle', 0.06, 0, -0.4); toneAt(840, 0.07, 'triangle', 0.06, 0.07, -0.4); },
+  lock: () => { toneAt(1568, 0.04, 'square', 0.03); toneAt(2093, 0.05, 'square', 0.03, 0.06); }, // 시안: 앞자리 감지 업데이트가 떨림을 잡는 순간 (띠딕)
+  lockDone: () => toneAt(1318, 0.09, 'triangle', 0.05), // 분석이 끝나 몇 초 뒤인지 나왔을 때
+  dlTick: () => toneAt(1900, 0.012, 'square', 0.01), // 텔레그램 파일 받는 중
+  install: () => { [784, 1046, 1318].forEach((f, i) => toneAt(f, 0.09, 'triangle', 0.07, i * 0.08)); }, // 안경에 설치 끝
   warp: () => { toneAt(900, 0.12, 'sine', 0.05); toneAt(300, 0.16, 'sine', 0.05, 0.05); },
   thunder: () => { noiseAt(1.4, 0.35, 0, 160, 0.5); noiseAt(0.25, 0.3, 0, 2400, 0.7); toneAt(55, 0.9, 'sine', 0.2); },
   rumble: () => { noiseAt(0.9, 0.12, 0, 110, 0.6); },
@@ -850,9 +854,10 @@ function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생
   if (T.mech.includes('mole')) { // 앞자리 비밀 감독관: 의자가 들썩이고, 잠시 뒤 뒤돌아본다
     const m = E.mole || (E.mole = { phase: 'idle', t: between(7, 12), k: 0 }); m.t -= dt; m.k += dt;
     if (m.t <= 0) { m.k = 0;
-      if (m.phase === 'idle') { m.phase = 'tell'; m.t = m.tell = between(1.6, 3.4) * (E.tier > 24 ? 0.65 : E.tier > 20 ? 0.8 : 1); sfx.hand(); } // 들썩인 뒤 돌아보기까지는 매번 다르다: 장비가 없으면 언제인지 모른다
+      if (m.phase === 'idle') { m.phase = 'tell'; m.t = m.tell = between(1.6, 3.4) * (E.tier > 24 ? 0.65 : E.tier > 20 ? 0.8 : 1); m.done = false; sfx.hand(); if (MOLE2 && tgHas('molekit')) sfx.lock(); } // 들썩인 뒤 돌아보기까지는 매번 다르다: 장비가 없으면 언제인지 모른다
       else if (m.phase === 'tell') { m.phase = 'look'; m.t = between(1.4, 3.0); sfx.cctv(); } // 쳐다보는 시간도 매번 다르다
       else { m.phase = 'idle'; m.t = between(8, 14); } }
+    if (MOLE2 && m.phase === 'tell' && !m.done && m.k >= Math.min(0.7, (m.tell || 2) * 0.3) + 0.1 && tgHas('molekit')) { m.done = true; sfx.lockDone(); } // 시안: 분석 창이 몇 초 뒤인지 다 읽었을 때
   }
   const free = s => !s.fixed && !s.out && !(s.blink > 0) && (s.phase === 'stand' || s.phase === 'walk');
   if (T.mech.includes('crowd')) {
@@ -1458,7 +1463,11 @@ function helperCost(h) { return Math.ceil(h.mult * TIERS[h.tier].base * tune.rew
 function helperOpen() { return CONFIG.helper.filter(h => G.unlocked - 1 >= h.tier && (!h.when || (MOLE2 && G.flags[h.when]))); } // 그 시험이 일정표에 열리면 연락이 온다 (when: 어떤 일을 겪은 뒤에만, 시안)
 function helperPending() { return helperOpen().filter(h => !tgHas(h.id)).pop() || null; }
 function helperLast() { return helperOpen().pop() || null; }
-function buyHelper(id) { const h = CONFIG.helper.find(x => x.id === id); if (!h || tgHas(id)) return; if (G.audit) { sfx.no(); STATE.note = { text: '결제가 막혔습니다', sub: '재시험 통보가 와 있다 · 우편부터 확인', t: 0 }; return; } const c = helperCost(h); if (G.money < c) { sfx.no(); return; } G.money -= c; (G.tg || (G.tg = {}))[id] = true; sfx.buy(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: `${h.name} 받음`, col: PAL.good || PAL.white }); save(); }
+function buyHelper(id) { const h = CONFIG.helper.find(x => x.id === id); if (!h || tgHas(id)) return; if (G.audit) { sfx.no(); STATE.note = { text: '결제가 막혔습니다', sub: '재시험 통보가 와 있다 · 우편부터 확인', t: 0 }; return; } const c = helperCost(h); if (G.money < c) { sfx.no(); return; } G.money -= c; (G.tg || (G.tg = {}))[id] = true; sfx.buy(); if (h.dl) STATE.tgDl = { id, t: 0 }; else STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: `${h.name} 받음`, col: PAL.good || PAL.white }); save(); } // dl: 파일을 받아 안경에 설치하는 연출 뒤에 알림 (시안)
+const TG_DL = { arrive: 0.5, got: 2.3, inst: 3.8, end: 5.2 }; // 송금 → 파일 도착 → 받기 끝 → 설치 끝 → 연출 끝 (초)
+function updateTgDl(dt) { const d = STATE.tgDl; if (!d) return; const t0 = d.t, h = CONFIG.helper.find(x => x.id === d.id); d.t += dt; const cross = v => t0 < v && d.t >= v;
+  if (cross(TG_DL.arrive)) sfx.flip(); if (d.t > TG_DL.arrive && d.t < TG_DL.got && Math.floor(d.t * 9) !== Math.floor(t0 * 9)) sfx.dlTick(); if (cross(TG_DL.got)) sfx.zoom();
+  if (cross(TG_DL.inst)) { sfx.install(); STATE.pops.push({ v: 0, t: 0, scene: 'hub', text: `${h ? h.name : '업데이트'} 설치됨`, col: PAL.good || PAL.white }); } if (d.t >= TG_DL.end) STATE.tgDl = null; }
 const deskOpen = () => !!(G.flags.sold || G.black || helperOpen().length); // 바탕화면으로 나갈 수 있는가
 function enterView(v, instant) {
   const hv = STATE.hv; hv.view = v; hv.target = v; hv.zoom = instant ? 1 : 0;
@@ -1542,7 +1551,7 @@ function hubAction(a) { // 방에서 누른 물건
 function openParcels() { // 상자를 열지 않고 시험 보러 가도 장비는 쓴다
   const hv = STATE.hv; hv.hidden = {}; hv.order = []; hv.parcel = null; hv.parcelT = 0;
 }
-function updateHub(dt) { soundHub(dt); { const hp = helperPending(); if (hp && !(G.tgTold || (G.tgTold = {}))[hp.id]) { G.tgTold[hp.id] = true; addNews('tg', `텔레그램 새 메시지: "${hp.lines[0][0]}"`); sfx.news(); } }
+function updateHub(dt) { soundHub(dt); updateTgDl(dt); { const hp = helperPending(); if (hp && !(G.tgTold || (G.tgTold = {}))[hp.id]) { G.tgTold[hp.id] = true; addNews('tg', `텔레그램 새 메시지: "${hp.lines[0][0]}"`); sfx.news(); } }
   if (CAN_JUMP && G.opts.rich && params.get('real') !== '1') { const want = Math.max(1e11, examFee(TIERS[Math.min(LAST, G.unlocked - 1)]) * 40); if (G.money < want) G.money = want; } // 테스트 전용 '돈 무한': 설정에서 켠다 // 테스트용 사이트: 방에 있을 때는 돈이 늘 1,000억원 (주소에 ?real=1 을 붙이면 끔)
   const hv = STATE.hv;
   STATE.wipeArm = Math.max(0, STATE.wipeArm - dt);

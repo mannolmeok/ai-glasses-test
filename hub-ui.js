@@ -69,8 +69,22 @@ const HUBUI = (() => {
     const hp = helperPending(), hl = helperLast(), hh = hp || (!want ? hl : null);
     if (!bl && hh && !(want && !hp)) { // 의문의 조력자: 정해진 시험 앞에서 먼저 연락한다
       T('의문의 조력자', 12, by - 2, 10, '#5eb5f7', 'left', 800); by += 10;
-      const cost = helperCost(hh), has = tgHas(hh.id); hh.lines.slice(has ? -1 : -3).forEach(([t, mine]) => bubble(t, mine));
-      if (has) { bubble('보냈어요', true); bubble(hh.done, false); T(`받은 것: ${hh.name} · ${hh.effect}`, 12, LH - 50, 10, '#8fd8a8', 'left', 800); }
+      const cost = helperCost(hh), has = tgHas(hh.id); (has && hh.dl ? [] : hh.lines.slice(has ? -1 : -3)).forEach(([t, mine]) => bubble(t, mine)); // dl(시안): 받은 뒤 대화는 아래에서 따로 그린다
+      if (has && hh.dl) { const d = STATE.tgDl && STATE.tgDl.id === hh.id ? STATE.tgDl.t : 99, f = hh.dl, A = TG_DL; // 시안: 송금하면 파일이 오고(받는 중) → 안경에 설치(단계) → 끝 인사. 연출이 끝나면 그대로 남는다
+        if (d < A.arrive) { hh.lines.slice(-1).forEach(([t, mine]) => bubble(t, mine)); bubble('보냈어요', true); }
+        else { bubble('보냈어요', true); const p = Math.max(0, Math.min(1, (d - A.arrive) / (A.got - A.arrive))), got = d >= A.got, bw = 236, bh = 40, bx = 10, y = by; // 파일 말풍선
+          R(bx, y, bw, bh, '#182533'); R(bx + 8, y + 7, 26, 26, got ? '#2f9e6e' : '#2b5278'); const ix = bx + 21, iy = y + 20;
+          if (got) k.poly([[ix - 7, iy], [ix - 3, iy + 5], [ix + 7, iy - 5], [ix + 5, iy - 7], [ix - 3, iy + 1], [ix - 5, iy - 2]], '#ffffff'); else { R(ix - 1.5, iy - 8, 3, 9, '#ffffff'); k.poly([[ix - 6, iy], [ix + 6, iy], [ix, iy + 7]], '#ffffff'); }
+          T(f.file, bx + 42, y + 13, 11, '#ffffff', 'left', 800); T(got ? `${f.mb}MB · 받음` : `받는 중 ${Math.round(p * 100)}% · ${(f.mb * p).toFixed(1)} / ${f.mb}MB`, bx + 42, y + 26, 9, got ? '#8fd8a8' : '#8aa4bc', 'left', 700);
+          R(bx + 42, y + 33, bw - 52, 3, '#2b3a4a'); R(bx + 42, y + 33, (bw - 52) * p, 3, got ? '#2f9e6e' : '#5eb5f7'); by += bh + 5;
+          if (got) { const q = Math.max(0, Math.min(1, (d - A.got) / (A.inst - A.got))), done = d >= A.inst, cw = 264, ch = done ? 22 : 40, cx = (LW - cw) / 2, cy = by; // 안경 설치 카드
+            R(cx, cy, cw, ch, done ? '#123024' : '#10222f'); k.frame(cx, cy, cw, ch, done ? '#2f9e6e' : '#3f6e8c', 1); const gx = cx + 18, gy = cy + (done ? 11 : 14);
+            k.ring(gx - 5, gy, 4, done ? '#8fd8a8' : '#9fc4e0'); k.ring(gx + 5, gy, 4, done ? '#8fd8a8' : '#9fc4e0'); R(gx - 1, gy - 1, 2, 1, done ? '#8fd8a8' : '#9fc4e0');
+            if (done) T(`안경에 설치 완료 · ${hh.name}`, cx + 32, cy + 11.5, 10, '#8fd8a8', 'left', 800);
+            else { const si = Math.min(f.steps.length - 1, Math.floor(q * f.steps.length)); T(f.title, cx + 32, cy + 13, 10, '#ffffff', 'left', 800); T(`${f.steps[si]}${'.'.repeat(1 + Math.floor(d * 3) % 3)}`, cx + 32, cy + 27, 9, '#9fc4e0', 'left', 700); T(`${Math.round(q * 100)}%`, cx + cw - 8, cy + 13, 9, '#9fc4e0', 'right', 800);
+              R(cx + 32, cy + 34, cw - 40, 2, '#2b3a4a'); R(cx + 32, cy + 34, (cw - 40) * q, 2, '#5eb5f7'); }
+            by += ch + 5; if (done) { bubble(hh.done, false); if (d >= A.end) T(`받은 것: ${hh.name} · ${hh.effect}`, 12, LH - 50, 10, '#8fd8a8', 'left', 800); } } } }
+      else if (has) { bubble('보냈어요', true); bubble(hh.done, false); T(`받은 것: ${hh.name} · ${hh.effect}`, 12, LH - 50, 10, '#8fd8a8', 'left', 800); }
       else { T(`${hh.name} · ${hh.effect}`, 12, LH - 78, 10, '#9fc4e0', 'left', 800); T(hh.need ? '이게 없으면 다음 시험을 볼 수 없다' : '없어도 시험은 볼 수 있다', 12, LH - 49, 9, hh.need ? '#ffb0b0' : '#8a9aa8', 'left', 700);
         const ok = G.money >= cost; btn(k, LW - 10 - 220, LH - 62, 220, 26, ok ? `송금 · ${won(cost)}원` : `${won(cost - G.money)}원 모자람`, ok ? 'tgbuy:' + hh.id : null, { off: !ok, bg: '#2b5278', col: '#5eb5f7', fg: '#ffffff', size: 13 }); }
       lapFoot(k, hv, '< 바탕화면', '#17212b', 1); return;

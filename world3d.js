@@ -1472,6 +1472,14 @@ const WORLD = (() => {
     if (!W.ok || !MOLE || !MOLE.obj || !EX.cam || MOLE.sc !== EX.scene) return null; _p.setFromMatrixPosition(MOLE.obj.matrixWorld); const bx = _p.x, bz = _p.z;
     _p.set(bx, 0.6, bz); _p.project(EX.cam); if (_p.z > 1 || Math.abs(_p.x) > 1.2) return null; const x = (_p.x + 1) / 2 * RW, y1 = (1 - _p.y) / 2 * RH;
     _p.set(bx, 1.32, bz); _p.project(EX.cam); const y0 = (1 - _p.y) / 2 * RH, h = y1 - y0; if (h <= 0) return null; return { x: x - h * 0.32, y: y0, w: h * 0.64, h }; }
+  function moleSeatRect() { // 시안(?mole2=1): 앞자리 의자 + 앉은 몸 아래쪽이 화면에서 차지하는 자리 (640x360). 화면 밖으로 나간 부분은 잘라서, 보이는 데가 없으면 null
+    if (!W.ok || !MOLE || !MOLE.seat || !EX.cam || MOLE.sc !== EX.scene) return null; const sp = MOLE.seat.position; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, n = 0;
+    let cut = false; const add = (x, y, z) => { _p.set(x, y, z); _p.project(EX.cam); if (_p.z > 1) return; const sx = (_p.x + 1) * 320, sy = (1 - _p.y) * 180; if (sy < -24) { cut = true; return; } n++; x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy); }; // 화면 위로 한참 나간 점(시험지를 볼 때의 몸)은 폭에 넣지 않는다
+    for (const dx of [-0.17, 0.17]) { for (const yy of [0.05, 0.59]) add(sp.x + dx, yy, sp.z + 0.14); add(sp.x + dx, 0.59, sp.z + 0.3); } // 의자: 다리 아래 · 방석 (뒤쪽 절반)
+    const o = MOLE.obj.position; for (const dx of [-0.19, 0.19]) for (const yy of [0.62, 1.3]) add(o.x + dx, yy, o.z); // 앉은 몸
+    if (!n) return null; if (cut) y0 = Math.min(y0, 0); if (EX.my && EX.layout === 'room') { _p.set(sp.x, 0.741, EX.my.z - 0.28); _p.project(EX.cam); if (_p.z <= 1) y1 = Math.min(y1, (1 - _p.y) * 180); } // 내 책상에 가려지는 아래쪽은 뺀다
+    const cx0 = Math.max(0, x0), cy0 = Math.max(0, y0), cx1 = Math.min(640, x1), cy1 = Math.min(360, y1); if (cx1 - cx0 < 8 || cy1 - cy0 < 8) return null;
+    return { x: cx0, y: cy0, w: cx1 - cx0, h: cy1 - cy0, cut: cut || y0 < 0 }; }
   const _pj = new THREE.Vector3();
   function projEx(x, y, z) { if (!W.ok || !EX.cam) return null; _pj.set(x, y, z).project(EX.cam); if (_pj.z > 1) return null; return [(_pj.x + 1) * 320, (1 - _pj.y) * 180]; } // 시험장 카메라로 본 점의 화면 자리 (640x360). 카메라 뒤면 null
   function exEye() { return W.ok && EX.cam ? EX.eye || null : null; } // 시험장에서 내 눈 자리
@@ -1763,5 +1771,5 @@ const WORLD = (() => {
   }
 
   function hasView(v) { return !!(EX && EX.views && EX.views[v]); }
-  return Object.assign(W, { projEx, exEye, hasView, init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, moleRect, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
+  return Object.assign(W, { projEx, exEye, hasView, init, renderExam, renderHub, renderTitle, renderFigures, renderEnding, renderTableau, pickChoice, seat, moleRect, moleSeatRect, pickHub, hubLabels, figureLabels, hubRect, hubUV, laptopCanvas, surfaceCanvas, staffRects, mailTex, tvTex, renderProbe, probeTex, probePick, probeSpot, renderStairs, layout: () => EX.layout });
 })();

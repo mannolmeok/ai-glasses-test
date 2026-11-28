@@ -296,7 +296,7 @@ function drawCrown(b, x, y, w, col, edge) { // 작은 왕관 (만점 상금을 �
 function drawResultHud(k, L, Rz, now, H) { // 결과 화면: 위에는 연동해 둔 AI(답안봇)의 문자 알림, 아래에는 자막 글씨의 다음 할 일
   const { R, T } = k, C = PAL, b = k.b, W = L.W, blink = Math.floor(now * 2) % 2 === 0;
   if (Rz.shownAt == null || now < Rz.shownAt) Rz.shownAt = now;
-  const JX = new URLSearchParams(location.search).get('jackx'), jk = !!(JX && Rz.jack && !Rz.caught && !Rz.audited), side = jk && JX === '3' ? 54 : jk && JX === '4' ? 50 : 0; // 3·4: 옆 딱지를 작게 + 카드와 묶어 가운데 정렬
+  const JX = new URLSearchParams(location.search).get('jackx') || '3', jk = !!(JX !== '0' && Rz.jack && !Rz.caught && !Rz.audited), side = jk && JX === '3' ? 54 : jk && JX === '4' ? 50 : 0; // 3·4: 옆 딱지를 작게 + 카드와 묶어 가운데 정렬 // t88: 3(가는 딱지)을 기본으로 · ?jackx=1|2|4 로 다른 안, 0 이면 끔
   const a = Math.min(1, (now - Rz.shownAt) / 0.35), e = 1 - (1 - a) * (1 - a), cw = 300, ch = 62, cx = W / 2 - (cw + side) / 2, cy = -ch + (ch + 16) * e;
   let gr = b.createLinearGradient(0, 0, 0, L.H); gr.addColorStop(0, 'rgba(0,0,0,0.28)'); gr.addColorStop(0.35, 'rgba(0,0,0,0)'); gr.addColorStop(0.65, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.6)'); b.fillStyle = gr; b.fillRect(0, 0, W, L.H);
   const rr = (x, y, w, h, r, col) => { b.fillStyle = col; b.beginPath(); if (b.roundRect) b.roundRect(x, y, w, h, r); else b.rect(x, y, w, h); b.fill(); };
