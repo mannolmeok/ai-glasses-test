@@ -854,13 +854,12 @@ function stepEvents(T, dt) { // 시험마다 다른 사건: 손 드는 수험생
   if (T.mech.includes('mole')) { // 앞자리 비밀 감독관: 의자가 들썩이고, 잠시 뒤 뒤돌아본다
     const m = E.mole || (E.mole = { phase: 'idle', t: between(7, 12), k: 0 }); m.t -= dt; m.k += dt;
     if (m.t <= 0) { m.k = 0;
-      if (m.phase === 'idle') { m.phase = 'tell'; const sc = E.tier > 24 ? 0.65 : E.tier > 20 ? 0.8 : 1; m.done = false; m.bi = 1; sfx.hand(); if (MOLE2 && tgHas('molekit')) sfx.lock();
+      if (m.phase === 'idle') { m.phase = 'tell'; const sc = E.tier > 24 ? 0.65 : E.tier > 20 ? 0.8 : 1; m.done = false; if (!MOLE2) sfx.hand(); else if (tgHas('molekit')) sfx.lock(); // 시안: 흔들림에는 소리를 붙이지 않는다 (업데이트가 있으면 HUD의 '띠딕'만)
         if (MOLE2) { const r = rng(), n = r < 0.3 ? 1 : r < 0.65 ? 2 : r < 0.9 ? 3 : 4; let t = 0; m.bursts = []; for (let i = 0; i < n; i++) { const j = rng() < 0.5 ? 1 : 2; m.bursts.push([t, j]); t += j * MOLE_JOLT + (i < n - 1 ? between(0.5, 1.1) : between(0.8, 1.3)) * sc; } m.t = m.tell = t; } // 시안: 한두 번 흔들고 멈추기를 1~4번 — 몇 번째에 돌아볼지는 매번 다르다
         else m.t = m.tell = between(1.6, 3.4) * sc; } // 들썩인 뒤 돌아보기까지는 매번 다르다: 장비가 없으면 언제인지 모른다
       else if (m.phase === 'tell') { m.phase = 'look'; m.t = between(1.4, 3.0); sfx.cctv(); } // 쳐다보는 시간도 매번 다르다
       else { m.phase = 'idle'; m.t = between(8, 14); } }
     if (MOLE2 && m.phase === 'tell' && !m.done && m.k >= Math.min(0.7, (m.tell || 2) * 0.3) + 0.1 && tgHas('molekit')) { m.done = true; sfx.lockDone(); } // 시안: 분석 창이 몇 초 뒤인지 다 읽었을 때
-    if (MOLE2 && m.phase === 'tell' && m.bursts) while (m.bi < m.bursts.length && m.k >= m.bursts[m.bi][0]) { m.bi++; sfx.hand(); } // 다시 흔들릴 때마다 의자 소리
   }
   const free = s => !s.fixed && !s.out && !(s.blink > 0) && (s.phase === 'stand' || s.phase === 'walk');
   if (T.mech.includes('crowd')) {
