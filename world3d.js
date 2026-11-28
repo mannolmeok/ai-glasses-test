@@ -793,7 +793,7 @@ const WORLD = (() => {
         bx(g, 0.19, 0.22, 0.2, sk, 0, 1.08, -0.05); bx(g, 0.2, 0.09, 0.21, hr, 0, 1.19, -0.04); bx(g, 0.2, 0.17, 0.06, hr, 0, 1.11, 0.06);
         bx(g, 0.16, 0.035, 0.012, 0x15161c, 0, 1.1, -0.156); bx(g, 0.07, 0.012, 0.012, 0x5a2a22, 0, 1.02, -0.156); // 선글라스 같은 검은 안경과 굳게 다문 입
         const eyes = pivot(g, 0, 1.1, -0.165); bx(eyes, 0.035, 0.022, 0.01, 0, -0.045, 0, 0, glowMat(0xff3048)); bx(eyes, 0.035, 0.022, 0.01, 0, 0.045, 0, 0, glowMat(0xff3048)); eyes.visible = false;
-        MOLE = { obj: g, eyes, y0: 0, ry0: 0, sx: 1, sprite: false, sc, seat, x0: g.position.x }; return; }
+        MOLE = { obj: g, eyes, y0: 0, ry0: 0, sx: 1, sprite: false, sc, seat, x0: g.position.x, z0: g.position.z }; return; }
       B.box(0.36, 0.46, 0.2, cl, x, 0.8, z + 0.44, -lean);
       B.box(0.09, 0.1, 0.34, cl, x - 0.17, 0.79, z + 0.16); B.box(0.09, 0.1, 0.34, cl, x + 0.17, 0.79, z + 0.16);
       B.box(0.19, 0.22, 0.2, sk, x, 1.08, z + 0.33, -lean * 0.6);
@@ -1021,10 +1021,13 @@ const WORLD = (() => {
       const o = V ? Math.max(win(V.doors[0] - 0.55, V.tOut + 0.25), win(V.tBack - 0.35, V.back[2].e + 0.9)) : 0; EX_DOOR.hinge.rotation.y = -ease(o) * 1.35; EX_DOOR.glow.intensity = 2.6 * o; }
     const shS = EX.my && EX.views && E.staff.find(s => s.check && s.check.kind === 'sheet');
     if (shS) { const dx = EX.my.x + (shS.side === 'L' ? -0.3 : 0.3) - EX.eye.x, dz = EX.my.z - 0.62 - EX.eye.z; EX.views.sheet = { yaw: Math.atan2(-dx, -dz) * 0.85, pitch: Math.atan2(1.34 - EX.eye.y, Math.hypot(dx, dz)), fov: 60 }; } // 답안지를 든 장학관 쪽으로 고개를 든다
+    if (E.scare && MOLE && MOLE.obj && EX.views) { const o = MOLE.obj, dx = o.position.x - EX.eye.x, dz = o.position.z + 0.06 - EX.eye.z, dy = 1.13 - EX.eye.y; // 시안: 앞자리 얼굴로 시점이 확 들린다 (점점 당겨 본다)
+      EX.views.molelook = { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)), fov: 30 - 9 * ease(clamp(E.scare.t / 1.2, 0, 1)) }; }
     const V = EX.views, a = V[E.prevView] || V.paper, b = V[E.view] || V.paper, k = ease(clamp(E.viewT, 0, 1)), cam = EX.cam;
     const breath = GEN_ROOM ? 0 : 1; // 생성 시험장: 무늬가 촘촘한 그림은 숨 쉬는 흔들림에 화면 전체가 한 칸씩 들썩여 보인다 → 가만히 둔다
     cam.position.copy(EX.eye); cam.position.y += Math.sin(now * 1.3) * 0.003 * breath;
     cam.rotation.order = 'YXZ'; cam.rotation.z = E.roll || 0; cam.rotation.y = lerp(a.yaw, b.yaw, k); cam.rotation.x = lerp(a.pitch, b.pitch, k) + Math.sin(now * 0.9) * 0.004 * breath;
+    if (E.scare && E.scare.t < 0.4) { const sh = (1 - E.scare.t / 0.4) * 0.014; cam.rotation.x += Math.sin(now * 91) * sh; cam.rotation.y += Math.cos(now * 77) * sh; } // 시안: 고개가 들리는 순간 흠칫
     let eyeZoom = false;
     if (EX.layout === 'table' && E.ivLook != null) { const u = ease(clamp(E.ivLook, 0, 1)); // [AI 대면 면접] 대본을 볼 때
       if (IVLOOK_HEAD) { cam.rotation.y += 0.62 * u; cam.rotation.x -= 0.05 * u; } // (비교용) 고개가 왼쪽 허공의 대본 창으로 돈다
@@ -1098,7 +1101,9 @@ const WORLD = (() => {
       if (MOLE2) { const v = ph === 'tell' ? (Math.sin(now * 24) * 0.65 + Math.sin(now * 13.7) * 0.35) * 0.024 : 0; o.rotation.z = 0; o.position.y = MOLE.y0; if (MOLE.x0 != null) o.position.x = MOLE.x0 + v; if (MOLE.seat) MOLE.seat.position.x = MOLE.seat.userData.x0 + v; } // 시안: 의자째 좌우로 잘게 떤다 (눈치챌 만큼만)
       else { o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0); }
       if (MOLE.sprite) o.scale.x = MOLE.sx * (1 - 2 * turn) || 0.001; else o.rotation.y = MOLE.ry0 + Math.PI * turn;
-      MOLE.eyes.visible = turn > 0.6; }
+      MOLE.eyes.visible = turn > 0.6;
+      if (MOLE2 && E.scare && MOLE.z0 != null) { const u = ease(clamp(E.scare.t / 0.35, 0, 1)); o.position.z = MOLE.z0 + 0.15 * u; o.rotation.z = 0.09 * u; MOLE.eyes.scale.setScalar(1 + 0.6 * u); } // 시안: 눈이 마주치자 몸을 내 쪽으로 기울이며 고개를 살짝 꺾는다
+      else if (MOLE.z0 != null) { o.position.z = MOLE.z0; MOLE.eyes.scale.setScalar(1); } }
     if (EX.cctv) {
       const c = EX.cctv, on = E.cctv && E.cctv.on, jammed = E.gear.cctvjam >= 3;
       c.body.rotation.y = c.base + (E.cctv ? E.cctv.a : 0) * 0.9;

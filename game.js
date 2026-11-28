@@ -524,6 +524,7 @@ const sfx = {
   beep: () => tone(980, 0.06, 'square', 0.08),
   pulse: () => { toneAt(300, 0.4, 'sine', 0.16); toneAt(240, 0.3, 'sine', 0.12, 0.1); },
   caught: () => { for (let i = 0; i < 4; i++) toneAt(i % 2 ? 660 : 880, 0.16, 'square', 0.15, i * 0.17); },
+  scare: () => { noiseAt(0.22, 0.1, 0, 3400, 1.1); toneAt(1480, 0.55, 'sawtooth', 0.045); toneAt(1569, 0.55, 'sawtooth', 0.04); toneAt(58, 0.9, 'sine', 0.2); toneAt(43, 1.2, 'triangle', 0.12, 0.04); }, // 시안: 앞자리와 눈이 마주치는 순간 (날카로운 불협화음 + 낮게 쿵)
   pass: () => { [523, 659, 784, 1046].forEach((f, i) => toneAt(f, 0.14, 'square', 0.12, i * 0.1)); },
   top: () => { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => toneAt(f, 0.16, 'square', 0.12, i * 0.09)); toneAt(2093, 0.5, 'triangle', 0.1, 0.6); },
   fail: () => { [392, 349, 311].forEach((f, i) => toneAt(f, 0.22, 'triangle', 0.15, i * 0.2)); },
@@ -1043,13 +1044,14 @@ function stepUnderworld(T, dt) {
   for (const d of g.drops) { d.t += dt; if (d.t >= 0.32 && !d.hit) { d.hit = true; g.marks.push({ u: d.u, v: d.v, t: 0, s: 0.8 + rng() * 0.7 }); sfx.drip(); } } // 떨어지던 물방울이 시험지에 닿으면 물자국
   g.drops = g.drops.filter(d => !d.hit); g.marks.forEach(m => { m.t += dt; }); g.marks = g.marks.filter(m => m.t < 14).slice(-14);
 }
+const SCARE_T = 1.25; // 시안: 앞자리와 눈이 마주친 채 버티는 시간 (그 뒤 '적발')
 function getCaught() {
   if (E.caught) return;
   E.caught = true; E.endT = 0; G.stats.caught++; ptrs.clear();
   const src = E.source, w = E.staff.find(s => s.phase === 'watch' && !s.out) || E.staff.find(s => s.phase === 'tell' && !s.out);
   if (src && src.how !== 'watch') { E.caughtHow = src.how; E.caughtBy = src.by || E.staff[0]; }
   else { E.caughtBy = (src && src.by) || w || E.staff[0]; E.caughtHow = 'watch'; }
-  sfx.caught(); events.push({ type: 'caught', how: E.caughtHow });
+  if (E.scare) { sfx.scare(); E.prevView = E.view; E.view = 'molelook'; E.viewT = 0; } else sfx.caught(); events.push({ type: 'caught', how: E.caughtHow });
 }
 function examHint() { // 첫 시험(모의평가)에서만, 한 번에 하나
   E.guide = null;
@@ -1094,7 +1096,9 @@ function updateExam(dt) {
   if (E.flash) E.flash.t += dt; if (E.say) { E.say.t += dt; if (E.say.t > 3) E.say = null; }
   soundExam(dt);
   E.runShown = G.opts.timer ? G.run.t : 0;
-  if (E.caught || E.over) { E.endT += dt; takeReleases(); if (E.endT > (E.caught ? 2.0 : 0.9)) finishExam(); return; }
+  if (E.caught || E.over) { E.endT += dt; takeReleases();
+    if (E.scare) { E.scare.t += dt; E.viewT = Math.min(1, E.viewT + dt / 0.16); if (!E.scare.rung && E.scare.t >= SCARE_T) { E.scare.rung = true; sfx.caught(); } } // 확 올려다본 뒤 잠깐 마주 보고 있다가 적발
+    if (E.endT > (E.caught ? 2.0 + (E.scare ? SCARE_T : 0) : 0.9)) finishExam(); return; }
   if (pressed('KeyP') || pressed('Escape')) { scene = 'pause'; return; }
   if (E.intro) { // 입실 검사 장면: 탐지봉 · 안경 물에 담그기 · 단추 스티커
     const I = E.intro, t0 = I.t; I.t += dt; takeReleases(); E.holding = false; E.hint = null; const v = I.kind === 'metal' ? 'front' : 'paper'; if (E.layout === 'room' && E.view !== v) setView(v); E.viewT = Math.min(1, E.viewT + dt / tune.look_time);
@@ -1255,7 +1259,7 @@ function updateExam(dt) {
       for (const s of E.staff) if (!s.out && !s.fixed && s.phase !== 'check' && s.phase !== 'help' && s.phase !== 'peek') { setPhase(s, 'watch', tune.sea_flail); s.away = false; } } }
   if (M_.includes('helmet')) E.fog = clamp((E.fog || 0) + (hold ? dt / 3.2 : -dt / 2.2), 0, 1);
   const peeker = E.staff.find(s => s.phase === 'peek' && s.peek.stage === 'stare');
-  if (E.mole && E.mole.phase === 'look' && E.mole.k > 0.25 && risky) { E.sus = 1; E.source = { how: 'mole', by: E.staff[0] }; G.flags.moleMet = true; getCaught(); return; } // 처음 걸리면 텔레그램 조력자가 '앞자리 감지 업데이트'로 연락해 온다 (시안) // 돌아본 앞자리와 눈이 마주친 채 스캔하면 끝 (책상 밑 감시와 같은 규칙)
+  if (E.mole && E.mole.phase === 'look' && E.mole.k > 0.25 && risky) { E.sus = 1; E.source = { how: 'mole', by: E.staff[0] }; G.flags.moleMet = true; if (MOLE2 && E.layout === 'room') E.scare = { t: 0, rung: false }; getCaught(); return; } // 시안: 적발 글자 전에 고개가 들려 돌아본 앞자리와 눈이 마주친다 // 처음 걸리면 텔레그램 조력자가 '앞자리 감지 업데이트'로 연락해 온다 (시안) // 돌아본 앞자리와 눈이 마주친 채 스캔하면 끝 (책상 밑 감시와 같은 규칙)
   if (peeker && risky) { E.sus = 1; E.source = { how: 'peek', by: peeker }; getCaught(); return; } // 올려다보는 눈과 마주친 채 스캔하면 끝
   if (!hold && !E.ai && !E.fb && E.scan > 0) E.scan = table ? Math.floor(E.scan * 4 + 1e-6) / 4 : tune.scan_drop >= 10 ? 0 : Math.max(0, E.scan - tune.scan_drop * dt); // 손을 떼면 스캔이 처음으로 돌아간다
   E.wasHold = hold; E.holding = hold; E.autoHolding = autoHold && !manual;
@@ -1858,6 +1862,7 @@ if (params.get('gear')) { const lv = Number(params.get('gear')); for (const d of
 if (params.get('money')) G.money = Number(params.get('money'));
 if (params.get('auto') === '0') G.gear.autoscan = 0; // check only: 자동 스캔 없이 직접 해 본다
 if (params.get('lens')) { G.gear.lens = Number(params.get('lens')); syncGear(); } // check only: 촬영·표시 장비 단계를 정해서 본다
+if (params.get('molekit')) { G.flags.moleMet = true; (G.tg || (G.tg = {})).molekit = true; } // check only (?mole2=1): 텔레그램 '앞자리 감지 업데이트'를 이미 받은 상태로 본다
 state = makeState();
 awayEarnings();
 STATE.shown = G.money;
@@ -1877,7 +1882,7 @@ if (scene === 'play' || scene === 'pause' || scene === 'results') {
   if (params.get('fire')) { E.start = 0; E.pulse.warn = params.get('fire') === '1' ? 0.8 : 0; E.pulse.active = params.get('fire') === '1' ? 0 : 0.35; }
   if (params.get('peek')) { const st = E.staff[0]; st.phase = 'peek'; st.peek = { stage: 'stare', t: 0.5 }; E.view = 'paper'; E.viewT = 1; }
   if (params.get('final')) { E.qi = E.qs.length - 2; E.start = 0; E.answers[E.qi] = 0; nextQuestion(); if (params.get('final') === '2') { E.view = 'paper'; E.viewT = 1; completeScan(); } }
-  if (params.get('scene') === 'results') { while (!E.over) { E.qs.forEach((q, i) => { E.answers[i] = (i + E.part) % 4 === 3 ? (q.answer + 1) % 4 : q.answer; E.via[i] = i % 2 ? 'ai' : 'self'; }); endPart(true); E.breakT = 0; } finishExam(); }
+  if (params.get('scene') === 'results') { const pf = !!params.get('perfect'); while (!E.over) { E.qs.forEach((q, i) => { E.answers[i] = !pf && (i + E.part) % 4 === 3 ? (q.answer + 1) % 4 : q.answer; E.via[i] = i % 2 ? 'ai' : 'self'; }); endPart(true); E.breakT = 0; } finishExam(); }
 }
 if (params.get('lamps')) G.lamps = clamp(Number(params.get('lamps')), 0, 3); // check only: 전수조사 장면들
 if (params.get('tvn')) { const T0 = TIERS[Number(TIER_Q) || 6]; G.tv.push({ 1: { tag: '사회', h: `${T0.name} 사상 첫 만점자 나왔다`, s: '출제위원 "만점이 나올 수 없게 낸 시험인데…"', icon: 'room', cap: '자료 화면 · 시험장' }, 2: { tag: '속보', h: '잇따른 만점… 당국 "전수조사 검토"', s: `${T0.name}에서도 만점 · 같은 수험번호`, icon: 'paper', cap: '자료 화면 · 답안지' }, 3: { tag: '속보', h: '"AI 안경으로 시험 본다" 익명 제보', s: '제보자 "장비 판 사람이 나… 돈을 안 주더라"', icon: 'tip', cap: '제보 영상 · 모자이크' }, 4: { tag: '속보', h: '"AI 안경 부정 응시" 수험생 검거', s: `${T0.name} 합격 취소 · 벌금 1,200,000원`, icon: 'cuffs', cap: '현장 화면' }, 5: { tag: '사회', h: '재검증 결과 "이상 없음"', s: `${T0.name} 만점자, 조사관 앞에서 다시 풀어 통과`, icon: 'stamp', cap: '자료 화면 · 판정' } }[params.get('tvn')]); }
