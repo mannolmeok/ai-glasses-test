@@ -1098,7 +1098,7 @@ const WORLD = (() => {
       o.visible = t < 3.4; o.position.y = MOLE.y0 + Math.min(0.26, t * 0.5) + (t > 0.7 ? Math.abs(Math.sin(t * 9)) * 0.02 : 0); if (!MOLE.sprite) o.rotation.y = MOLE.ry0 + clamp((t - 0.5) / 0.5, 0, 1) * -Math.PI / 2; o.position.x = MOLE.x0 + Math.max(0, t - 0.9) * 1.5; o.rotation.z = t > 0.9 ? Math.sin(t * 9) * 0.05 : 0; MOLE.eyes.visible = false; }
     else if (MOLE && MOLE.obj && MOLE.sc === EX.scene) { const m = E.mole, o = MOLE.obj, caughtM = E.caught && E.caughtHow === 'mole', ph = caughtM ? 'look' : m ? m.phase : 'idle'; // 앞자리 비밀 감독관: 들썩 → 뒤돌아봄
       const turn = ph === 'look' ? clamp((caughtM ? 1 : m.k / 0.25), 0, 1) : 0;
-      if (MOLE2) { const v = ph === 'tell' ? (Math.sin(now * 24) * 0.65 + Math.sin(now * 13.7) * 0.35) * 0.024 : 0; o.rotation.z = 0; o.position.y = MOLE.y0; if (MOLE.x0 != null) o.position.x = MOLE.x0 + v; if (MOLE.seat) MOLE.seat.position.x = MOLE.seat.userData.x0 + v; } // 시안: 의자째 좌우로 잘게 떤다 (눈치챌 만큼만)
+      if (MOLE2) { const v = ph === 'tell' && typeof moleShakeAt === 'function' ? moleShakeAt(m, m.k) * 0.03 : 0; o.rotation.z = 0; o.position.y = MOLE.y0; if (MOLE.x0 != null) o.position.x = MOLE.x0 + v; if (MOLE.seat) MOLE.seat.position.x = MOLE.seat.userData.x0 + v; } // 시안: 의자째 좌우로 잘게 떤다 (눈치챌 만큼만)
       else { o.rotation.z = ph === 'tell' ? Math.sin(now * 22) * 0.05 : 0; o.position.y = MOLE.y0 + (ph === 'tell' ? Math.abs(Math.sin(now * 11)) * 0.035 : 0); }
       if (MOLE.sprite) o.scale.x = MOLE.sx * (1 - 2 * turn) || 0.001; else o.rotation.y = MOLE.ry0 + Math.PI * turn;
       MOLE.eyes.visible = turn > 0.6;
@@ -1473,10 +1473,10 @@ const WORLD = (() => {
     _p.set(bx, 0.6, bz); _p.project(EX.cam); if (_p.z > 1 || Math.abs(_p.x) > 1.2) return null; const x = (_p.x + 1) / 2 * RW, y1 = (1 - _p.y) / 2 * RH;
     _p.set(bx, 1.32, bz); _p.project(EX.cam); const y0 = (1 - _p.y) / 2 * RH, h = y1 - y0; if (h <= 0) return null; return { x: x - h * 0.32, y: y0, w: h * 0.64, h }; }
   function moleSeatRect() { // 시안(?mole2=1): 앞자리 의자 + 앉은 몸 아래쪽이 화면에서 차지하는 자리 (640x360). 화면 밖으로 나간 부분은 잘라서, 보이는 데가 없으면 null
-    if (!W.ok || !MOLE || !MOLE.seat || !EX.cam || MOLE.sc !== EX.scene) return null; const sp = MOLE.seat.position; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, n = 0;
+    if (!W.ok || !MOLE || !MOLE.seat || !EX.cam || MOLE.sc !== EX.scene) return null; const sp = { x: MOLE.seat.userData.x0 != null ? MOLE.seat.userData.x0 : MOLE.seat.position.x, z: MOLE.seat.position.z }; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, n = 0; // 떨려도 HUD는 가만히: 의자가 쉬는 자리 기준
     let cut = false; const add = (x, y, z) => { _p.set(x, y, z); _p.project(EX.cam); if (_p.z > 1) return; const sx = (_p.x + 1) * 320, sy = (1 - _p.y) * 180; if (sy < -24) { cut = true; return; } n++; x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy); }; // 화면 위로 한참 나간 점(시험지를 볼 때의 몸)은 폭에 넣지 않는다
     for (const dx of [-0.17, 0.17]) { for (const yy of [0.05, 0.59]) add(sp.x + dx, yy, sp.z + 0.14); add(sp.x + dx, 0.59, sp.z + 0.3); } // 의자: 다리 아래 · 방석 (뒤쪽 절반)
-    const o = MOLE.obj.position; for (const dx of [-0.19, 0.19]) for (const yy of [0.62, 1.3]) add(o.x + dx, yy, o.z); // 앉은 몸
+    const o = MOLE.obj.position, ox = MOLE.x0 != null ? MOLE.x0 : o.x; for (const dx of [-0.19, 0.19]) for (const yy of [0.62, 1.3]) add(ox + dx, yy, o.z); // 앉은 몸 (역시 쉬는 자리 기준)
     if (!n) return null; if (cut) y0 = Math.min(y0, 0); if (EX.my && EX.layout === 'room') { _p.set(sp.x, 0.741, EX.my.z - 0.28); _p.project(EX.cam); if (_p.z <= 1) y1 = Math.min(y1, (1 - _p.y) * 180); } // 내 책상에 가려지는 아래쪽은 뺀다
     const cx0 = Math.max(0, x0), cy0 = Math.max(0, y0), cx1 = Math.min(640, x1), cy1 = Math.min(360, y1); if (cx1 - cx0 < 8 || cy1 - cy0 < 8) return null;
     return { x: cx0, y: cy0, w: cx1 - cx0, h: cy1 - cy0, cut: cut || y0 < 0 }; }

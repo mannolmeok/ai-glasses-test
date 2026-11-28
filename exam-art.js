@@ -914,9 +914,14 @@ function drawIntro(k, L, E, now) { // 입실 검사 장면의 자막과 화면 �
   }
 }
 // ---- 면접: 화면 왼쪽에 뜨는 AI 답변. 면접관이 안 볼 때 왼쪽을 누르고 있어야 한 문장씩 읽힌다 ----
-function moleTrem(E, now, back) { // 앞자리 떨림 세기(-1~1): 3D 의자 떨림과 같은 식. back초 전 값 — 떨기 전·돌아본 뒤에는 아주 작은 잡음
-  const m = E.mole, t = now - back; if (!m) return 0; const st = m.phase === 'tell' ? now - ((m.tell || 2) - m.t) : 1e9;
-  return t >= st ? Math.sin(t * 24) * 0.65 + Math.sin(t * 13.7) * 0.35 : (Math.sin(t * 7.1) + Math.sin(t * 3.3)) * 0.02; }
+const MOLE_JOLT = 0.2; // 시안: 한 번 '흔들'(좌우 한 번 왕복)에 걸리는 초
+function moleShakeAt(m, k) { // 앞자리 의자 떨림(-1~1) — 'tell'(떨림) 단계에서 k초 지점. m.bursts = [[시작 초, 흔들 횟수], ...] · 흔들 사이에는 가만히 멈춘다
+  if (!m || m.phase !== 'tell' || !m.bursts) return 0;
+  for (const [s0, n] of m.bursts) { const t = k - s0, d = n * MOLE_JOLT; if (t >= 0 && t <= d) return Math.sin(t / MOLE_JOLT * Math.PI * 2) * (1 - 0.3 * t / d); }
+  return 0; }
+function moleTrem(E, now, back) { // HUD에 그리는 떨림 그래프: 3D 의자 떨림과 같은 값의 back초 전 — 떨기 전·멈춘 사이·돌아본 뒤에는 아주 작은 잡음
+  const m = E.mole, t = now - back; if (!m) return 0; const k = m.k - back, v = m.bursts ? moleShakeAt(m, k) : (m.phase === 'tell' && k >= 0 ? Math.sin(t * 24) * 0.65 + Math.sin(t * 13.7) * 0.35 : 0);
+  return v || (Math.sin(t * 7.1) + Math.sin(t * 3.3)) * 0.02; }
 function drawMoleFx(k, L, E, now) { // 시안(?mole2=1 + 텔레그램 '앞자리 감지 업데이트'): 조용할 때는 아무것도 없다. 앞자리가 떨기 시작하면 그 의자에 조준이 붙고, 분석 창이 떠서 몇 초 뒤 돌아볼지 센다
   const m = E.mole, st = hudStage(E), fx = E.moleFx || (E.moleFx = { ph: 'idle', off: -9 }), W = L.W;
   if (m.phase !== fx.ph) { if (m.phase === 'idle' && fx.ph !== 'idle') fx.off = now; fx.ph = m.phase; }
@@ -963,7 +968,7 @@ function drawMoleFx(k, L, E, now) { // 시안(?mole2=1 + 텔레그램 '앞자리
   if (st === 'brain') { const t1 = look ? '…보고 있다' : busy ? '…앞자리가 떨린다' + '.'.repeat(Math.floor(now * 4) % 3) : idle ? '…다시 조용하다' : `…${sec.toFixed(1)}초 뒤 돌아본다`;
     b.globalAlpha = wa * (flash ? 0.5 : 1); M('앞자리', wx, wy + 6, 8, col, 'left', 700); M(t1, wx, wy + 19, 9.5, look ? '#ff8a8a' : '#ffffff', 'left', 700); b.restore(); return; }
   const s2 = 0.86 + 0.14 * pop, tx = x => wx + ww / 2 + (x - wx - ww / 2) * s2, ty = y => wy + wh / 2 + (y - wy - wh / 2) * s2, P = (str, x, y, size, cc, al) => (mono ? M : T)(str, tx(x), ty(y), size * s2, cc, al, 700);
-  const hz = (11 + Math.abs(trem(0)) * 3).toFixed(1), r1 = desk ? 9 : 10, r2 = desk ? 20 : 25; b.globalAlpha = wa;
+  const q4 = Math.floor(now * 4) / 4, hz = (11.4 + Math.sin(q4 * 5.3) * 0.6).toFixed(1), r1 = desk ? 9 : 10, r2 = desk ? 20 : 25; b.globalAlpha = wa; // 읽는 값은 1초에 네 번만 바뀐다
   if (st === 'contact') P(look ? '앞자리 주시 중 · 손 떼기' : busy ? `앞자리 진동 · 분석 ${Math.round(ana * 100)}%` : idle ? '앞자리 해제' : `${sec.toFixed(1)}초 뒤 돌아봄`, wx + 22, wy + wh / 2 + 0.5, 8, look ? '#ff9a9a' : '#ffffff', 'left');
   else if (st === 'used') { P('SEAT-F', wx + 6, wy + r1, 7, col, 'left'); P(look ? 'EYES ON' : busy ? `SCAN ${hz}Hz` : idle ? 'CLEAR' : 'LOCK', wx + ww - 6, wy + r1, 7, col, 'right'); P(look ? '!! 손 떼기' : busy ? 'ANALYZING' : idle ? '--' : `TURN ${sec.toFixed(1)}s`, wx + 6, wy + r2, busy ? 8 : 10, look ? '#ff8a8a' : '#ffffff', 'left'); }
   else if (st === 'mil') { P('TGT-F · SEAT', wx + 6, wy + r1 + 1, 7, col, 'left'); P(look ? 'EYES ON' : busy ? 'TREMOR' : idle ? 'LOST' : 'TURN', wx + ww - 6, wy + r1 + 1, 7, col, 'right'); P(look ? 'HOLD' : busy ? 'ANALYZING' : idle ? '--' : `T-${sec.toFixed(1)}`, busy ? wx + 6 : wx + ww - 6, wy + r2, busy ? 8 : 12, look ? '#ff8a8a' : '#ffffff', busy ? 'left' : 'right'); }
