@@ -1871,7 +1871,7 @@ if (params.get('gear')) { const lv = Number(params.get('gear')); for (const d of
 if (params.get('money')) G.money = Number(params.get('money'));
 if (params.get('auto') === '0') G.gear.autoscan = 0; // check only: 자동 스캔 없이 직접 해 본다
 if (params.get('lens')) { G.gear.lens = Number(params.get('lens')); syncGear(); } // check only: 촬영·표시 장비 단계를 정해서 본다
-if (params.get('molekit')) { G.flags.moleMet = true; (G.tg || (G.tg = {})).molekit = true; } // check only (?mole2=1): 텔레그램 '앞자리 감지 업데이트'를 이미 받은 상태로 본다
+if (params.get('molekit')) { G.flags.moleMet = true; (G.tg || (G.tg = {})).molekit = true; } else if (params.get('molemet')) G.flags.moleMet = true; // molemet: 앞자리에게 걸린 뒤(텔레그램 제안이 와 있는 상태) // check only (?mole2=1): 텔레그램 '앞자리 감지 업데이트'를 이미 받은 상태로 본다
 state = makeState();
 awayEarnings();
 STATE.shown = G.money;
